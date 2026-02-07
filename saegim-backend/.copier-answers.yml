@@ -1,0 +1,22 @@
+# Changes here will be overwritten by Copier
+_commit: v0.20.0
+_src_path: gh:appleparan/copier-modern-ml
+allow_insecure_host: false
+author_email: jongsukim8@gmail.com
+author_fullname: Jongsu Kim
+ci: github
+copyright_date: '2026'
+copyright_holder: Jongsu Kim
+copyright_holder_email: jongsukim8@gmail.com
+copyright_license: Apache License 2.0
+create_directories: false
+create_examples: true
+native_tls: false
+package: true
+project_description: (Backend) human-in-the-loop labeling platform for Korean document
+    benchmarks
+project_name: saegim
+project_slug: saegim
+repo_url: https://github.com/appleparan/saegim
+version: 0.1.0
+

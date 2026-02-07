@@ -1,0 +1,128 @@
+# Use the official NVIDIA CUDA base image with Ubuntu
+FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+# https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Builder stage - Pure UV base
+# https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+# FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS builder
+
+# Declare environmental variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Asia/Seoul \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8 \
+    SHELL=/bin/bash \
+    MPLBACKEND=Agg \
+    PIP_IGNORE_INSTALLED=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+
+# Add CUDA development libraries for building
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    wget \
+    gnupg2 \
+    ca-certificates \
+    git \
+    curl \
+    wget \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libgdbm-dev \
+    libdb5.3-dev \
+    libbz2-dev \
+    libexpat1-dev \
+    liblzma-dev \
+    tk-dev \
+    libffi-dev \
+    libgdbm-compat-dev \
+    libxmlsec1-dev \
+    xz-utils
+
+WORKDIR /workspace
+
+# Copy project files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN --mount=type=cache,target=/tmp/uv-cache \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-editable
+
+# Copy source code
+ADD . /workspace
+
+# Sync the project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
+
+# Build wheel
+RUN --mount=type=cache,target=/tmp/uv-cache \
+    uv build --wheel --out-dir /workspace/dist
+
+# Use the official NVIDIA CUDA base image with Ubuntu
+FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+# https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Production stage - UV runtime
+# FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS production
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1
+
+# Install runtime dependencies including curl for health check
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy wheel from builder and install system-wide
+COPY --from=builder /workspace/dist/*.whl /tmp/
+RUN uv pip install --system /tmp/*.whl && \
+    rm /tmp/*.whl
+
+# Create directories and copy startup script
+RUN mkdir -p /app/scripts
+COPY --from=builder /workspace/scripts/start_server.py /app/scripts/start_server.py
+
+# Create non-root user and set ownership
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid appuser --create-home appuser && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Set working directory
+WORKDIR /app
+
+# Verify installation
+# RUN python -c "import sys; print(f'Python version: {sys.version}')" && \
+#     python -c "from saegim.app import create_app; print('FastAPI app import successful')"
+RUN python -c "import sys; print(f'Python version: {sys.version}')"
+
+# Expose FastAPI default port
+EXPOSE 5000
+
+# Health check for FastAPI
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Run FastAPI with uvicorn using settings-based startup script
+# Configuration is loaded from environment variables and .env file
+CMD ["uv", "run", "python", "scripts/start_server.py"]
