@@ -1,215 +1,139 @@
-# Getting Started
+# 시작하기
 
-This guide will help you set up and start using the test_project ML template.
+## 사전 요구사항
 
-## Prerequisites
+- Python 3.13+
+- PostgreSQL 15+
+- [uv](https://docs.astral.sh/uv/) 패키지 매니저
 
-- Python 3.12+
-- Git
-- (Optional) CUDA-compatible GPU for accelerated training
+## 설치
 
-## Installation
-
-### 1. Install uv
-
-First, install uv if you haven't already:
+### 1. uv 설치
 
 ```bash
-# On macOS and Linux
+# macOS / Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# On Windows
+# Windows
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### 2. Clone and Setup Project
+### 2. 프로젝트 클론 및 설정
 
 ```bash
-# Clone the repository
 git clone https://github.com/appleparan/saegim
-cd saegim
+cd saegim/saegim-backend
 
-# Install Python 3.13
-uv python install 3.13
-uv python pin 3.13
+# Python 설치 및 고정
+uv python install 3.14
+uv python pin 3.14
 
-# Install dependencies with CUDA support (Ubuntu/Linux)
-uv sync --group dev --group docs --extra cu126
-
-# For CPU-only installation
-uv sync --group dev --group docs --extra cpu
+# 의존성 설치 (개발 + 문서)
+uv sync --group dev --group docs
 ```
 
-### 3. Verify Installation
+### 3. PostgreSQL 설정
 
-Test the installation by running:
+데이터베이스와 사용자를 생성합니다:
 
 ```bash
-# Test CLI
-test_project-cli hello
+# PostgreSQL에 접속
+sudo -u postgres psql
 
-# Run tests
+# 데이터베이스 생성
+CREATE USER labeling WITH PASSWORD 'labeling';
+CREATE DATABASE labeling OWNER labeling;
+\q
+```
+
+### 4. 환경 변수 설정
+
+프로젝트 루트에 `.env` 파일을 생성합니다:
+
+```bash
+# .env
+DATABASE_URL=postgresql://labeling:labeling@localhost:5432/labeling
+API_HOST=0.0.0.0
+API_PORT=5000
+DEBUG=true
+LOG_LEVEL=DEBUG
+STORAGE_PATH=./storage
+```
+
+### 5. 마이그레이션 실행
+
+```bash
+# psql로 직접 실행
+psql -U labeling -d labeling -f migrations/001_init.sql
+```
+
+### 6. 서버 실행
+
+```bash
+uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
+```
+
+서버가 실행되면 다음 주소에서 확인할 수 있습니다:
+
+- API: `http://localhost:5000/api/v1/health`
+- Swagger UI: `http://localhost:5000/docs` (DEBUG=true일 때)
+- ReDoc: `http://localhost:5000/redoc` (DEBUG=true일 때)
+
+## 설치 확인
+
+```bash
+# 헬스체크
+curl http://localhost:5000/api/v1/health
+
+# 응답 예시
+# {"status": "healthy"}
+```
+
+## 테스트
+
+```bash
+# 전체 테스트 실행
 uv run pytest
+
+# 커버리지 포함
+uv run pytest --cov
+
+# 특정 테스트 파일
+uv run pytest tests/api/test_projects.py -v
+uv run pytest tests/services/test_labeling_service.py -v
 ```
 
-## Quick Start
-
-### Running Your First Model
-
-#### 1. NLP Example (BoolQ Dataset)
-
-Train a BERT model for question answering:
+## 개발 도구
 
 ```bash
-saegim-cli nlp --max-epochs 3 --accelerator auto
-```
-
-#### 2. Vision Example (MNIST Dataset)
-
-Train a CNN for digit classification:
-
-```bash
-saegim-cli vision --max-epochs 5 --accelerator auto
-```
-
-#### 3. Tabular Example (Titanic Dataset)
-
-Train a neural network for survival prediction:
-
-```bash
-saegim-cli tabular --max-epochs 10 --accelerator auto
-```
-
-### Command Line Options
-
-All training commands support these common options:
-
-- `--max-epochs`: Number of training epochs (default: 10)
-- `--accelerator`: Training accelerator ('auto', 'cpu', 'gpu', 'tpu')
-- `--devices`: Number of devices to use ('auto', or specific count)
-- `--deterministic`: Enable deterministic training (default: True)
-- `--random-seed`: Random seed for reproducibility (default: 42)
-
-Example with custom parameters:
-
-```bash
-test_project-cli nlp \
-    --max-epochs 5 \
-    --accelerator gpu \
-    --devices 1 \
-    --random-seed 123
-```
-
-## Development Workflow
-
-### 1. Code Quality
-
-```bash
-# Format code
+# 코드 포맷팅
 uv run ruff format
 
-# Lint code
-uv run ruff check --fix .
+# 린트 검사
+uv run ruff check
 
-# Type checking
-uv run mypy src/
+# 타입 검사
+uv run ty check
 
-# Run pre-commit hooks
-uvx pre-commit run --all-files
-```
-
-### 2. Testing
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=test_project
-
-# Run specific test file
-uv run pytest tests/test_version.py
-```
-
-### 3. Documentation
-
-```bash
-# Serve documentation locally
+# 문서 로컬 서버
 uv run mkdocs serve
-
-# Build documentation
-uv run mkdocs build
 ```
 
-## Project Structure
-
-After setup, your project will have this structure:
-
-```plaintext
-saegim/
-├── src/saegim/     # Main source code
-├── configs/                    # Hydra configuration files
-├── data/                       # Data directories
-│   ├── raw/                    # Original data
-│   ├── processed/              # Processed data
-│   ├── interim/                # Intermediate data
-│   └── external/               # External data sources
-├── docs/                       # Documentation
-├── models/                     # Saved models
-├── notebooks/                  # Jupyter notebooks
-├── reports/                    # Generated reports
-├── tests/                      # Tests
-└── pyproject.toml              # Project configuration
-```
-
-## Configuration
-
-### Hydra Configuration
-
-The project uses Hydra for configuration management. Default configs are in `configs/model_config.toml`.
-
-You can override configurations via CLI:
+## Docker (선택사항)
 
 ```bash
-# Override config values
-saegim-cli nlp hydra.job.name=my_experiment
+# 이미지 빌드
+docker build -t saegim-backend -f Dockerfile.source .
+
+# 실행
+docker run -p 5000:5000 \
+  -e DATABASE_URL=postgresql://labeling:labeling@host.docker.internal:5432/labeling \
+  saegim-backend
 ```
 
-### Environment Variables
+## 다음 단계
 
-You can set these environment variables:
-
-- `CUDA_VISIBLE_DEVICES`: Specify which GPUs to use
-- `HYDRA_FULL_ERROR`: Show full Hydra error traces
-
-## Next Steps
-
-1. **Explore the Code**: Check out the source code in `src/test_project/`
-2. **Customize Models**: Modify the model architectures in `nlp.py`, `vision.py`, or `tabular.py`
-3. **Add Your Data**: Place your datasets in the appropriate `data/` subdirectories
-4. **Create Notebooks**: Use `notebooks/` for exploratory data analysis
-5. **Write Tests**: Add tests in the `tests/` directory
-
-## Troubleshooting
-
-### Common Issues
-
-**ImportError: No module named 'test_project'**
-```bash
-# Ensure you're in the project directory and dependencies are installed
-uv sync --group dev
-```
-
-**CUDA out of memory**
-```bash
-# Reduce batch size or use CPU
-saegim-cli nlp --accelerator cpu
-```
-
-**Permission denied when running scripts**
-```bash
-# Make sure scripts are executable
-chmod +x scripts/release.sh
-```
-
-For more help, check the [API Reference](/reference/saegim/cli.md) or open an issue on GitHub.
+- [아키텍처](architecture.md) - 시스템 구조 이해
+- [API 엔드포인트](api.md) - API 사용법
+- [데이터베이스](database.md) - 스키마 구조
+- [개발 가이드](development.md) - 기여 방법
