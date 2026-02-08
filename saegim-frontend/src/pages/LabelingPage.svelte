@@ -3,6 +3,7 @@
   import Sidebar from '$lib/components/layout/Sidebar.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import Button from '$lib/components/common/Button.svelte'
+  import ImageViewer from '$lib/components/canvas/ImageViewer.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
@@ -116,15 +117,17 @@
           <Button size="sm" variant="ghost" onclick={() => canvasStore.resetView()}>1:1</Button>
         </div>
 
-        <div class="absolute inset-0 flex items-center justify-center">
-          {#if pageData}
-            <p class="text-gray-400 text-sm">
-              Canvas: {pageData.width} x {pageData.height}px | Scale: {canvasStore.scale.toFixed(2)}x | Tool: {canvasStore.toolMode}
-            </p>
-          {:else}
+        {#if pageData}
+          <ImageViewer
+            imageUrl={pageData.image_url}
+            width={pageData.width}
+            height={pageData.height}
+          />
+        {:else}
+          <div class="absolute inset-0 flex items-center justify-center">
             <p class="text-gray-400 text-sm">이미지를 불러오는 중...</p>
-          {/if}
-        </div>
+          </div>
+        {/if}
       </div>
 
       <!-- Right panel: Sidebar -->
