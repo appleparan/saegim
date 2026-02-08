@@ -1,0 +1,113 @@
+"""Document management endpoints."""
+
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+
+from saegim.api.settings import Settings, get_settings
+from saegim.core.database import get_pool
+from saegim.repositories import document_repo, project_repo
+from saegim.schemas.document import DocumentListResponse, DocumentResponse, DocumentUploadResponse
+
+router = APIRouter()
+
+
+@router.post(
+    '/projects/{project_id}/documents',
+    response_model=DocumentUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_document(
+    project_id: uuid.UUID,
+    file: UploadFile,
+    settings: Settings = Depends(get_settings),  # noqa: B008
+) -> DocumentUploadResponse:
+    """Upload a PDF document and convert to page images.
+
+    Args:
+        project_id: Parent project UUID.
+        file: Uploaded PDF file.
+        settings: Application settings.
+
+    Returns:
+        DocumentUploadResponse: Upload result with document info.
+
+    Raises:
+        HTTPException: If project not found or file is not PDF.
+    """
+    pool = get_pool()
+
+    project = await project_repo.get_by_id(pool, project_id)
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Only PDF files are accepted',
+        )
+
+    from saegim.services import document_service
+
+    content = await file.read()
+    result = await document_service.upload_and_convert(
+        pool,
+        project_id=project_id,
+        filename=file.filename,
+        file_content=content,
+        storage_path=settings.storage_path,
+    )
+
+    return DocumentUploadResponse(
+        id=result['id'],
+        filename=result['filename'],
+        total_pages=result['total_pages'],
+        status=result['status'],
+    )
+
+
+@router.get('/documents/{document_id}', response_model=DocumentResponse)
+async def get_document(document_id: uuid.UUID) -> DocumentResponse:
+    """Get a document by ID.
+
+    Args:
+        document_id: Document UUID.
+
+    Returns:
+        DocumentResponse: Document data.
+
+    Raises:
+        HTTPException: If document not found.
+    """
+    pool = get_pool()
+    record = await document_repo.get_by_id(pool, document_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
+    return DocumentResponse(**dict(record))
+
+
+@router.get(
+    '/documents/{document_id}/pages',
+    response_model=list[DocumentListResponse],
+)
+async def list_document_pages(document_id: uuid.UUID) -> list[DocumentListResponse]:
+    """List all pages for a document.
+
+    Args:
+        document_id: Document UUID.
+
+    Returns:
+        list[DocumentListResponse]: Pages in the document.
+
+    Raises:
+        HTTPException: If document not found.
+    """
+    pool = get_pool()
+    doc = await document_repo.get_by_id(pool, document_id)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
+
+    from saegim.repositories import page_repo
+
+    pages = await page_repo.list_by_document(pool, document_id)
+    return [DocumentListResponse(**dict(r)) for r in pages]
