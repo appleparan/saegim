@@ -1,180 +1,77 @@
 # saegim
 
-(Backend) human-in-the-loop labeling platform for Korean document benchmarks
+**Human-in-the-loop labeling platform for Korean document benchmarks**
 
+saegim은 한국어 문서 VLM(Vision-Language Model) 벤치마크를 위한 레이블링 플랫폼 백엔드입니다.
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench) 포맷을 기반으로
+문서의 레이아웃, 텍스트, 수식, 표 등을 어노테이션하고 관리합니다.
 
-## Project Organization
+## 주요 기능
 
-```plaintext
-saegim/
-├── LICENSE            <- Open-source license if one is chosen
-├── README.md          <- The top-level README for developers using this project.
-├── mkdocs.yml         <- mkdocs-material configuration file.
-├── pyproject.toml     <- Project configuration file with package metadata for
-│                         saegim and configuration for tools like ruff
-├── uv.lock            <- The lock file for reproducing the production environment, e.g.
-│                         generated with `uv sync`
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-├── models             <- Trained and serialized models, model predictions, or model summaries
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-├── tests              <- Unit test files.
-└── src/saegim   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes saegim a Python module
-    │
-    └── cli.py                  <- Default CLI program
+- **PDF 업로드 및 변환** - PDF를 업로드하면 페이지별 이미지로 자동 변환
+- **OmniDocBench 어노테이션** - 15가지 블록 레벨 + 4가지 스팬 레벨 카테고리 지원
+- **페이지별 레이블링** - 페이지 단위로 어노테이션 데이터 편집 및 저장
+- **벤치마크 데이터 내보내기** - OmniDocBench JSON 포맷으로 프로젝트 전체 내보내기
+- **사용자 관리** - admin, annotator, reviewer 역할 기반 사용자 관리
+
+## 기술 스택
+
+| 구분 | 기술 |
+|------|------|
+| Framework | FastAPI |
+| Database | PostgreSQL + asyncpg (raw SQL) |
+| PDF 변환 | PyMuPDF (fitz) |
+| 스키마 검증 | Pydantic v2 |
+| 설정 관리 | pydantic-settings |
+| 패키지 관리 | uv |
+
+## 프로젝트 구조
+
+```
+src/saegim/
+├── app.py                  # FastAPI 앱 팩토리
+├── api/
+│   ├── settings.py         # 환경 설정 (Pydantic Settings)
+│   └── routes/             # API 라우터
+│       ├── health.py       # 헬스체크
+│       ├── projects.py     # 프로젝트 CRUD
+│       ├── documents.py    # 문서 업로드/조회
+│       ├── pages.py        # 페이지 레이블링
+│       ├── users.py        # 사용자 관리
+│       └── export.py       # 데이터 내보내기
+├── core/
+│   └── database.py         # asyncpg 커넥션 풀 관리
+├── repositories/           # Raw SQL 데이터 접근 레이어
+│   ├── project_repo.py
+│   ├── document_repo.py
+│   ├── page_repo.py
+│   └── user_repo.py
+├── schemas/                # Pydantic 스키마
+│   ├── annotation.py       # OmniDocBench 어노테이션 구조
+│   ├── project.py
+│   ├── document.py
+│   ├── page.py
+│   ├── user.py
+│   └── export.py
+├── services/               # 비즈니스 로직
+│   ├── document_service.py # PDF 업로드/변환
+│   ├── labeling_service.py # 어노테이션 관리
+│   └── export_service.py   # OmniDocBench JSON 내보내기
+└── migrations/
+    └── 001_init.sql        # 초기 DDL
 ```
 
-## For Developers
+## 빠른 시작
 
-### Whether to use `package`
+```bash
+# 의존성 설치
+uv sync --group dev --group docs
 
-This determines if the project should be treated as a Python package or a "virtual" project.
+# 서버 실행
+uv run uvicorn saegim.app:app --reload
 
-A `package` is a fully installable Python module,
-while a virtual project is not installable but manages its dependencies in the virtual environment.
-
-If you don't want to use this packaging feature,
-you can set `tool.uv.package = false` in the pyproject.toml file.
-This tells `uv` to handle your project as a virtual project instead of a package.
-
-### Install Python (3.14)
-```shell
-uv python install 3.14
+# 테스트 실행
+uv run pytest --cov
 ```
 
-### Pin Python version
-```shell
-uv python pin 3.14
-```
-
-### Install packages with PyTorch + CUDA 12.8 (Ubuntu)
-```shell
-uv sync --extra cu128
-```
-
-### Install packages without locking environments
-```shell
-uv sync --frozen
-```
-
-### Install dev packages, too
-```shell
-uv sync --group dev --group docs --extra cu128
-```
-
-### Run tests
-```shell
-uv run pytest
-```
-
-### Linting
-```shell
-uv ruff check --fix .
-```
-
-### Formatting
-```shell
-uv ruff format
-```
-
-### Run pre-commit
-* Assume that `pre-commit` installed with `uv tool install pre-commit`
-
-```shell
-uvx pre-commit run --all-files
-```
-
-### Build package
-```shell
-uv build
-```
-
-### Serve Document
-```shell
-uv run mkdocs serve
-```
-
-### Build Document
-```shell
-uv run mkdocs build
-```
-
-### Build Docker Image (from source)
-
-[ref. uv docs](https://docs.astral.sh/uv/guides/integration/docker/#installing-a-project)
-
-```shell
-docker build -t TAGNAME -f Dockerfile.source
-```
-
-### Build Docker Image (from package)
-
-[ref. uv docs](https://docs.astral.sh/uv/guides/integration/docker/#non-editable-installs)
-
-```shell
-docker build -t TAGNAME -f Dockerfile.package
-```
-
-### Run Docker Container
-```shell
-docker run --gpus all -p 8000:8000 my-production-app
-```
-
-### Check next version
-```shell
-uv run git-cliff --bumped-version
-```
-
-### Release
-Execute scripts
-```shell
-sh scripts/release.sh
-```
-
-What `release.sh` do:
-
-1. Set next version to `BUMPED_VERSION`: This ensures that the `git-cliff --bumped-version` command produces consistent results.
-
-    ```shell
-    BUMPED_VERSION=$(uv run git-cliff --bumped-version)
-    ```
-
-2. Generate `CHANGELOG.md` and `RELEASE.md`: The script creates or updates the changelog and release notes using the bumped version:
-
-    ```shell
-    uv run git-cliff --strip header --tag $BUMPED_VERSION -o CHANGELOG.md
-    uv run git-cliff --latest --strip header --tag $BUMPED_VERSION --unreleased -o RELEASE.md
-    ```
-
-3. Commit updated `CHANGELOG.md` and `RELEASE.md` then add tags and push: It commits the updated files, creates a tag for the new version, and pushes the changes to the repository:
-
-    ```shell
-    git add CHANGELOG.md RELEASE.md
-    git commit -am "docs: Add CHANGELOG.md and RELEASE.md to release $BUMPED_VERSION"
-    git tag -a v$BUMPED_VERSION -m "Release $BUMPED_VERSION"
-    git push origin tag $BUMPED_VERSION
-    ```
-
-4. For dry run:
-
-    ```shell
-    uv run git-cliff --latest --strip header --tag $(uv run git-cliff --bumped-version) --unreleased
-    ```
-
-## References
-* [Packaging Python Projects](https://packaging.python.org/tutorials/packaging-projects/)
-* [Python Packaging User Guide](https://packaging.python.org/)
-
-
-** This project template is generated by [copier-modern-ml](https://github.com/appleparan/copier-modern-ml)**
+자세한 내용은 [시작하기](getting-started.md) 문서를 참조하세요.

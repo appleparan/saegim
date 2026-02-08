@@ -61,14 +61,6 @@ class TestApp:
         response = client.get('/api/v1/health/ready')
         assert response.status_code == 200
 
-        # Test prediction routes
-        response = client.get('/api/v1/models')
-        assert response.status_code == 200
-
-        # Test predict endpoint exists (will need valid data to succeed)
-        response = client.post('/api/v1/predict', json={'data': []})
-        assert response.status_code == 200  # Empty data should work
-
     def test_openapi_schema_available(self, client: TestClient):
         """Test that OpenAPI schema is available.
 

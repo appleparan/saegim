@@ -24,20 +24,23 @@ class Settings(BaseSettings):
 
     # CORS Settings
     cors_origins: list[str] = Field(
-        default=['http://localhost:3000', 'http://localhost:8080'],
+        default=['http://localhost:3000', 'http://localhost:5173'],
         description='Allowed CORS origins',
     )
 
+    # Database Settings
+    database_url: str = Field(
+        default='postgresql://labeling:labeling@localhost:5432/labeling',
+        description='PostgreSQL connection URL',
+    )
+    db_pool_min_size: int = Field(default=2, description='Minimum DB pool connections')
+    db_pool_max_size: int = Field(default=10, description='Maximum DB pool connections')
+
+    # Storage Settings
+    storage_path: str = Field(default='./storage', description='File storage base path')
+
     # Server Settings
     max_workers: int = Field(default=1, description='Maximum number of workers')
-
-    # Model Settings
-    model_name: str = Field(default='default', description='Model name to use')
-    model_path: str = Field(default='models/', description='Path to model files')
-
-    # Data Processing Settings
-    max_batch_size: int = Field(default=32, description='Maximum batch size for predictions')
-    timeout_seconds: float = Field(default=30.0, description='Request timeout in seconds')
 
 
 @lru_cache
