@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_repo
-from saegim.schemas.document import DocumentListResponse, DocumentResponse, DocumentUploadResponse
+from saegim.schemas.document import DocumentResponse, DocumentUploadResponse
+from saegim.schemas.page import PageListResponse
 
 router = APIRouter()
 
@@ -88,16 +89,16 @@ async def get_document(document_id: uuid.UUID) -> DocumentResponse:
 
 @router.get(
     '/documents/{document_id}/pages',
-    response_model=list[DocumentListResponse],
+    response_model=list[PageListResponse],
 )
-async def list_document_pages(document_id: uuid.UUID) -> list[DocumentListResponse]:
+async def list_document_pages(document_id: uuid.UUID) -> list[PageListResponse]:
     """List all pages for a document.
 
     Args:
         document_id: Document UUID.
 
     Returns:
-        list[DocumentListResponse]: Pages in the document.
+        list[PageListResponse]: Pages in the document.
 
     Raises:
         HTTPException: If document not found.
@@ -110,4 +111,4 @@ async def list_document_pages(document_id: uuid.UUID) -> list[DocumentListRespon
     from saegim.repositories import page_repo
 
     pages = await page_repo.list_by_document(pool, document_id)
-    return [DocumentListResponse(**dict(r)) for r in pages]
+    return [PageListResponse(**dict(r)) for r in pages]
