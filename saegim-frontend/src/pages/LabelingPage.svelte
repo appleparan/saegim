@@ -4,6 +4,10 @@
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import Button from '$lib/components/common/Button.svelte'
   import ImageViewer from '$lib/components/canvas/ImageViewer.svelte'
+  import ElementList from '$lib/components/panels/ElementList.svelte'
+  import AttributePanel from '$lib/components/panels/AttributePanel.svelte'
+  import PageAttributePanel from '$lib/components/panels/PageAttributePanel.svelte'
+  import TextEditor from '$lib/components/panels/TextEditor.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
@@ -74,35 +78,8 @@
   {:else}
     <div class="flex-1 flex overflow-hidden">
       <!-- Left panel: Element list -->
-      <div class="w-64 border-r border-gray-200 bg-white overflow-y-auto">
-        <div class="p-3 border-b border-gray-200">
-          <h3 class="text-sm font-semibold text-gray-700">요소 목록</h3>
-          <p class="text-xs text-gray-400 mt-1">
-            {annotationStore.elements.length}개 요소
-          </p>
-        </div>
-        <div class="p-2">
-          {#each annotationStore.elements as element}
-            <button
-              class="w-full text-left px-2 py-1.5 rounded text-sm transition-colors
-                {annotationStore.selectedElementId === element.anno_id
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'hover:bg-gray-50 text-gray-700'}"
-              onclick={() => annotationStore.selectElement(element.anno_id)}
-            >
-              <span class="font-medium">{element.order}.</span>
-              {element.category_type}
-              {#if element.ignore}
-                <span class="text-xs text-gray-400">(무시)</span>
-              {/if}
-            </button>
-          {/each}
-          {#if annotationStore.elements.length === 0}
-            <p class="text-xs text-gray-400 text-center py-4">
-              요소가 없습니다. Draw 도구로 추가하세요.
-            </p>
-          {/if}
-        </div>
+      <div class="w-64 border-r border-gray-200 bg-white overflow-y-auto flex flex-col">
+        <ElementList />
       </div>
 
       <!-- Center: Canvas area -->
@@ -133,17 +110,11 @@
       <!-- Right panel: Sidebar -->
       <Sidebar>
         {#if uiStore.activePanel === 'elements'}
-          <div class="p-3">
-            <p class="text-sm text-gray-500">요소 속성 패널 (Phase 9에서 구현)</p>
-          </div>
+          <AttributePanel />
         {:else if uiStore.activePanel === 'attributes'}
-          <div class="p-3">
-            <p class="text-sm text-gray-500">페이지 속성 패널 (Phase 9에서 구현)</p>
-          </div>
+          <PageAttributePanel />
         {:else if uiStore.activePanel === 'text'}
-          <div class="p-3">
-            <p class="text-sm text-gray-500">텍스트 편집 패널 (Phase 9에서 구현)</p>
-          </div>
+          <TextEditor />
         {/if}
       </Sidebar>
     </div>
