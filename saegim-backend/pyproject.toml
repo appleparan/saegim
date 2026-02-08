@@ -7,6 +7,7 @@ authors = [
 ]
 readme = "README.md"
 dependencies = [
+    "asyncpg~=0.31.0",
     "colorlog~=6.10.1",
     "datasets~=4.4.2",
     "fastapi[standard]~=0.128.0",
@@ -18,6 +19,7 @@ dependencies = [
     "pydantic-settings~=2.12.0",
     "pydantic-extra-types~=2.11.0",
     "PyMuPDF~=1.26.7",
+    "python-multipart~=0.0.20",
     "rich~=14.2.0",
     "tqdm~=4.67.1",
     "transformers>=4.57.3",
