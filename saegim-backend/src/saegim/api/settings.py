@@ -42,14 +42,6 @@ class Settings(BaseSettings):
     # Server Settings
     max_workers: int = Field(default=1, description='Maximum number of workers')
 
-    # Model Settings
-    model_name: str = Field(default='default', description='Model name to use')
-    model_path: str = Field(default='models/', description='Path to model files')
-
-    # Data Processing Settings
-    max_batch_size: int = Field(default=32, description='Maximum batch size for predictions')
-    timeout_seconds: float = Field(default=30.0, description='Request timeout in seconds')
-
 
 @lru_cache
 def get_settings() -> Settings:

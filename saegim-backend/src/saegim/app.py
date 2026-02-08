@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from saegim.api.routes import documents, export, health, pages, predict, projects, users
+from saegim.api.routes import documents, export, health, pages, projects, users
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import close_pool, create_pool
 
@@ -69,7 +69,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Include routers
     app.include_router(health.router, prefix='/api/v1', tags=['health'])
-    app.include_router(predict.router, prefix='/api/v1', tags=['prediction'])
     app.include_router(projects.router, prefix='/api/v1', tags=['projects'])
     app.include_router(documents.router, prefix='/api/v1', tags=['documents'])
     app.include_router(pages.router, prefix='/api/v1', tags=['pages'])

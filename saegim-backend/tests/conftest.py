@@ -24,10 +24,6 @@ def test_settings() -> Settings:
         api_port=5000,
         cors_origins=['http://localhost:3000'],
         max_workers=1,
-        model_name='test_model',
-        model_path='tests/fixtures/models/',
-        max_batch_size=10,
-        timeout_seconds=5.0,
         database_url='postgresql://test:test@localhost:5432/test',
         storage_path='./test_storage',
     )
@@ -90,20 +86,6 @@ def client(app):
         TestClient: FastAPI test client.
     """
     return TestClient(app)
-
-
-@pytest.fixture
-def sample_prediction_data():
-    """Sample data for prediction tests.
-
-    Returns:
-        list: Sample input data for predictions.
-    """
-    return [
-        {'feature1': 1.0, 'feature2': 2.0},
-        {'feature1': 3.0, 'feature2': 4.0},
-        {'feature1': 5.0, 'feature2': 6.0},
-    ]
 
 
 @pytest.fixture
