@@ -56,8 +56,46 @@
     }
   }
 
+  function handleKeydown(e: KeyboardEvent) {
+    // Ignore shortcuts when typing in input/textarea
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+    if (e.key === 's' && !e.ctrlKey && !e.metaKey) {
+      canvasStore.setTool('select')
+    } else if (e.key === 'd') {
+      canvasStore.setTool('draw')
+    } else if (e.key === 'h') {
+      canvasStore.setTool('pan')
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (annotationStore.selectedElementId !== null) {
+        annotationStore.removeElement(annotationStore.selectedElementId)
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault()
+      handleSave()
+    } else if (e.key === 'Escape') {
+      annotationStore.selectElement(null)
+    }
+  }
+
+  function handleBeforeUnload(e: BeforeUnloadEvent) {
+    if (annotationStore.isDirty) {
+      e.preventDefault()
+    }
+  }
+
   $effect(() => {
     loadPage()
+  })
+
+  $effect(() => {
+    window.addEventListener('keydown', handleKeydown)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('keydown', handleKeydown)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
   })
 </script>
 
