@@ -39,7 +39,7 @@
     lg: 'px-4 py-2 text-base',
   }
 
-  const activeClass = active ? 'ring-2 ring-blue-500' : ''
+  const activeClass = $derived(active ? 'ring-2 ring-blue-500' : '')
 </script>
 
 <button
