@@ -21,7 +21,7 @@ async def create_pool(database_url: str, min_size: int = 2, max_size: int = 10) 
     Returns:
         asyncpg.Pool: Connection pool instance.
     """
-    global _pool  # noqa: PLW0603
+    global _pool
     _pool = await asyncpg.create_pool(
         database_url,
         min_size=min_size,
@@ -33,7 +33,7 @@ async def create_pool(database_url: str, min_size: int = 2, max_size: int = 10) 
 
 async def close_pool() -> None:
     """Close the connection pool."""
-    global _pool  # noqa: PLW0603
+    global _pool
     if _pool is not None:
         await _pool.close()
         _pool = None

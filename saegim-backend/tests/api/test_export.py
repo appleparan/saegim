@@ -41,9 +41,7 @@ class TestExportEndpoints:
             new_callable=AsyncMock,
             return_value=export_data,
         ):
-            response = client.post(
-                '/api/v1/projects/00000000-0000-0000-0000-000000000001/export'
-            )
+            response = client.post('/api/v1/projects/00000000-0000-0000-0000-000000000001/export')
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -57,9 +55,7 @@ class TestExportEndpoints:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            response = client.post(
-                '/api/v1/projects/00000000-0000-0000-0000-000000000000/export'
-            )
+            response = client.post('/api/v1/projects/00000000-0000-0000-0000-000000000000/export')
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -97,9 +93,7 @@ class TestExportEndpoints:
             new_callable=AsyncMock,
             return_value=export_data,
         ):
-            response = client.post(
-                '/api/v1/projects/00000000-0000-0000-0000-000000000001/export'
-            )
+            response = client.post('/api/v1/projects/00000000-0000-0000-0000-000000000001/export')
 
         data = response.json()
         page = data['data'][0]
