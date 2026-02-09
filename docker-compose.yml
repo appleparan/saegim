@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: labeling
+      POSTGRES_USER: labeling
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-labeling}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labeling -d labeling"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./saegim-backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
+      API_HOST: "0.0.0.0"
+      API_PORT: "5000"
+      STORAGE_PATH: /workspace/storage
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      LOG_LEVEL: INFO
+    volumes:
+      - ./storage:/workspace/storage
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend-gpu:
+    build:
+      context: ./saegim-backend
+      dockerfile: Dockerfile.source
+    environment:
+      DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
+      API_HOST: "0.0.0.0"
+      API_PORT: "5000"
+      STORAGE_PATH: /workspace/storage
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      LOG_LEVEL: INFO
+    volumes:
+      - ./storage:/workspace/storage
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles:
+      - gpu
+
+  frontend:
+    build:
+      context: ./saegim-frontend
+      args:
+        VITE_API_URL: http://localhost:5000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
