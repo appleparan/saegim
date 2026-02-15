@@ -98,10 +98,15 @@
 <div class="h-full flex flex-col">
   <Header title={project?.name ?? 'saegim'} />
 
-  <div class="flex-1 p-8 overflow-y-auto">
+  <div class="flex-1 p-8 overflow-y-auto bg-gray-50/50">
     <div class="max-w-4xl mx-auto">
       <div class="mb-4">
-        <a href="/" use:link class="text-sm text-blue-600 hover:text-blue-800">&larr; 프로젝트 목록</a>
+        <a href="/" use:link class="text-sm text-gray-500 hover:text-primary-600 transition-colors flex items-center gap-1 w-fit">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          프로젝트 목록
+        </a>
       </div>
 
       <div class="flex items-center justify-between mb-6">
@@ -122,57 +127,81 @@
       {#if isLoading}
         <div class="py-12"><LoadingSpinner message="문서 불러오는 중..." /></div>
       {:else if error}
-        <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p class="text-red-700 mb-4">{error}</p>
+        <div class="bg-red-50/80 border border-red-200 rounded-xl p-6 text-center">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-100 flex items-center justify-center">
+            <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p class="text-red-700 mb-4 font-medium">{error}</p>
           <Button variant="secondary" onclick={loadData}>다시 시도</Button>
         </div>
       {:else if documents.length === 0}
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
-          <p class="text-gray-500 mb-4">아직 문서가 없습니다.</p>
-          <p class="text-sm text-gray-400">PDF 파일을 업로드하여 레이블링을 시작하세요.</p>
+        <div class="bg-linear-to-br from-gray-50 to-gray-100/50 border border-gray-200/80 rounded-2xl p-16 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+          </div>
+          <p class="text-gray-600 font-medium text-lg mb-2">아직 문서가 없습니다</p>
+          <p class="text-sm text-gray-400 mb-6">PDF 파일을 업로드하여 레이블링을 시작하세요.</p>
+          <Button variant="primary" onclick={() => fileInput.click()}>
+            PDF 업로드
+          </Button>
         </div>
       {:else}
         <div class="space-y-3">
           {#each documents as doc}
-            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <button class="w-full p-4 text-left hover:bg-gray-50 transition-colors" onclick={() => toggleDocPages(doc.id)}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="card-modern overflow-hidden">
+              <div class="w-full p-5 text-left hover:bg-gray-50/50 transition-colors cursor-pointer" onclick={() => toggleDocPages(doc.id)}>
                 <div class="flex items-center justify-between">
                   <div>
                     <h3 class="font-medium text-gray-900">{doc.filename}</h3>
-                    <p class="text-sm text-gray-500 mt-1">
-                      {doc.total_pages}페이지
-                      <span class="mx-1">&middot;</span>
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                        {doc.status === 'ready' ? 'bg-green-100 text-green-800' :
-                         doc.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                         doc.status === 'error' ? 'bg-red-100 text-red-800' :
-                         'bg-gray-100 text-gray-800'}">
+                    <div class="flex items-center gap-2 mt-1.5">
+                      <span class="text-sm text-gray-500">{doc.total_pages}페이지</span>
+                      <span class="badge
+                        {doc.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                         doc.status === 'processing' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                         doc.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                         'bg-gray-50 text-gray-600 border border-gray-200'}">
                         {doc.status === 'ready' ? '준비됨' : doc.status === 'processing' ? '처리 중' : doc.status === 'error' ? '오류' : '업로드 중'}
                       </span>
-                    </p>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-3">
                     <button
-                      class="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                      class="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-all"
                       onclick={(e) => handleDeleteDoc(e, doc.id)}
                     >
                       삭제
                     </button>
-                    <span class="text-gray-400 text-sm">{expandedDoc === doc.id ? '▲' : '▼'}</span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform {expandedDoc === doc.id ? 'rotate-180' : ''}"
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
                 </div>
-              </button>
+              </div>
 
               {#if expandedDoc === doc.id}
-                <div class="border-t border-gray-100 p-4 bg-gray-50">
+                <div class="border-t border-gray-100 p-4 bg-gray-50/50">
                   {#if documentPages[doc.id]}
-                    <div class="grid grid-cols-6 gap-2">
+                    <div class="grid grid-cols-6 sm:grid-cols-8 gap-2">
                       {#each documentPages[doc.id] as page}
-                        <a href="/label/{page.id}" use:link class="block p-2 bg-white border border-gray-200 rounded text-center hover:border-blue-300 transition-colors">
-                          <span class="text-sm font-medium">{page.page_no}</span>
+                        <a href="/label/{page.id}" use:link
+                          class="block p-2.5 bg-white border rounded-lg text-center hover:border-primary-300 hover:shadow-sm transition-all
+                            {page.status === 'submitted' ? 'border-l-4 border-l-emerald-400 border-gray-200' :
+                             page.status === 'in_progress' ? 'border-l-4 border-l-blue-400 border-gray-200' :
+                             page.status === 'reviewed' ? 'border-l-4 border-l-violet-400 border-gray-200' :
+                             'border-gray-200'}">
+                          <span class="text-sm font-medium text-gray-700">{page.page_no}</span>
                           <span class="block text-xs mt-0.5
-                            {page.status === 'submitted' ? 'text-green-600' :
-                             page.status === 'in_progress' ? 'text-blue-600' : 'text-gray-400'}">
+                            {page.status === 'submitted' ? 'text-emerald-600' :
+                             page.status === 'in_progress' ? 'text-blue-600' :
+                             page.status === 'reviewed' ? 'text-violet-600' :
+                             'text-gray-400'}">
                             {page.status === 'submitted' ? '완료' : page.status === 'in_progress' ? '진행 중' : page.status === 'reviewed' ? '검토됨' : '대기'}
                           </span>
                         </a>

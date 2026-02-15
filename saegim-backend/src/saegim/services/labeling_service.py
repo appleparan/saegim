@@ -19,7 +19,7 @@ async def get_page_data(pool: asyncpg.Pool, page_id: uuid.UUID) -> dict[str, Any
     Returns:
         dict or None: Page data with annotation if found.
     """
-    record = await page_repo.get_by_id(pool, page_id)
+    record = await page_repo.get_by_id_with_context(pool, page_id)
     if record is None:
         return None
 
@@ -43,6 +43,9 @@ async def get_page_data(pool: asyncpg.Pool, page_id: uuid.UUID) -> dict[str, Any
         'status': record['status'],
         'assigned_to': record['assigned_to'],
         'updated_at': record['updated_at'],
+        'project_id': record['project_id'],
+        'project_name': record['project_name'],
+        'document_filename': record['document_filename'],
     }
 
 

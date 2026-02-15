@@ -64,6 +64,36 @@ async def get_by_id(pool: asyncpg.Pool, page_id: uuid.UUID) -> asyncpg.Record | 
     )
 
 
+async def get_by_id_with_context(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+) -> asyncpg.Record | None:
+    """Get a page by ID with document and project context for navigation.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+
+    Returns:
+        asyncpg.Record or None: Page record with project_id, project_name, document_filename.
+    """
+    return await pool.fetchrow(
+        """
+        SELECT p.id, p.document_id, p.page_no, p.width, p.height, p.image_path,
+               p.annotation_data, p.auto_extracted_data, p.status, p.assigned_to,
+               p.locked_at, p.updated_at,
+               d.filename AS document_filename,
+               d.project_id AS project_id,
+               pr.name AS project_name
+        FROM pages p
+        JOIN documents d ON p.document_id = d.id
+        JOIN projects pr ON d.project_id = pr.id
+        WHERE p.id = $1
+        """,
+        page_id,
+    )
+
+
 async def list_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> list[asyncpg.Record]:
     """List all pages for a document.
 
