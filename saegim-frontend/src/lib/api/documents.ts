@@ -12,7 +12,7 @@ import type {
 export async function listDocuments(
   projectId: string,
 ): Promise<readonly DocumentResponse[]> {
-  return api.get<DocumentResponse[]>(`/api/projects/${projectId}/documents`)
+  return api.get<DocumentResponse[]>(`/api/v1/projects/${projectId}/documents`)
 }
 
 export async function uploadDocument(
@@ -21,7 +21,7 @@ export async function uploadDocument(
 ): Promise<DocumentResponse> {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await api.upload(`/api/projects/${projectId}/documents`, formData)
+  const res = await api.upload(`/api/v1/projects/${projectId}/documents`, formData)
   return (await res.json()) as DocumentResponse
 }
 
@@ -29,12 +29,12 @@ export async function getDocumentStatus(
   documentId: string,
 ): Promise<DocumentStatusResponse> {
   return api.get<DocumentStatusResponse>(
-    `/api/documents/${documentId}/status`,
+    `/api/v1/documents/${documentId}/status`,
   )
 }
 
 export async function listPages(
   documentId: string,
 ): Promise<readonly PageSummary[]> {
-  return api.get<PageSummary[]>(`/api/documents/${documentId}/pages`)
+  return api.get<PageSummary[]>(`/api/v1/documents/${documentId}/pages`)
 }
