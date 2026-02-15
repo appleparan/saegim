@@ -4,9 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'saegim-backend/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'saegim-backend/**'
+      - '.github/workflows/ci.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +32,9 @@ jobs:
           - "3.13"
           - "3.14"
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: saegim-backend
     steps:
       - uses: actions/checkout@v4
 
@@ -66,6 +75,9 @@ jobs:
           - "3.13"
           - "3.14"
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: saegim-backend
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
