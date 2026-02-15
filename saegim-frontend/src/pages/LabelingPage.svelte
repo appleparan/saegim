@@ -4,7 +4,7 @@
   import Sidebar from '$lib/components/layout/Sidebar.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import Button from '$lib/components/common/Button.svelte'
-  import ImageViewer from '$lib/components/canvas/ImageViewer.svelte'
+  import HybridViewer from '$lib/components/canvas/HybridViewer.svelte'
   import ElementList from '$lib/components/panels/ElementList.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
@@ -171,7 +171,7 @@
         </div>
 
         {#if pageData}
-          <ImageViewer
+          <HybridViewer
             imageUrl={`${API_BASE}${pageData.image_url}`}
             width={pageData.width}
             height={pageData.height}
