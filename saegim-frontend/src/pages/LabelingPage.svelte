@@ -146,7 +146,7 @@
 
       <!-- Center: Canvas area -->
       <div class="flex-1 relative bg-gray-100">
-        <div class="absolute top-3 left-3 z-10 flex gap-2">
+        <div class="absolute top-3 left-3 z-30 flex gap-2">
           <!-- Tool group -->
           <div class="flex bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-gray-200/80 p-1 gap-0.5">
             <button class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all
