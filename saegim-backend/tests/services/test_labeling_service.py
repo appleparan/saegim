@@ -35,8 +35,9 @@ def _make_page_record(
     annotation_data=None,
     auto_extracted_data=None,
     status='pending',
+    with_context=False,
 ):
-    return {
+    record = {
         'id': page_id,
         'document_id': document_id,
         'page_no': 1,
@@ -50,13 +51,18 @@ def _make_page_record(
         'locked_at': None,
         'updated_at': datetime.datetime.now(tz=datetime.UTC),
     }
+    if with_context:
+        record['project_id'] = uuid.uuid4()
+        record['project_name'] = 'Test Project'
+        record['document_filename'] = 'test.pdf'
+    return record
 
 
 class TestGetPageData:
     @pytest.mark.asyncio
     async def test_returns_none_when_page_not_found(self, mock_pool, page_id):
         with patch.object(labeling_service, 'page_repo') as mock_repo:
-            mock_repo.get_by_id = AsyncMock(return_value=None)
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=None)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
         assert result is None
@@ -64,10 +70,12 @@ class TestGetPageData:
     @pytest.mark.asyncio
     async def test_returns_page_data_with_dict_annotation(self, mock_pool, page_id, document_id):
         annotation = {'layout_dets': [], 'page_attribute': {'language': 'ko'}}
-        record = _make_page_record(page_id, document_id, annotation_data=annotation)
+        record = _make_page_record(
+            page_id, document_id, annotation_data=annotation, with_context=True,
+        )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
-            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
         assert result is not None
@@ -79,10 +87,12 @@ class TestGetPageData:
     @pytest.mark.asyncio
     async def test_parses_json_string_annotation(self, mock_pool, page_id, document_id):
         annotation_str = '{"layout_dets": [{"anno_id": 0}]}'
-        record = _make_page_record(page_id, document_id, annotation_data=annotation_str)
+        record = _make_page_record(
+            page_id, document_id, annotation_data=annotation_str, with_context=True,
+        )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
-            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
         assert result is not None
@@ -96,10 +106,11 @@ class TestGetPageData:
             document_id,
             annotation_data=None,
             auto_extracted_data=auto_data_str,
+            with_context=True,
         )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
-            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
         assert result is not None
@@ -107,10 +118,12 @@ class TestGetPageData:
 
     @pytest.mark.asyncio
     async def test_returns_empty_dict_for_null_annotation(self, mock_pool, page_id, document_id):
-        record = _make_page_record(page_id, document_id, annotation_data=None)
+        record = _make_page_record(
+            page_id, document_id, annotation_data=None, with_context=True,
+        )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
-            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
         assert result is not None
