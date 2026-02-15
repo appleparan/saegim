@@ -36,13 +36,74 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 
 ## 시작하기
 
-### 사전 요구사항
+### Docker Compose (권장)
+
+Docker만 설치되어 있으면 별도 환경 설정 없이 실행할 수 있습니다.
+
+#### 사전 요구사항
+
+- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
+
+#### 환경 변수 설정
+
+```bash
+cp .env.example .env
+# 필요 시 .env 파일을 수정합니다
+```
+
+#### 이미지 빌드 및 실행
+
+```bash
+# 이미지 빌드
+docker compose build
+
+# 캐시 무시하고 재빌드
+docker compose build --no-cache
+
+# 백그라운드로 실행
+docker compose up -d
+
+# 빌드 + 실행 한번에
+docker compose up -d --build
+```
+
+#### 접속
+
+| URL | 설명 |
+| --- | ---- |
+| <http://localhost:13000> | 프론트엔드 |
+| <http://localhost:15000/docs> | Swagger UI |
+| <http://localhost:15000/redoc> | ReDoc |
+
+> 포트는 `.env`에서 `FE_PORT`, `API_PORT`, `PG_PORT`로 변경할 수 있습니다.
+
+#### 로그 및 관리
+
+```bash
+# 로그 확인
+docker compose logs -f
+
+# 특정 서비스 로그
+docker compose logs -f backend
+
+# 서비스 중지
+docker compose down
+
+# 볼륨 포함 삭제 (DB 데이터 초기화)
+docker compose down -v
+```
+
+---
+
+### 로컬 개발 환경
+
+#### 사전 요구사항
 
 - Python 3.13+ & [uv](https://docs.astral.sh/uv/)
 - [Bun](https://bun.sh/)
 - PostgreSQL 15+
 
-### 데이터베이스 설정
+#### 데이터베이스 설정
 
 ```bash
 sudo -u postgres psql
@@ -51,7 +112,7 @@ CREATE DATABASE labeling OWNER labeling;
 \q
 ```
 
-### 백엔드
+#### 백엔드
 
 ```bash
 cd saegim-backend
@@ -75,7 +136,7 @@ EOF
 uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
 ```
 
-### 프론트엔드
+#### 프론트엔드
 
 ```bash
 cd saegim-frontend
@@ -88,7 +149,7 @@ echo "VITE_API_URL=http://localhost:5000" > .env
 bun run dev
 ```
 
-### 접속
+#### 접속
 
 | URL | 설명 |
 | --- | ---- |
