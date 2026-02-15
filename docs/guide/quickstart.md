@@ -20,7 +20,10 @@ cp .env.example .env
 | 변수 | 기본값 | 설명 |
 | ------ | -------- | ------ |
 | `DB_PASSWORD` | `labeling` | PostgreSQL 비밀번호 |
-| `VITE_API_URL` | `http://localhost:5000` | 프론트엔드가 호출할 백엔드 API 주소 |
+| `VITE_API_URL` | `http://localhost:15000` | 프론트엔드가 호출할 백엔드 API 주소 |
+| `API_PORT` | `15000` | 백엔드 호스트 포트 |
+| `FE_PORT` | `13000` | 프론트엔드 호스트 포트 |
+| `PG_PORT` | `15432` | PostgreSQL 호스트 포트 |
 
 ### 2. 전체 실행 (CPU 모드)
 
@@ -46,16 +49,16 @@ docker compose --profile gpu up -d
 
 | URL | 설명 |
 | ----- | ------ |
-| <http://localhost:3000> | 프론트엔드 (웹 UI) |
-| <http://localhost:5000/api/v1/health> | 백엔드 헬스체크 |
-| <http://localhost:5000/docs> | Swagger UI (`DEBUG=true` 시) |
-| `localhost:5432` | PostgreSQL (외부 접속) |
+| <http://localhost:13000> | 프론트엔드 (웹 UI) |
+| <http://localhost:15000/api/v1/health> | 백엔드 헬스체크 |
+| <http://localhost:15000/docs> | Swagger UI (`DEBUG=true` 시) |
+| `localhost:15432` | PostgreSQL (외부 접속) |
 
 ### 헬스체크
 
 ```bash
 # 백엔드 상태 확인
-curl http://localhost:5000/api/v1/health
+curl http://localhost:15000/api/v1/health
 
 # 서비스 상태 확인
 docker compose ps
@@ -75,11 +78,12 @@ docker compose down -v
 
 ### 포트 충돌
 
-기본 포트가 이미 사용 중이면 `docker-compose.yml`의 포트 매핑을 변경합니다:
+기본 포트가 이미 사용 중이면 `.env` 파일에서 포트를 변경합니다:
 
-```yaml
-ports:
-  - "8080:80"    # 3000 대신 8080 사용
+```bash
+API_PORT=25000
+FE_PORT=23000
+PG_PORT=25432
 ```
 
 ### Backend 시작 실패

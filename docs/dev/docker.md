@@ -40,7 +40,7 @@ docker build -t saegim-backend-gpu \
 
 ```bash
 docker build -t saegim-frontend \
-  --build-arg VITE_API_URL=http://localhost:5000 \
+  --build-arg VITE_API_URL=http://localhost:15000 \
   saegim-frontend/
 ```
 
@@ -110,12 +110,12 @@ docker compose --profile gpu exec backend-gpu nvidia-smi
 
 | 변수 | 기본값 | 설명 |
 | ------ | -------- | ------ |
-| `DATABASE_URL` | `postgresql://labeling:labeling@localhost:5432/labeling` | DB 연결 URL |
+| `DATABASE_URL` | `postgresql://labeling:labeling@localhost:15432/labeling` | DB 연결 URL |
 | `API_HOST` | `0.0.0.0` | 바인드 호스트 |
 | `API_PORT` | `5000` | API 포트 |
 | `DEBUG` | `false` | 디버그 모드 (Swagger UI 활성화) |
 | `LOG_LEVEL` | `INFO` | 로그 레벨 |
-| `CORS_ORIGINS` | `["http://localhost:3000", "http://localhost:5173"]` | 허용 CORS 오리진 |
+| `CORS_ORIGINS` | `["http://localhost:13000", "http://localhost:5173"]` | 허용 CORS 오리진 |
 | `STORAGE_PATH` | `./storage` | 파일 저장 경로 |
 | `DB_POOL_MIN_SIZE` | `2` | 최소 DB 커넥션 |
 | `DB_POOL_MAX_SIZE` | `10` | 최대 DB 커넥션 |
@@ -125,14 +125,14 @@ docker compose --profile gpu exec backend-gpu nvidia-smi
 
 | 변수 | 기본값 | 설명 |
 | ------ | -------- | ------ |
-| `VITE_API_URL` | `http://localhost:5000` | 백엔드 API URL (빌드 시점) |
+| `VITE_API_URL` | `http://localhost:15000` | 백엔드 API URL (빌드 시점) |
 
 ## 헬스체크
 
 | 서비스 | 엔드포인트 | 간격 |
 | -------- | ----------- | ------ |
 | PostgreSQL | `pg_isready -U labeling -d labeling` | 5초 |
-| Backend | `curl http://localhost:5000/api/v1/health` | 10초 |
+| Backend | `curl http://localhost:15000/api/v1/health` | 10초 |
 | Frontend | nginx 기본 (포트 80) | - |
 
 ## 개발 팁
