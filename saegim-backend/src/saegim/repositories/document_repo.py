@@ -59,6 +59,25 @@ async def get_by_id(pool: asyncpg.Pool, document_id: uuid.UUID) -> asyncpg.Recor
     )
 
 
+async def delete(pool: asyncpg.Pool, document_id: uuid.UUID) -> bool:
+    """Delete a document by ID.
+
+    Cascades to pages and task history.
+
+    Args:
+        pool: Database connection pool.
+        document_id: Document UUID.
+
+    Returns:
+        bool: True if document was deleted.
+    """
+    result = await pool.execute(
+        'DELETE FROM documents WHERE id = $1',
+        document_id,
+    )
+    return result == 'DELETE 1'
+
+
 async def list_by_project(pool: asyncpg.Pool, project_id: uuid.UUID) -> list[asyncpg.Record]:
     """List all documents for a project.
 

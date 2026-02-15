@@ -16,3 +16,7 @@ export async function getProject(id: string): Promise<ProjectResponse> {
 export async function createProject(data: CreateProjectRequest): Promise<ProjectResponse> {
   return api.post<ProjectResponse>('/api/v1/projects', data)
 }
+
+export async function deleteProject(id: string): Promise<void> {
+  await api.delete(`/api/v1/projects/${id}`)
+}

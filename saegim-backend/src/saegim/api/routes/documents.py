@@ -91,6 +91,24 @@ async def upload_document(
     )
 
 
+@router.delete('/documents/{document_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(document_id: uuid.UUID) -> None:
+    """Delete a document and its storage files.
+
+    Args:
+        document_id: Document UUID.
+
+    Raises:
+        HTTPException: If document not found.
+    """
+    from saegim.services import document_service
+
+    pool = get_pool()
+    deleted = await document_service.delete_with_files(pool, document_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
+
+
 @router.get('/documents/{document_id}', response_model=DocumentResponse)
 async def get_document(document_id: uuid.UUID) -> DocumentResponse:
     """Get a document by ID.

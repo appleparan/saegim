@@ -93,3 +93,39 @@ async def upload_and_convert(
         logger.exception('Failed to process PDF: %s', filename)
         await document_repo.update_status(pool, document_id=document_id, status='error')
         raise
+
+
+async def delete_with_files(
+    pool: asyncpg.Pool,
+    document_id: uuid.UUID,
+) -> bool:
+    """Delete a document and its associated storage files.
+
+    Args:
+        pool: Database connection pool.
+        document_id: Document UUID.
+
+    Returns:
+        bool: True if document was deleted.
+    """
+    doc = await document_repo.get_by_id(pool, document_id)
+    if doc is None:
+        return False
+
+    # Collect file paths before DB delete
+    pdf_path = Path(doc['pdf_path']) if doc['pdf_path'] else None
+    pages = await page_repo.list_by_document(pool, document_id)
+    image_paths = [Path(p['image_path']) for p in pages if p.get('image_path')]
+
+    # DB delete (cascades to pages, task_history)
+    deleted = await document_repo.delete(pool, document_id)
+
+    # Clean up storage files
+    if deleted:
+        if pdf_path and pdf_path.exists():
+            pdf_path.unlink(missing_ok=True)
+        for img in image_paths:
+            if img.exists():
+                img.unlink(missing_ok=True)
+
+    return deleted

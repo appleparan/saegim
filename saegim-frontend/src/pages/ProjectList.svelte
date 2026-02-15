@@ -3,7 +3,7 @@
   import Header from '$lib/components/layout/Header.svelte'
   import Button from '$lib/components/common/Button.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
-  import { listProjects, createProject } from '$lib/api/projects'
+  import { listProjects, createProject, deleteProject } from '$lib/api/projects'
   import type { ProjectResponse } from '$lib/api/types'
   import { NetworkError } from '$lib/api/client'
 
@@ -50,6 +50,18 @@
     }
   }
 
+  async function handleDeleteProject(e: Event, projectId: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm('이 프로젝트와 모든 문서를 삭제하시겠습니까?')) return
+    try {
+      await deleteProject(projectId)
+      projects = projects.filter((p) => p.id !== projectId)
+    } catch {
+      error = '프로젝트 삭제에 실패했습니다.'
+    }
+  }
+
   $effect(() => {
     loadProjects()
   })
@@ -86,19 +98,27 @@
       {:else}
         <div class="grid gap-4">
           {#each projects as project}
-            <a
-              href="/projects/{project.id}"
-              use:link
-              class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all"
-            >
-              <h3 class="font-semibold text-gray-900">{project.name}</h3>
-              {#if project.description}
-                <p class="text-sm text-gray-500 mt-1">{project.description}</p>
-              {/if}
-              <p class="text-xs text-gray-400 mt-2">
-                {new Date(project.created_at).toLocaleDateString('ko-KR')}
-              </p>
-            </a>
+            <div class="flex items-center bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+              <a
+                href="/projects/{project.id}"
+                use:link
+                class="flex-1 p-4"
+              >
+                <h3 class="font-semibold text-gray-900">{project.name}</h3>
+                {#if project.description}
+                  <p class="text-sm text-gray-500 mt-1">{project.description}</p>
+                {/if}
+                <p class="text-xs text-gray-400 mt-2">
+                  {new Date(project.created_at).toLocaleDateString('ko-KR')}
+                </p>
+              </a>
+              <button
+                class="px-3 py-2 mr-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                onclick={(e) => handleDeleteProject(e, project.id)}
+              >
+                삭제
+              </button>
+            </div>
           {/each}
         </div>
       {/if}

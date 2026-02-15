@@ -4,7 +4,7 @@
   import Button from '$lib/components/common/Button.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import { getProject } from '$lib/api/projects'
-  import { listDocuments, uploadDocument, listPages } from '$lib/api/documents'
+  import { listDocuments, uploadDocument, deleteDocument, listPages } from '$lib/api/documents'
   import type { ProjectResponse, DocumentResponse, PageSummary } from '$lib/api/types'
   import { NetworkError } from '$lib/api/client'
 
@@ -76,6 +76,20 @@
     }
   }
 
+  async function handleDeleteDoc(e: Event, docId: string) {
+    e.stopPropagation()
+    if (!confirm('이 문서를 삭제하시겠습니까?')) return
+    try {
+      await deleteDocument(docId)
+      documents = documents.filter((d) => d.id !== docId)
+      const { [docId]: _, ...rest } = documentPages
+      documentPages = rest
+      if (expandedDoc === docId) expandedDoc = null
+    } catch {
+      error = '문서 삭제에 실패했습니다.'
+    }
+  }
+
   $effect(() => {
     loadData()
   })
@@ -137,7 +151,15 @@
                       </span>
                     </p>
                   </div>
-                  <span class="text-gray-400 text-sm">{expandedDoc === doc.id ? '▲' : '▼'}</span>
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                      onclick={(e) => handleDeleteDoc(e, doc.id)}
+                    >
+                      삭제
+                    </button>
+                    <span class="text-gray-400 text-sm">{expandedDoc === doc.id ? '▲' : '▼'}</span>
+                  </div>
                 </div>
               </button>
 

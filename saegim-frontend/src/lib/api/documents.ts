@@ -33,6 +33,10 @@ export async function getDocumentStatus(
   )
 }
 
+export async function deleteDocument(documentId: string): Promise<void> {
+  await api.delete(`/api/v1/documents/${documentId}`)
+}
+
 export async function listPages(
   documentId: string,
 ): Promise<readonly PageSummary[]> {
