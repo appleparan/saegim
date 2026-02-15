@@ -52,6 +52,9 @@ export interface PageResponse {
   readonly annotation_data: AnnotationData
   readonly auto_extracted_data: AnnotationData | null
   readonly status: PageStatus
+  readonly project_id?: string
+  readonly project_name?: string
+  readonly document_filename?: string
 }
 
 export interface PageSummary {

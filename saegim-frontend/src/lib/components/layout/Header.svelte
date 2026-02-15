@@ -2,7 +2,6 @@
   import { link } from 'svelte-spa-router'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
-  import Button from '$lib/components/common/Button.svelte'
 
   interface Props {
     title?: string
@@ -19,39 +18,44 @@
   }: Props = $props()
 </script>
 
-<header class="h-14 bg-white border-b border-gray-200 flex items-center px-4 shrink-0">
+<header class="h-12 bg-linear-to-r from-slate-900 to-slate-800 flex items-center px-4 shrink-0 shadow-sm">
   <div class="flex items-center gap-4">
-    <a href="/" use:link class="text-lg font-bold text-gray-900 hover:text-blue-600">
+    <a href="/" use:link class="text-base font-bold text-white hover:text-primary-300 transition-colors">
       {title}
     </a>
   </div>
 
   <div class="flex-1"></div>
 
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-3">
     {#if annotationStore.isDirty}
-      <span class="text-xs text-amber-600 font-medium">저장되지 않은 변경</span>
+      <span class="badge bg-amber-500/20 text-amber-300 border border-amber-500/30">
+        저장되지 않은 변경
+      </span>
     {/if}
 
     {#if showSave}
-      <Button
-        variant="primary"
-        size="sm"
+      <button
+        class="px-3 py-1.5 text-sm font-medium rounded-lg transition-all
+          {saving || !annotationStore.isDirty
+            ? 'bg-white/10 text-white/40 cursor-not-allowed'
+            : 'bg-primary-500 text-white hover:bg-primary-400 active:bg-primary-600 shadow-sm'}"
         disabled={saving || !annotationStore.isDirty}
         onclick={onsave}
       >
         {saving ? '저장 중...' : '저장'}
-      </Button>
+      </button>
     {/if}
   </div>
 
   {#if uiStore.notification}
     <div
-      class="fixed top-4 right-4 z-50 px-4 py-2 rounded-md shadow-lg text-sm {uiStore.notification.type === 'error'
-        ? 'bg-red-100 text-red-800'
-        : uiStore.notification.type === 'success'
-          ? 'bg-green-100 text-green-800'
-          : 'bg-blue-100 text-blue-800'}"
+      class="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm border
+        {uiStore.notification.type === 'error'
+          ? 'bg-red-50 text-red-800 border-red-200'
+          : uiStore.notification.type === 'success'
+            ? 'bg-green-50 text-green-800 border-green-200'
+            : 'bg-blue-50 text-blue-800 border-blue-200'}"
     >
       {uiStore.notification.message}
     </div>

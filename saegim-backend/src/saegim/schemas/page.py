@@ -3,9 +3,10 @@
 import datetime
 import uuid
 from enum import StrEnum
+from pathlib import PurePosixPath
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class PageStatus(StrEnum):
@@ -26,11 +27,23 @@ class PageResponse(BaseModel):
     width: int
     height: int
     image_path: str
+    image_url: str = ''
     annotation_data: dict[str, Any]
     auto_extracted_data: dict[str, Any] | None = None
     status: PageStatus
     assigned_to: uuid.UUID | None = None
     updated_at: datetime.datetime
+    project_id: uuid.UUID | None = None
+    project_name: str | None = None
+    document_filename: str | None = None
+
+    @model_validator(mode='after')
+    def compute_image_url(self) -> 'PageResponse':
+        """Compute image_url from image_path by extracting filename."""
+        if self.image_path and not self.image_url:
+            filename = PurePosixPath(self.image_path).name
+            object.__setattr__(self, 'image_url', f'/storage/images/{filename}')
+        return self
 
 
 class PageListResponse(BaseModel):

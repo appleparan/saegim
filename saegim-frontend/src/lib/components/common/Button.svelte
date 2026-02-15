@@ -20,17 +20,17 @@
   }: Props = $props()
 
   const baseClasses =
-    'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed'
+    'inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variantClasses = {
     primary:
-      'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+      'bg-primary-600 text-white hover:bg-primary-500 active:bg-primary-700 focus:ring-primary-500 shadow-sm',
     secondary:
-      'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500',
+      'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus:ring-primary-500 shadow-sm',
     danger:
-      'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+      'bg-red-600 text-white hover:bg-red-500 active:bg-red-700 focus:ring-red-500 shadow-sm',
     ghost:
-      'text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-blue-500',
+      'text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-primary-500',
   }
 
   const sizeClasses = {
@@ -39,7 +39,7 @@
     lg: 'px-4 py-2 text-base',
   }
 
-  const activeClass = $derived(active ? 'ring-2 ring-blue-500' : '')
+  const activeClass = $derived(active ? 'ring-2 ring-primary-500' : '')
 </script>
 
 <button
