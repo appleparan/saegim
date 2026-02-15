@@ -72,6 +72,10 @@ async def save_annotation(
     if isinstance(result_annotation, str):
         result_annotation = json.loads(result_annotation)
 
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
     return {
         'id': record['id'],
         'document_id': record['document_id'],
@@ -80,7 +84,7 @@ async def save_annotation(
         'height': record['height'],
         'image_path': record['image_path'],
         'annotation_data': result_annotation or {},
-        'auto_extracted_data': record['auto_extracted_data'],
+        'auto_extracted_data': auto_extracted,
         'status': record['status'],
         'assigned_to': record['assigned_to'],
         'updated_at': record['updated_at'],
@@ -110,6 +114,10 @@ async def save_page_attribute(
     if isinstance(result_annotation, str):
         result_annotation = json.loads(result_annotation)
 
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
     return {
         'id': record['id'],
         'document_id': record['document_id'],
@@ -118,7 +126,7 @@ async def save_page_attribute(
         'height': record['height'],
         'image_path': record['image_path'],
         'annotation_data': result_annotation or {},
-        'auto_extracted_data': record['auto_extracted_data'],
+        'auto_extracted_data': auto_extracted,
         'status': record['status'],
         'assigned_to': record['assigned_to'],
         'updated_at': record['updated_at'],
@@ -162,6 +170,10 @@ async def add_element(
     if isinstance(result_annotation, str):
         result_annotation = json.loads(result_annotation)
 
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
     return {
         'id': record['id'],
         'document_id': record['document_id'],
@@ -170,7 +182,7 @@ async def add_element(
         'height': record['height'],
         'image_path': record['image_path'],
         'annotation_data': result_annotation or {},
-        'auto_extracted_data': record['auto_extracted_data'],
+        'auto_extracted_data': auto_extracted,
         'status': record['status'],
         'assigned_to': record['assigned_to'],
         'updated_at': record['updated_at'],
@@ -243,6 +255,10 @@ async def delete_element(
     if isinstance(result_annotation, str):
         result_annotation = json.loads(result_annotation)
 
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
     return {
         'id': record['id'],
         'document_id': record['document_id'],
@@ -251,7 +267,7 @@ async def delete_element(
         'height': record['height'],
         'image_path': record['image_path'],
         'annotation_data': result_annotation or {},
-        'auto_extracted_data': record['auto_extracted_data'],
+        'auto_extracted_data': auto_extracted,
         'status': record['status'],
         'assigned_to': record['assigned_to'],
         'updated_at': record['updated_at'],
