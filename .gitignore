@@ -3,3 +3,10 @@ storage/
 
 # Environment
 .env
+
+# E2E tests
+e2e/node_modules/
+e2e/fixtures/*.pdf
+e2e/fixtures/benchmark_results.json
+e2e/test-results/
+e2e/playwright-report/

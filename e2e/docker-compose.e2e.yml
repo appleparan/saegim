@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:18.2-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: labeling
+      POSTGRES_USER: labeling
+      POSTGRES_PASSWORD: labeling_e2e
+    volumes:
+      - e2e_postgres_data:/var/lib/postgresql
+      - ../saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    ports:
+      - "25432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labeling -d labeling"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saegim-e2e-net
+
+  backend:
+    build:
+      context: ../saegim-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://labeling:labeling_e2e@postgres:5432/labeling
+      API_HOST: "0.0.0.0"
+      API_PORT: "5000"
+      STORAGE_PATH: /workspace/storage
+      CORS_ORIGINS: '["http://localhost:23000"]'
+      LOG_LEVEL: INFO
+    volumes:
+      - e2e_storage:/workspace/storage
+    ports:
+      - "25000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - saegim-e2e-net
+
+  frontend:
+    build:
+      context: ../saegim-frontend
+      args:
+        VITE_API_URL: http://localhost:25000
+    restart: unless-stopped
+    ports:
+      - "23000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - saegim-e2e-net
+
+volumes:
+  e2e_postgres_data:
+  e2e_storage:
+
+networks:
+  saegim-e2e-net:
+    driver: bridge
