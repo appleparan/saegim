@@ -1,13 +1,9 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
   import type { PanelTab } from '$lib/stores/ui.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
-
-  interface Props {
-    children: Snippet
-  }
-
-  let { children }: Props = $props()
+  import AttributePanel from '$lib/components/panels/AttributePanel.svelte'
+  import PageAttributePanel from '$lib/components/panels/PageAttributePanel.svelte'
+  import TextEditor from '$lib/components/panels/TextEditor.svelte'
 
   const tabs: { key: PanelTab; label: string }[] = [
     { key: 'elements', label: '요소' },
@@ -35,7 +31,13 @@
 
     <!-- Panel content -->
     <div class="flex-1 overflow-y-auto">
-      {@render children()}
+      {#if uiStore.activePanel === 'elements'}
+        <AttributePanel />
+      {:else if uiStore.activePanel === 'attributes'}
+        <PageAttributePanel />
+      {:else if uiStore.activePanel === 'text'}
+        <TextEditor />
+      {/if}
     </div>
   </div>
 {/if}

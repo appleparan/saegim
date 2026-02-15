@@ -1,5 +1,6 @@
 <script lang="ts">
   import Konva from 'konva'
+  import { untrack } from 'svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import BboxLayer from './BboxLayer.svelte'
@@ -139,7 +140,10 @@
 
   $effect(() => {
     if (containerEl) {
-      initStage()
+      // untrack: initStage reads+writes `stage` ($state).  Without untrack,
+      // the write triggers a re-run whose cleanup sets stage=null, creating
+      // an infinite loop (effect_update_depth_exceeded).
+      untrack(() => initStage())
       const observer = new ResizeObserver(handleResize)
       observer.observe(containerEl)
       return () => {

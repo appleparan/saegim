@@ -1,5 +1,6 @@
 <script lang="ts">
   import Konva from 'konva'
+  import { untrack } from 'svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { rectToPoly, normalizeRect, clampRect } from '$lib/utils/bbox'
@@ -100,7 +101,10 @@
   }
 
   $effect(() => {
-    init()
+    // untrack: init() reads canvasStore values for initial layer transform.
+    // Without untrack, every zoom/pan would destroy and recreate the layer.
+    // The transform sync effect below handles subsequent updates.
+    untrack(() => init())
     return () => {
       stage.off('mousedown.draw')
       stage.off('mousemove.draw')

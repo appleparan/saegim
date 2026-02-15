@@ -6,9 +6,6 @@
   import Button from '$lib/components/common/Button.svelte'
   import ImageViewer from '$lib/components/canvas/ImageViewer.svelte'
   import ElementList from '$lib/components/panels/ElementList.svelte'
-  import AttributePanel from '$lib/components/panels/AttributePanel.svelte'
-  import PageAttributePanel from '$lib/components/panels/PageAttributePanel.svelte'
-  import TextEditor from '$lib/components/panels/TextEditor.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
@@ -187,15 +184,7 @@
       </div>
 
       <!-- Right panel: Sidebar -->
-      <Sidebar>
-        {#if uiStore.activePanel === 'elements'}
-          <AttributePanel />
-        {:else if uiStore.activePanel === 'attributes'}
-          <PageAttributePanel />
-        {:else if uiStore.activePanel === 'text'}
-          <TextEditor />
-        {/if}
-      </Sidebar>
+      <Sidebar />
     </div>
   {/if}
 </div>
