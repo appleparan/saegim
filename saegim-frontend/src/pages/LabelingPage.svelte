@@ -6,6 +6,7 @@
   import Button from '$lib/components/common/Button.svelte'
   import HybridViewer from '$lib/components/canvas/HybridViewer.svelte'
   import ElementList from '$lib/components/panels/ElementList.svelte'
+  import ExtractionPreview from '$lib/components/panels/ExtractionPreview.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
@@ -13,6 +14,7 @@
   import { getPage, savePage } from '$lib/api/pages'
   import { API_BASE, NetworkError } from '$lib/api/client'
   import type { PageResponse } from '$lib/api/types'
+  import type { AnnotationData } from '$lib/types/omnidocbench'
 
   let { params }: { params: { pageId: string } } = $props()
 
@@ -78,6 +80,12 @@
     }
   }
 
+  function handleExtractionAccepted(data: AnnotationData) {
+    if (params?.pageId) {
+      annotationStore.load(params.pageId, data)
+    }
+  }
+
   function handleBeforeUnload(e: BeforeUnloadEvent) {
     if (annotationStore.isDirty) {
       e.preventDefault()
@@ -139,8 +147,15 @@
     </div>
   {:else}
     <div class="flex-1 flex overflow-hidden">
-      <!-- Left panel: Element list -->
+      <!-- Left panel: Element list + extraction preview -->
       <div class="w-64 border-r border-gray-200/80 bg-white overflow-y-auto flex flex-col shadow-sm">
+        {#if pageData}
+          <ExtractionPreview
+            pageId={params.pageId}
+            autoExtractedData={pageData.auto_extracted_data}
+            onAccepted={handleExtractionAccepted}
+          />
+        {/if}
         <ElementList />
       </div>
 

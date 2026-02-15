@@ -26,3 +26,9 @@ export async function savePageAttributes(
 ): Promise<void> {
   await api.put(`/api/v1/pages/${pageId}/attributes`, data)
 }
+
+export async function acceptExtraction(
+  pageId: string,
+): Promise<PageResponse> {
+  return api.post<PageResponse>(`/api/v1/pages/${pageId}/accept-extraction`)
+}
