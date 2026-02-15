@@ -66,6 +66,7 @@ try {
 | `getPage(pageId)` | GET | `/api/pages/:id` | 페이지 데이터 + 어노테이션 |
 | `savePage(pageId, data)` | PUT | `/api/pages/:id` | 어노테이션 전체 저장 |
 | `savePageAttributes(pageId, data)` | PUT | `/api/pages/:id/attributes` | 페이지 속성 저장 |
+| `acceptExtraction(pageId)` | POST | `/api/pages/:id/accept-extraction` | 자동 추출 수락 |
 
 ### Elements (`src/lib/api/elements.ts`)
 

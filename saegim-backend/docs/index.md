@@ -9,6 +9,7 @@ saegim은 한국어 문서 VLM(Vision-Language Model) 벤치마크를 위한 레
 ## 주요 기능
 
 - **PDF 업로드 및 변환** - PDF를 업로드하면 페이지별 이미지로 자동 변환
+- **텍스트/이미지 자동 추출** - PyMuPDF로 텍스트 블록·이미지 위치를 추출, 수락 시 어노테이션에 반영
 - **OmniDocBench 어노테이션** - 15가지 블록 레벨 + 4가지 스팬 레벨 카테고리 지원
 - **페이지별 레이블링** - 페이지 단위로 어노테이션 데이터 편집 및 저장
 - **벤치마크 데이터 내보내기** - OmniDocBench JSON 포맷으로 프로젝트 전체 내보내기
@@ -54,9 +55,10 @@ src/saegim/
 │   ├── user.py
 │   └── export.py
 ├── services/               # 비즈니스 로직
-│   ├── document_service.py # PDF 업로드/변환
-│   ├── labeling_service.py # 어노테이션 관리
-│   └── export_service.py   # OmniDocBench JSON 내보내기
+│   ├── document_service.py    # PDF 업로드/변환/추출
+│   ├── extraction_service.py  # PyMuPDF 텍스트/이미지 블록 추출
+│   ├── labeling_service.py    # 어노테이션 관리, 자동 추출 수락
+│   └── export_service.py      # OmniDocBench JSON 내보내기
 └── migrations/
     └── 001_init.sql        # 초기 DDL
 ```

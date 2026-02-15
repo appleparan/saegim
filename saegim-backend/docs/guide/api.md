@@ -81,7 +81,8 @@
 
 ### `POST /api/v1/projects/{project_id}/documents`
 
-PDF 문서 업로드. 업로드된 PDF는 자동으로 페이지별 이미지로 변환됩니다.
+PDF 문서 업로드. 업로드된 PDF는 자동으로 페이지별 이미지로 변환되고,
+PyMuPDF로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`에 저장합니다.
 
 **요청:** `multipart/form-data`
 
@@ -250,6 +251,19 @@ PDF 문서 업로드. 업로드된 PDF는 자동으로 페이지별 이미지로
 `anno_id`로 레이아웃 요소 삭제.
 
 **응답:** `200 OK` | `404 Not Found`
+
+### `POST /api/v1/pages/{page_id}/accept-extraction`
+
+자동 추출 결과(`auto_extracted_data`)를 `annotation_data`로 복사합니다.
+`annotation_data`가 비어있고 `auto_extracted_data`가 존재할 때만 동작합니다.
+
+**응답:** `200 OK` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `409` | `auto_extracted_data`가 없거나, `annotation_data`에 이미 요소가 존재함 |
 
 ---
 

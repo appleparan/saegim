@@ -55,8 +55,9 @@ src/saegim/api/routes/
 
 ```text
 src/saegim/services/
-├── document_service.py    # PDF 업로드 → 이미지 변환 → DB 저장
-├── labeling_service.py    # 어노테이션 CRUD, 요소 추가/삭제
+├── document_service.py    # PDF 업로드 → 이미지 변환 → 텍스트/이미지 추출 → DB 저장
+├── extraction_service.py  # PyMuPDF 텍스트/이미지 블록 추출 (auto_extracted_data 생성)
+├── labeling_service.py    # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
 ├── analysis_service.py    # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
 └── export_service.py      # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
 ```
@@ -93,6 +94,7 @@ sequenceDiagram
     participant DR as DocumentRepo
     participant PR as PageRepo
     participant PDF as PyMuPDF
+    participant EX as ExtractionService
 
     C->>R: POST /projects/{id}/documents (PDF file)
     R->>DS: upload_and_convert(pool, project_id, file)
@@ -103,7 +105,10 @@ sequenceDiagram
     loop 각 페이지
         DS->>PDF: page.get_pixmap(matrix=2x)
         DS->>DS: 이미지 저장 (storage/images/)
-        DS->>PR: create(pool, document_id, page_no, ...)
+        DS->>EX: extract_page_elements(page, scale=2.0)
+        Note over EX: get_text("dict") → 텍스트/이미지 블록 추출<br/>좌표 × 2.0 스케일링
+        EX-->>DS: auto_extracted_data (OmniDocBench 형식)
+        DS->>PR: create(pool, document_id, page_no, ..., auto_extracted_data)
     end
     DS->>DR: update_status(pool, id, 'ready')
     DS-->>R: {id, filename, total_pages, status}
@@ -145,6 +150,24 @@ sequenceDiagram
     Note over ES: annotation_data에서 page_attribute 추출<br/>page_info 블록 조합
     ES-->>R: {project_name, total_pages, data: [...]}
     R-->>C: 200 OK (OmniDocBench JSON)
+```
+
+### 자동 추출 수락 플로우
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant R as Router
+    participant LS as LabelingService
+    participant PR as PageRepo
+
+    C->>R: POST /pages/{id}/accept-extraction
+    R->>LS: accept_auto_extraction(pool, page_id)
+    LS->>PR: accept_auto_extracted(pool, page_id)
+    Note over PR: SET annotation_data = auto_extracted_data<br/>WHERE annotation empty AND auto_extracted NOT NULL
+    PR-->>LS: updated record (or None)
+    LS-->>R: page data dict (or None → 409)
+    R-->>C: 200 OK / 409 Conflict
 ```
 
 ## 커넥션 풀 관리

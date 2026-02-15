@@ -196,6 +196,22 @@ Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), �
 - 레이아웃 (5개 항목)
 - 워터마크/흐린 스캔/컬러 배경 토글
 
+### ExtractionPreview
+
+자동 추출 결과 프리뷰 배너. LabelingPage 좌측 상단에 표시.
+
+- `auto_extracted_data`가 있고 `annotation_data.layout_dets`가 비어있을 때만 표시
+- 추출된 요소 수 표시 (텍스트 N개, 이미지 N개 — 총 N개 요소)
+- "수락" 버튼 → `acceptExtraction()` API 호출 → 어노테이션 갱신
+- "무시" 버튼 → 배너 닫기 (세션 내 `dismissed` 상태)
+- × 버튼으로도 닫기 가능
+
+| Prop | Type | 설명 |
+| ------ | ------ | ------ |
+| `pageId` | `string` | 페이지 UUID |
+| `autoExtractedData` | `AnnotationData \| null` | 자동 추출 데이터 |
+| `onAccepted` | `(data: AnnotationData) => void` | 수락 후 콜백 |
+
 ### TextEditor
 
 선택된 요소의 텍스트 편집 (Text / LaTeX / HTML 탭).

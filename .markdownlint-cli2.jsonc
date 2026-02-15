@@ -2,7 +2,9 @@
   "globs": ["**/*.md"],
   "ignores": [
     "**/node_modules/**",
-    "**/.venv/**"
+    "**/.venv/**",
+    "CHANGELOG.md",
+    "RELEASE.md"
   ],
   "config": {
     // Line length 120 (matches ruff/prettier settings)

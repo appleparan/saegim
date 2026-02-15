@@ -227,6 +227,16 @@ export async function deleteElement(
   return { data, duration }
 }
 
+export async function acceptExtraction(
+  pageId: string,
+): Promise<{ data: PageResponse; duration: number }> {
+  const { data, duration } = await request<PageResponse>(
+    'POST',
+    `/pages/${pageId}/accept-extraction`,
+  )
+  return { data, duration }
+}
+
 export async function exportProject(
   projectId: string,
 ): Promise<{ data: ExportResponse; duration: number }> {

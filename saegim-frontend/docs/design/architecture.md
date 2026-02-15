@@ -51,8 +51,8 @@ src/
 │   └── components/
 │       ├── common/         # 재사용 UI 위젯
 │       ├── layout/         # Header, Sidebar
-│       ├── canvas/         # Konva.js 통합 (ImageViewer, BboxLayer, BboxDrawTool)
-│       └── panels/         # 사이드바 패널 (ElementList, AttributePanel 등)
+│       ├── canvas/         # Konva.js 통합 (ImageViewer, BboxLayer, BboxDrawTool, TextOverlay)
+│       └── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview 등)
 └── tests/
     └── lib/utils/bbox.test.ts
 ```

@@ -8,6 +8,7 @@ import asyncpg
 import fitz
 
 from saegim.repositories import document_repo, page_repo
+from saegim.services import extraction_service
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,9 @@ async def upload_and_convert(
             image_path = images_dir / image_filename
             pix.save(str(image_path))
 
+            # Extract text blocks and images from the page
+            extracted = extraction_service.extract_page_elements(page, scale=2.0)
+
             await page_repo.create(
                 pool,
                 document_id=document_id,
@@ -71,6 +75,7 @@ async def upload_and_convert(
                 width=pix.width,
                 height=pix.height,
                 image_path=str(image_path),
+                auto_extracted_data=extracted,
             )
 
         pdf_doc.close()
