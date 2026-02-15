@@ -133,7 +133,7 @@ docker run -p 5000:5000 \
 
 ## 다음 단계
 
-- [아키텍처](architecture.md) - 시스템 구조 이해
+- [아키텍처](../design/architecture.md) - 시스템 구조 이해
 - [API 엔드포인트](api.md) - API 사용법
-- [데이터베이스](database.md) - 스키마 구조
-- [개발 가이드](development.md) - 기여 방법
+- [데이터베이스](../design/database.md) - 스키마 구조
+- [개발 가이드](../dev/development.md) - 기여 방법

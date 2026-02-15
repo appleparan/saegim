@@ -192,12 +192,15 @@ markdown_extensions:
 # Assume REF_DOCS_DIR_NAME = 'reference' in scripts/gen_ref_pages.py
 nav:
   - Home: index.md
-  - 개요: overview.md
-  - 시작하기: getting-started.md
-  - 아키텍처: architecture.md
-  - API 엔드포인트: api.md
-  - 데이터베이스: database.md
-  - 개발 가이드: development.md
+  - Guide:
+    - 개요: guide/overview.md
+    - 시작하기: guide/getting-started.md
+    - API 엔드포인트: guide/api.md
+  - Design:
+    - 아키텍처: design/architecture.md
+    - 데이터베이스: design/database.md
+  - Dev:
+    - 개발 가이드: dev/development.md
   - API Reference: reference/
 
 plugins:
