@@ -1,0 +1,5 @@
+# Storage (uploaded PDFs and page images)
+storage/
+
+# Environment
+.env
