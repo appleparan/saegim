@@ -6,6 +6,7 @@
   import { getProject } from '$lib/api/projects'
   import { listDocuments, uploadDocument, deleteDocument, listPages } from '$lib/api/documents'
   import type { ProjectResponse, DocumentResponse, PageSummary } from '$lib/api/types'
+  import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
 
   let { params }: { params: { id: string } } = $props()
@@ -91,7 +92,8 @@
   }
 
   $effect(() => {
-    loadData()
+    params.id
+    untrack(() => loadData())
   })
 </script>
 

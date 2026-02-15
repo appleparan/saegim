@@ -12,6 +12,7 @@
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
+  import { untrack } from 'svelte'
   import { getPage, savePage } from '$lib/api/pages'
   import { API_BASE, NetworkError } from '$lib/api/client'
   import type { PageResponse } from '$lib/api/types'
@@ -87,7 +88,8 @@
   }
 
   $effect(() => {
-    loadPage()
+    params.pageId
+    untrack(() => loadPage())
   })
 
   $effect(() => {
