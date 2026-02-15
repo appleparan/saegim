@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18.2-trixie
     restart: unless-stopped
     environment:
       POSTGRES_DB: labeling
