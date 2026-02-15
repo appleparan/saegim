@@ -22,12 +22,13 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
-| **PDF 처리** | PyMuPDF (2x 해상도 렌더링) |
+| **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
+- **텍스트/이미지 자동 추출**: PyMuPDF로 텍스트 블록·이미지 위치를 추출, 수락 시 어노테이션에 반영
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
@@ -194,8 +195,10 @@ saegim/
 | `POST` | `/api/v1/projects/:id/documents` | PDF 업로드 |
 | `GET` | `/api/v1/pages/:id` | 페이지 + 어노테이션 조회 |
 | `PUT` | `/api/v1/pages/:id` | 어노테이션 저장 |
+| `PUT` | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
 | `POST` | `/api/v1/pages/:id/elements` | 레이아웃 요소 추가 |
 | `DELETE` | `/api/v1/pages/:id/elements/:anno_id` | 요소 삭제 |
+| `POST` | `/api/v1/pages/:id/accept-extraction` | 자동 추출 결과 수락 |
 | `POST` | `/api/v1/projects/:id/export` | OmniDocBench JSON 내보내기 |
 
 ## 개발

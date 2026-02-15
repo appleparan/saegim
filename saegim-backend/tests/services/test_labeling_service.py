@@ -71,7 +71,10 @@ class TestGetPageData:
     async def test_returns_page_data_with_dict_annotation(self, mock_pool, page_id, document_id):
         annotation = {'layout_dets': [], 'page_attribute': {'language': 'ko'}}
         record = _make_page_record(
-            page_id, document_id, annotation_data=annotation, with_context=True,
+            page_id,
+            document_id,
+            annotation_data=annotation,
+            with_context=True,
         )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
@@ -88,7 +91,10 @@ class TestGetPageData:
     async def test_parses_json_string_annotation(self, mock_pool, page_id, document_id):
         annotation_str = '{"layout_dets": [{"anno_id": 0}]}'
         record = _make_page_record(
-            page_id, document_id, annotation_data=annotation_str, with_context=True,
+            page_id,
+            document_id,
+            annotation_data=annotation_str,
+            with_context=True,
         )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
@@ -119,7 +125,10 @@ class TestGetPageData:
     @pytest.mark.asyncio
     async def test_returns_empty_dict_for_null_annotation(self, mock_pool, page_id, document_id):
         record = _make_page_record(
-            page_id, document_id, annotation_data=None, with_context=True,
+            page_id,
+            document_id,
+            annotation_data=None,
+            with_context=True,
         )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:

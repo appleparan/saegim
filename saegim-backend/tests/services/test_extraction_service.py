@@ -1,10 +1,9 @@
 """Tests for PDF text/image extraction service."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from saegim.services import extraction_service
 from saegim.services.extraction_service import (
     _collect_block_text,
     _overlaps_existing,

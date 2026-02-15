@@ -229,6 +229,28 @@ SET annotation_data = jsonb_set(
 WHERE id = $2
 ```
 
+### auto_extracted_data 수락 (annotation_data로 복사)
+
+`auto_extracted_data`를 `annotation_data`로 복사합니다.
+기존 annotation이 비어있을 때만 동작합니다:
+
+```sql
+UPDATE pages
+SET annotation_data = auto_extracted_data, updated_at = NOW()
+WHERE id = $1
+  AND auto_extracted_data IS NOT NULL
+  AND (
+    annotation_data IS NULL
+    OR annotation_data = '{}'::jsonb
+    OR NOT (annotation_data ? 'layout_dets')
+    OR jsonb_array_length(COALESCE(annotation_data->'layout_dets', '[]'::jsonb)) = 0
+  )
+RETURNING ...
+```
+
+이미 `annotation_data.layout_dets`에 요소가 있으면 업데이트하지 않고 `NULL`을 반환합니다
+(API에서 409 Conflict로 처리).
+
 ## analysis_data JSONB 구조 (Phase 4a)
 
 `documents.analysis_data`에 저장되는 문서 분석 메타데이터입니다.

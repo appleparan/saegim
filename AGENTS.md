@@ -47,59 +47,18 @@ PDF 등 한국어 문서 데이터셋을 업로드하면 OmniDocBench 포맷의 
 | **Key Figures** | 주요 그림/도표와 그 중요성 설명 | AI 자동 선정 + page/anno_id로 element 참조 |
 | **Limitations** | 명시적/암시적 한계점, 향후 연구 방향 | AI 자동 추출 + 사람 검수 |
 
-```jsonc
-// documents.analysis_data JSONB 구조
-{
-  "overview": {
-    "title": "Attention Is All You Need",
-    "authors": ["Vaswani et al."],
-    "venue": "NeurIPS 2017",
-    "summary": "RNN/CNN 없이 attention만으로 sequence transduction 수행",
-    "tags": ["transformer", "attention", "NLP"]
-  },
-  "core_idea": {
-    "problem": "RNN의 순차 연산이 병렬화를 막고 long-range dependency 학습이 어려움",
-    "approach": "Self-attention으로 모든 위치 간 직접 연결",
-    "novelty": "순수 attention 기반 encoder-decoder로 RNN/CNN 완전 대체",
-    "key_equations": [
-      {"page": 3, "anno_id": 7, "description": "Scaled Dot-Product Attention"}
-    ]
-  },
-  "key_figures": [
-    {
-      "page": 2,
-      "anno_id": 3,
-      "label": "Figure 1",
-      "why_important": "Transformer 전체 아키텍처 구조도",
-      "rank": 1
-    }
-  ],
-  "limitations": {
-    "stated": ["고정 길이 입력에 대한 일반화 미검증"],
-    "implicit": ["메모리 O(n²) — 긴 시퀀스에 비효율"],
-    "future_work": ["이미지, 오디오 등 다른 모달리티 확장"]
-  },
-  "_meta": {
-    "model": "claude-sonnet-4-5-20250929",
-    "extracted_at": "2026-02-15T10:00:00Z",
-    "reviewed": false,
-    "reviewed_by": null
-  }
-}
-```
+`documents.analysis_data` JSONB 구조:
+
+| 키 | 내용 |
+| -- | ---- |
+| `overview` | title, authors, venue, summary, tags |
+| `core_idea` | problem, approach, novelty, key_equations (page+anno_id 참조) |
+| `key_figures` | page, anno_id, label, why_important, rank |
+| `limitations` | stated, implicit, future_work |
+| `_meta` | model, extracted_at, reviewed, reviewed_by |
 
 **Key Figures가 element-level과 document-level을 연결하는 브릿지 역할**:
-
-```text
-Document-level (analysis_data)          Page-level (annotation_data)
-┌─────────────────────┐                ┌─────────────────────┐
-│ key_figures: [       │    참조        │ layout_dets: [       │
-│   { page: 2,        │───────────────▶│   { anno_id: 3,      │
-│     anno_id: 3,     │                │     category: figure, │
-│     why_important }  │                │     poly: [...],      │
-│ ]                    │                │     text: "Fig 1..." }│
-└─────────────────────┘                └─────────────────────┘
-```
+`analysis_data.key_figures[].{page, anno_id}` → `annotation_data.layout_dets[].{anno_id}` 참조.
 
 ### 1.2 두 레포지토리 분석
 
@@ -275,11 +234,12 @@ Document-level (analysis_data)          Page-level (annotation_data)
 | ------ | ------ | ------ |
 | **프론트엔드** | Svelte 5 + SvelteKit + TypeScript | Svelte 5의 runes($state, $derived)로 bbox/annotation 상태 관리가 간결. Canvas 위 bbox 인터랙션은 Konva.js 또는 Fabric.js 활용 |
 | **백엔드** | FastAPI (Python) | 자동 추출 파이프라인(PyTorch 모델)과 자연스러운 통합. 프론트엔드와는 HTTP/JSON API로만 통신 |
-| **ORM** | SQLAlchemy | DB 종류에 독립적인 코드 작성. 개발 시 SQLite → 배포 시 PostgreSQL 전환 가능 |
-| **DB** | PostgreSQL | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
+| **DB 드라이버** | asyncpg (raw SQL) | 비동기 PostgreSQL 드라이버. ORM 없이 raw SQL + Repository 패턴으로 JSONB 직접 제어 |
+| **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
 | **파일 저장** | 로컬 파일시스템 (→ 추후 MinIO/S3) | PDF 원본, 페이지 이미지 등 바이너리 파일 |
 | **자동 추출** | MinerU / PP-StructureV3 / DocLayout-YOLO 중 택1 | 레이아웃 검출 + OCR 통합 파이프라인 |
-| **태스크 큐** | Celery + Redis | PDF 변환, 자동 추출 등 비동기 무거운 작업 처리 |
+| **PDF 추출** | PyMuPDF | PDF → 이미지 렌더링 + 텍스트/이미지 블록 자동 추출 (구현 완료) |
+| **태스크 큐** | Celery + Redis (미구현) | PDF 변환, 자동 추출 등 비동기 무거운 작업 처리 |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
 
 #### 프론트엔드 ↔ 백엔드 연결 구조
@@ -288,75 +248,21 @@ Svelte 5와 FastAPI는 완전히 독립된 프로세스로, HTTP/JSON으로만 �
 Svelte가 Python을 import하지 않으며, 서로 존재를 알 필요가 없다.
 
 ```text
-Svelte 5 (포트 5173)              FastAPI (포트 8000)              PostgreSQL
-┌──────────────────┐              ┌──────────────────┐            ┌──────────┐
-│  UI, bbox 편집기  │   fetch()    │  비즈니스 로직,   │  SQLAlchemy │          │
-│  $state로 상태관리 │ ◄──JSON───► │  PDF변환, 저장    │ ◄──SQL───► │  JSONB   │
-│  Canvas 렌더링    │              │  자동 추출 파이프   │            │          │
-└──────────────────┘              └──────────────────┘            └──────────┘
+Svelte 5 (:5173)             FastAPI (:5000)             PostgreSQL (:5432)
+┌────────────────────┐       ┌────────────────────┐      ┌──────────────┐
+│ UI + Canvas        │       │ Routes / Services  │      │              │
+│ $state annotation  │◄JSON─►│ PDF extraction     │◄SQL─►│ JSONB tables │
+│ Konva.js + DOM     │       │ Repository pattern │      │              │
+└────────────────────┘       └────────────────────┘      └──────────────┘
 ```
 
 개발 시 터미널 두 개를 별도로 실행한다:
 
-```bash
-# 터미널 1: FastAPI 백엔드
-cd backend && uvicorn main:app --port 8000 --reload
+- 백엔드: `cd saegim-backend && uv run saegim --port 5000`
+- 프론트엔드: `cd saegim-frontend && bun run dev` (포트 5173)
 
-# 터미널 2: SvelteKit 프론트엔드
-cd frontend && npm run dev    # → localhost:5173
-```
-
-Svelte 쪽에서 FastAPI를 호출하는 패턴:
-
-```typescript
-// frontend/src/lib/api/pages.ts
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-
-export async function getPage(pageId: string) {
-  const res = await fetch(`${API_BASE}/api/pages/${pageId}`);
-  return res.json();
-}
-
-export async function savePage(pageId: string, annotationData: object) {
-  await fetch(`${API_BASE}/api/pages/${pageId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ annotation_data: annotationData })
-  });
-}
-```
-
-```svelte
-<!-- frontend/src/routes/label/[pageId]/+page.svelte -->
-<script lang="ts">
-  import { getPage, savePage } from '$lib/api/pages';
-
-  let annotation = $state(null);
-  let imageUrl = $state('');
-
-  async function load(pageId: string) {
-    const data = await getPage(pageId);
-    annotation = data.annotation_data;    // OmniDocBench JSON 그대로
-    imageUrl = data.image_url;
-  }
-</script>
-
-<canvas> <!-- bbox 오버레이 렌더링 --> </canvas>
-<button onclick={() => savePage(pageId, annotation)}>저장</button>
-```
-
-FastAPI 쪽은 프론트엔드가 Svelte든 React든 무관하게 동일한 JSON API를 제공한다.
-CORS 설정에서 Svelte 개발 서버 주소만 허용하면 된다.
-
-```python
-# backend/main.py
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # SvelteKit 기본 포트
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
+API 클라이언트 구현: [saegim-frontend/src/lib/api/](saegim-frontend/src/lib/api/)
+CORS 설정은 환경변수 `CORS_ORIGINS`로 관리한다.
 
 ### 3.3 데이터베이스 전략
 
@@ -373,21 +279,15 @@ app.add_middleware(
 
 레이블링 작업은 자동 저장이 수시로 발생하므로 동시 쓰기 안전성이 필수적이다.
 
-#### 개발 환경 전략: SQLite → PostgreSQL 전환
+#### 개발 환경 전략: PostgreSQL + asyncpg (raw SQL)
 
-SQLAlchemy ORM을 사용하면 개발 초기에는 SQLite로 빠르게 시작하고,
-팀 작업 시점에 PostgreSQL로 전환할 수 있다. 코드 변경은 환경변수 1줄이다.
+ORM 없이 asyncpg + raw SQL + Repository 패턴을 채택했다.
+JSONB 부분 업데이트(`jsonb_set`), 배열 조작, 조건부 UPDATE 등
+PostgreSQL 고유 기능을 적극 활용하기 위해 ORM 추상화를 배제했다.
 
-```python
-# .env (개발)
-DATABASE_URL=sqlite:///./labeling.db
+환경변수 템플릿: [.env.example](.env.example)
 
-# .env (배포)
-DATABASE_URL=postgresql://user:pass@localhost:5432/labeling
-```
-
-단, JSONB 전용 기능(부분 업데이트, GIN 인덱스 등)은 PostgreSQL 전환 후에 추가한다.
-개발 단계에서는 JSON을 TEXT로 저장해도 수천 페이지 규모에서 성능 문제가 없다.
+개발/배포 모두 PostgreSQL을 사용하며, Docker Compose로 로컬에서도 동일 환경을 구성한다.
 
 #### Page 단위 JSONB 저장 전략
 
@@ -420,154 +320,236 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/labeling
 
 #### 코드 구조: Repository 패턴
 
-DB 접근을 직접 하지 않고 Repository 계층으로 감싸, DB 변경 시 영향 범위를 최소화한다.
+DB 접근을 Repository 계층으로 감싸, SQL 변경 시 영향 범위를 최소화한다.
+ORM 없이 asyncpg raw SQL을 사용하며, Repository가 SQL 쿼리를 캡슐화한다.
+전체 디렉토리 구조는 Section 3.5 참조.
 
-```text
-backend/
-├── models/           # SQLAlchemy ORM 모델 정의
-│   ├── project.py
-│   ├── document.py
-│   ├── page.py
-│   └── user.py
-├── repositories/     # DB 접근 로직 캡슐화
-│   ├── page_repo.py        # get_annotation(), save_annotation() 등
-│   ├── document_repo.py
-│   └── project_repo.py
-├── services/         # 비즈니스 로직 (repository 호출)
-│   ├── labeling_service.py
-│   ├── export_service.py
-│   └── extraction_service.py
-├── api/              # FastAPI 라우터 (service 호출)
-│   ├── pages.py
-│   ├── documents.py
-│   └── projects.py
-└── core/
-    ├── config.py     # DATABASE_URL 등 환경변수
-    └── database.py   # SQLAlchemy 엔진/세션 설정
-```
-
-이 구조에서 DB를 SQLite → PostgreSQL로 바꿀 때 수정 파일은 `config.py`의 URL 1줄뿐이다.
-나중에 파일 저장소를 로컬 → S3로 바꿀 때도 repository 내부만 수정하면 된다.
+파일 저장소를 로컬 → S3로 바꿀 때도 repository/service 내부만 수정하면 된다.
 
 ### 3.4 Docker Compose 구성
 
-```yaml
-# docker-compose.yml
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: labeling
-      POSTGRES_USER: labeling
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+설정 파일: [docker-compose.yml](docker-compose.yml)
 
-  backend:
-    build: ./backend
-    environment:
-      DATABASE_URL: postgresql://labeling:${DB_PASSWORD}@postgres:5432/labeling
-      STORAGE_PATH: /app/storage
-      CORS_ORIGINS: http://localhost:5173   # SvelteKit
-    volumes:
-      - ./storage:/app/storage
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
+| 서비스 | 이미지/빌드 | 포트 |
+| ------ | ----------- | ---- |
+| postgres | postgres:18.2-trixie | 5432 |
+| backend | ./saegim-backend | 5000 |
+| frontend | ./saegim-frontend | 80 (→ 5173) |
 
-  frontend:
-    build: ./frontend                       # SvelteKit
-    environment:
-      VITE_API_URL: http://localhost:8000
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
-
-  # Phase 2에서 추가
-  # redis:
-  #   image: redis:7
-  # worker:
-  #   build: ./backend
-  #   command: celery -A worker worker
-
-volumes:
-  postgres_data:
-```
-
-`docker-compose up` 한 줄이면 로컬에서도, 서버에서도 동일하게 동작한다.
-배포 환경이 정해지지 않은 현 시점에서 가장 유연한 구성이다.
+`docker compose up` 한 줄이면 로컬/서버 동일 환경.
+E2E 테스트용 격리 환경: [e2e/docker-compose.e2e.yml](e2e/docker-compose.e2e.yml) (Section 3.8).
 
 ### 3.5 프로젝트 디렉토리 구조
 
 ```text
-ko-doc-labeling/
-├── docker-compose.yml
-├── .env                          # DATABASE_URL, DB_PASSWORD 등
+saegim/
+├── .env.example                  # 환경변수 템플릿
+├── .github/
+│   ├── ISSUE_TEMPLATE/           # 버그 리포트, 기능 요청 템플릿
+│   └── workflows/
+│       ├── ci.yml                # 린트/테스트/빌드 CI
+│       ├── claude.yml            # Claude Code 자동화
+│       └── publish-release.yml   # 릴리즈 발행
+├── .markdownlint-cli2.jsonc      # 마크다운 린트 설정 (line_length: 120)
+├── .markdownlint.json
+├── AGENTS.md                     # 플래닝 가이드 (이 문서)
+├── CHANGELOG.md                  # git-cliff 자동 생성
+├── README.md
+├── cliff.toml                    # git-cliff 설정
+├── docker-compose.yml            # 개발/배포용 Docker Compose
 │
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── main.py                   # FastAPI 앱 진입점
-│   ├── core/
-│   │   ├── config.py             # 환경변수 로드 (DATABASE_URL 등)
-│   │   └── database.py           # SQLAlchemy 엔진/세션
-│   ├── models/                   # SQLAlchemy ORM 모델
-│   │   ├── project.py
-│   │   ├── document.py
-│   │   ├── page.py
-│   │   └── user.py
-│   ├── repositories/             # DB 접근 캡슐화
-│   │   ├── page_repo.py
-│   │   ├── document_repo.py
-│   │   └── project_repo.py
-│   ├── services/                 # 비즈니스 로직
-│   │   ├── labeling_service.py
-│   │   ├── export_service.py
-│   │   └── extraction_service.py # Phase 2
-│   ├── api/                      # FastAPI 라우터
-│   │   ├── pages.py
-│   │   ├── documents.py
-│   │   └── projects.py
-│   └── schemas/                  # Pydantic 요청/응답 스키마
-│       ├── page.py
-│       └── annotation.py         # OmniDocBench JSON 검증용
+├── docs/                         # 루트 문서 (quickstart, 배포 가이드)
+│   ├── guide/quickstart.md
+│   └── dev/
+│       ├── docker.md
+│       └── kubernetes.md
 │
-├── frontend/                             # SvelteKit + Svelte 5
+├── e2e/                          # E2E 테스트 (Playwright + Docker Compose)
+│   ├── docker-compose.e2e.yml    # E2E 전용 환경 (포트 2xxxx)
+│   ├── package.json              # bun + @playwright/test
+│   ├── playwright.config.ts
+│   ├── fixtures/                 # 테스트용 PDF 등 고정 데이터
+│   │   └── attention.pdf
+│   ├── helpers/                  # 테스트 유틸리티
+│   │   ├── api.ts                # 백엔드 API 호출 헬퍼
+│   │   ├── pdf.ts                # 테스트 PDF 생성
+│   │   └── timer.ts              # 대기/폴링 유틸
+│   └── tests/
+│       ├── health.spec.ts        # 헬스체크 (백엔드 + 프론트엔드)
+│       ├── workflow.spec.ts      # 프로젝트→문서→레이블링 전체 플로우
+│       ├── benchmark.spec.ts     # OmniDocBench Export 검증
+│       ├── hybrid-labeling.spec.ts # 3-layer 하이브리드 뷰어 테스트
+│       └── extraction.spec.ts    # PDF 텍스트/이미지 추출 + 수락 플로우
+│
+├── k8s/                          # Kubernetes 매니페스트
+│   ├── kustomization.yaml
+│   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
+│   ├── postgres-pvc.yaml
+│   ├── postgres-statefulset.yaml
+│   ├── storage-pvc.yaml
+│   ├── migration-job.yaml
+│   ├── backend-deployment.yaml
+│   └── frontend-deployment.yaml
+│
+├── scripts/
+│   └── release.sh                # 릴리즈 스크립트
+│
+├── saegim-backend/               # FastAPI + asyncpg 백엔드
 │   ├── Dockerfile
-│   ├── package.json
-│   ├── svelte.config.js
+│   ├── Makefile
+│   ├── pyproject.toml            # uv 패키지 관리
+│   ├── mkdocs.yml                # MkDocs 문서 설정
+│   ├── migrations/
+│   │   └── 001_init.sql          # 초기 DB 스키마
+│   ├── docs/                     # 백엔드 문서 (MkDocs)
+│   │   ├── index.md
+│   │   ├── guide/                # API 문서, 시작하기, 개요
+│   │   ├── design/               # 아키텍처, DB 설계
+│   │   └── dev/                  # 개발 가이드
+│   ├── src/saegim/
+│   │   ├── app.py                # FastAPI 앱 팩토리 + lifespan
+│   │   ├── cli.py                # CLI 엔트리포인트
+│   │   ├── core/
+│   │   │   └── database.py       # asyncpg 커넥션 풀
+│   │   ├── api/
+│   │   │   ├── settings.py       # Pydantic Settings (환경변수)
+│   │   │   └── routes/
+│   │   │       ├── health.py     # GET /api/v1/health
+│   │   │       ├── projects.py   # 프로젝트 CRUD
+│   │   │       ├── documents.py  # 문서 업로드/삭제
+│   │   │       ├── pages.py      # 페이지 레이블링 + accept-extraction
+│   │   │       ├── users.py      # 사용자 관리
+│   │   │       └── export.py     # OmniDocBench JSON 내보내기
+│   │   ├── repositories/         # DB 접근 (asyncpg raw SQL)
+│   │   │   ├── page_repo.py      # JSONB CRUD, accept_auto_extracted()
+│   │   │   ├── document_repo.py
+│   │   │   ├── project_repo.py
+│   │   │   └── user_repo.py
+│   │   ├── services/
+│   │   │   ├── document_service.py     # PDF 업로드/변환/추출
+│   │   │   ├── extraction_service.py   # PyMuPDF 텍스트/이미지 추출
+│   │   │   ├── labeling_service.py     # 어노테이션 CRUD, accept_auto_extraction()
+│   │   │   └── export_service.py       # OmniDocBench JSON 내보내기
+│   │   └── schemas/              # Pydantic 요청/응답 스키마
+│   │       ├── annotation.py     # AnnotationData, LayoutElement
+│   │       ├── page.py           # PageResponse, ElementCreate
+│   │       ├── document.py
+│   │       ├── project.py
+│   │       ├── export.py
+│   │       └── user.py
+│   └── tests/
+│       ├── conftest.py           # pytest 공통 fixture (asyncpg pool mock 등)
+│       ├── api/                  # API 라우트 테스트
+│       │   ├── test_health.py
+│       │   ├── test_projects.py
+│       │   ├── test_documents.py
+│       │   ├── test_pages.py
+│       │   ├── test_export.py
+│       │   ├── test_users.py
+│       │   ├── test_settings.py
+│       │   └── test_app.py
+│       └── services/             # 서비스 유닛 테스트
+│           ├── test_document_service.py
+│           ├── test_extraction_service.py
+│           ├── test_export_service.py
+│           └── test_labeling_service.py
+│
+├── saegim-frontend/              # Svelte 5 (Runes) SPA
+│   ├── Dockerfile
+│   ├── package.json              # bun 패키지 관리
 │   ├── vite.config.ts
-│   └── src/
-│       ├── lib/
-│       │   ├── api/                      # FastAPI 호출 함수
-│       │   │   ├── pages.ts
-│       │   │   ├── documents.ts
-│       │   │   └── projects.ts
-│       │   ├── components/
-│       │   │   ├── ImageViewer.svelte     # Canvas + bbox 오버레이 렌더링
-│       │   │   ├── BboxEditor.svelte      # bbox 드래그/리사이즈
-│       │   │   ├── AttributePanel.svelte  # 속성 라벨 편집 (카테고리별 조건부 UI)
-│       │   │   ├── ElementList.svelte     # 요소 목록/선택
-│       │   │   └── TextEditor.svelte      # text/latex/html 편집
-│       │   ├── stores/
-│       │   │   └── annotation.svelte.ts   # $state 기반 어노테이션 상태 관리
-│       │   └── types/
-│       │       └── omnidocbench.ts        # OmniDocBench JSON 타입 정의
-│       └── routes/
-│           ├── +page.svelte               # 프로젝트 목록
-│           ├── projects/[id]/+page.svelte # 문서 목록
-│           └── label/[pageId]/+page.svelte# 레이블링 메인 화면
+│   ├── svelte.config.js
+│   ├── nginx.conf                # 프로덕션 nginx 설정
+│   ├── docs/                     # 프론트엔드 문서
+│   │   ├── guide/                # 컴포넌트 레퍼런스, 단축키
+│   │   ├── design/               # 아키텍처, 스토어 설계
+│   │   └── dev/                  # API 클라이언트 문서
+│   ├── src/
+│   │   ├── App.svelte            # 라우터 (hash-based SPA)
+│   │   ├── main.ts
+│   │   ├── app.css               # Tailwind CSS
+│   │   ├── lib/
+│   │   │   ├── api/              # FastAPI 호출 함수
+│   │   │   │   ├── client.ts     # fetch 래퍼 (BASE_URL 등)
+│   │   │   │   ├── pages.ts      # acceptExtraction() 포함
+│   │   │   │   ├── documents.ts
+│   │   │   │   ├── projects.ts
+│   │   │   │   ├── elements.ts
+│   │   │   │   ├── relations.ts
+│   │   │   │   └── types.ts      # API 응답 타입
+│   │   │   ├── components/
+│   │   │   │   ├── canvas/
+│   │   │   │   │   ├── HybridViewer.svelte   # 3-layer 통합 뷰어
+│   │   │   │   │   ├── ImageViewer.svelte    # Konva.js Stage + 줌/패닝
+│   │   │   │   │   ├── BboxLayer.svelte      # Konva bbox 렌더링/편집
+│   │   │   │   │   ├── BboxDrawTool.svelte   # 새 bbox 그리기
+│   │   │   │   │   └── TextOverlay.svelte    # DOM 텍스트 투명 오버레이
+│   │   │   │   ├── common/
+│   │   │   │   │   ├── Button.svelte
+│   │   │   │   │   ├── Select.svelte
+│   │   │   │   │   ├── Toggle.svelte
+│   │   │   │   │   └── LoadingSpinner.svelte
+│   │   │   │   ├── layout/
+│   │   │   │   │   ├── Header.svelte
+│   │   │   │   │   └── Sidebar.svelte
+│   │   │   │   └── panels/
+│   │   │   │       ├── ElementList.svelte
+│   │   │   │       ├── CategorySelect.svelte
+│   │   │   │       ├── AttributePanel.svelte
+│   │   │   │       ├── PageAttributePanel.svelte
+│   │   │   │       ├── TextEditor.svelte
+│   │   │   │       └── ExtractionPreview.svelte  # 자동 추출 수락 UI
+│   │   │   ├── stores/
+│   │   │   │   ├── annotation.svelte.ts  # $state 기반 어노테이션 상태
+│   │   │   │   ├── canvas.svelte.ts      # 캔버스 상태 (줌, 모드)
+│   │   │   │   └── ui.svelte.ts          # UI 상태 (사이드바, 알림)
+│   │   │   ├── types/
+│   │   │   │   ├── omnidocbench.ts       # OmniDocBench JSON 타입
+│   │   │   │   ├── categories.ts         # 블록 카테고리 상수
+│   │   │   │   ├── element-groups.ts     # isTextBlock(), isImageBlock()
+│   │   │   │   └── canvas.ts
+│   │   │   └── utils/
+│   │   │       ├── bbox.ts               # bbox 좌표 변환
+│   │   │       ├── color.ts              # 카테고리별 색상
+│   │   │       ├── interaction.ts        # 마우스/키보드 유틸
+│   │   │       ├── text-layout.ts        # 텍스트 레이아웃 계산
+│   │   │       └── validation.ts
+│   │   └── pages/
+│   │       ├── ProjectList.svelte        # 프로젝트 목록
+│   │       ├── DocumentList.svelte       # 문서 목록 + PDF 업로드
+│   │       └── LabelingPage.svelte       # 3-panel 레이블링 메인 화면
+│   └── tests/
+│       ├── setup.ts                      # Vitest 설정
+│       └── lib/
+│           ├── components/canvas/
+│           │   └── TextOverlay.test.ts
+│           ├── types/
+│           │   └── element-groups.test.ts
+│           └── utils/
+│               ├── bbox.test.ts
+│               ├── interaction.test.ts
+│               └── text-layout.test.ts
 │
 └── storage/                      # 파일시스템 저장소 (Docker volume 마운트)
     ├── pdfs/                     # 원본 PDF
     └── images/                   # 페이지별 렌더링 이미지
 ```
 
-### 3.6 핵심 컴포넌트 설계
+### 3.6 문서 구조
+
+프로젝트 문서는 3곳에 분산되어 있으며, 기능 추가/변경 시 모두 업데이트해야 한다:
+
+| 위치 | 내용 | 대상 |
+| ------ | ------ | ------ |
+| `docs/` (루트) | 프로젝트 전체 quickstart, Docker/K8s 배포 가이드 | 사용자/운영 |
+| `saegim-backend/docs/` | 백엔드 API 문서, 아키텍처, DB 설계 (MkDocs) | 백엔드 개발자 |
+| `saegim-frontend/docs/` | 프론트엔드 아키텍처, 컴포넌트, API 클라이언트 | 프론트엔드 개발자 |
+| `AGENTS.md` (루트) | 전체 플래닝 가이드, Phase 로드맵, 스키마 설계 | 기획/설계 |
+| `README.md` (루트) | 프로젝트 소개, 기술 스택, 빠른 시작 | 신규 참여자 |
+
+### 3.7 핵심 컴포넌트 설계
 
 #### A. PDF Ingestion Service
 
@@ -603,6 +585,70 @@ ko-doc-labeling/
 - OmniDocBench JSON 포맷으로 직렬화
 - 이미지 파일과 함께 패키징
 - 선택적으로 KO-VLM-Benchmark 평가 스크립트와 호환되는 형식으로도 내보내기
+
+### 3.8 E2E 테스트
+
+E2E 테스트는 Playwright + Docker Compose로 실행한다.
+전용 Docker Compose(`e2e/docker-compose.e2e.yml`)가 격리된 환경을 구성한다.
+
+#### 환경 구성
+
+| 서비스 | 포트 | 설명 |
+| ------ | ---- | ---- |
+| PostgreSQL | 25432 | E2E 전용 DB (labeling_e2e 비밀번호) |
+| Backend | 25000 | FastAPI (포트 5000 → 호스트 25000) |
+| Frontend | 23000 | Nginx 정적 빌드 (포트 80 → 호스트 23000) |
+
+#### 실행 방법
+
+```bash
+cd e2e
+
+# 1. Docker 환경 시작
+bun run docker:up
+# = docker compose -f docker-compose.e2e.yml up -d
+
+# 2. Playwright 브라우저 + 테스트 PDF 설치
+bun run setup
+# = bunx playwright install chromium && bunx tsx helpers/pdf.ts
+
+# 3. 테스트 실행
+bun run test              # 전체 테스트
+bun run test:health       # 헬스체크만
+bun run test:workflow     # 전체 워크플로우만
+
+# 4. 실패 시 디버깅
+bun run test:ui           # Playwright UI 모드
+bun run report            # HTML 리포트 열기
+bun run docker:logs       # Docker 로그 확인
+
+# 5. 정리
+bun run docker:down
+# = docker compose -f docker-compose.e2e.yml down -v
+```
+
+#### 테스트 구조
+
+| 파일 | 내용 |
+| ---- | ---- |
+| `health.spec.ts` | 백엔드 `/api/v1/health` + 프론트엔드 로드 확인 |
+| `workflow.spec.ts` | 프로젝트 생성 → PDF 업로드 → 레이블링 → Export 전체 플로우 |
+| `benchmark.spec.ts` | OmniDocBench Export JSON 스키마 검증 |
+| `hybrid-labeling.spec.ts` | 3-layer 하이브리드 뷰어 (배경+Konva+TextOverlay) |
+| `extraction.spec.ts` | PDF 텍스트/이미지 추출 → 수락 → 어노테이션 반영 |
+
+#### 헬퍼 모듈
+
+- `helpers/api.ts`: 백엔드 REST API 호출 (`createProject`, `uploadPdf`, `acceptExtraction` 등)
+- `helpers/pdf.ts`: `fixtures/attention.pdf` 존재 확인/생성
+- `helpers/timer.ts`: 폴링/대기 유틸리티
+
+#### Playwright 설정
+
+- 브라우저: Chromium (1920×1080)
+- 타임아웃: 테스트 120초, expect 15초, action 15초
+- 실패 시 스크린샷, 재시도 시 trace/video 수집
+- 직렬 실행 (`fullyParallel: false`, `workers: 1`)
 
 ---
 
@@ -667,7 +713,31 @@ Step 7: 완료 & 제출
 
 ## 5. 자동 추출 파이프라인 상세
 
-### 5.1 후보 도구 비교
+### 5.0 현재 구현: PyMuPDF 기반 추출 (구현 완료)
+
+PDF 업로드 시 PyMuPDF `page.get_text("dict")`로 텍스트/이미지 블록을 자동 추출한다.
+
+```text
+PDF 업로드
+  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → page.get_text("dict") → blocks 배열
+     ├── type=0 (텍스트) → category_type: "text_block", spans의 text 합침
+     └── type=1 (이미지) → category_type: "figure"
+  → page.get_images() + get_image_bbox() → 임베디드 이미지 추출
+  → 좌표 스케일링: PyMuPDF 72 DPI × 2.0 = 이미지 픽셀 좌표
+  → auto_extracted_data JSONB에 OmniDocBench 형식으로 저장
+  → 프론트엔드에서 "수락" → annotation_data로 복사
+```
+
+구현 파일:
+
+- `extraction_service.py`: `extract_page_elements()`, `bbox_to_poly()`
+- `document_service.py`: 업로드 시 추출 호출
+- `page_repo.py`: `create()`, `accept_auto_extracted()`
+- `labeling_service.py`: `accept_auto_extraction()`
+- `ExtractionPreview.svelte`: 수락/무시 UI
+
+### 5.1 후보 도구 비교 (후속 고도화)
 
 | 도구 | 특징 | 장점 | 단점 |
 | ------ | ------ | ------ | ------ |
@@ -755,107 +825,38 @@ task_history
 `pages.annotation_data` 컬럼 안에 들어가는 JSON이 곧 OmniDocBench의 한 페이지 데이터다.
 Export 시 이 컬럼을 모아서 배열로 만들면 바로 최종 JSON이 된다.
 
-```json
+```jsonc
 {
   "layout_dets": [
     {
-      "category_type": "text_block",
-      "poly": [136, 781, 340, 781, 340, 806, 136, 806],
-      "ignore": false,
-      "order": 0,
-      "anno_id": 0,
-      "text": "한국어 텍스트 내용...",
-      "attribute": {
-        "text_language": "text_ko",
-        "text_background": "white",
-        "text_rotate": "normal"
-      },
-      "line_with_spans": [
-        {
-          "category_type": "text_span",
-          "poly": [136, 781, 340, 781, 340, 793, 136, 793],
-          "ignore": false,
-          "text": "한국어 텍스트..."
-        }
-      ]
-    },
-    {
-      "category_type": "table",
-      "poly": [100, 400, 500, 400, 500, 700, 100, 700],
-      "ignore": false,
-      "order": 1,
-      "anno_id": 1,
-      "latex": "\\begin{tabular}...",
-      "html": "<table>...</table>",
-      "attribute": {
-        "table_layout": "horizontal",
-        "with_span": false,
-        "line": "full_line",
-        "language": "table_ko"
-      }
+      "category_type": "text_block",  // 15종 Block-level + 4종 Span-level
+      "poly": [x1,y1, x2,y2, x3,y3, x4,y4],  // 4꼭짓점 좌표
+      "ignore": false, "order": 0, "anno_id": 0,
+      "text": "...", "latex": "...", "html": "...",
+      "attribute": { /* 카테고리별 속성 (Section 2.3) */ },
+      "line_with_spans": [ /* Span-level 하위 요소 */ ]
     }
   ],
   "page_attribute": {
-    "data_source": "academic_literature",
-    "language": "ko",
+    "data_source": "academic_literature", "language": "ko",
     "layout": "double_column",
-    "watermark": false,
-    "fuzzy_scan": false,
-    "colorful_background": false
+    "watermark": false, "fuzzy_scan": false, "colorful_background": false
   },
-  "extra": {
-    "relation": [
-      {
-        "source_anno_id": 3,
-        "target_anno_id": 4,
-        "relation_type": "parent_son"
-      }
-    ]
-  }
+  "extra": { "relation": [{ "source_anno_id": 3, "target_anno_id": 4, "relation_type": "parent_son" }] }
 }
 ```
 
-### 6.3 PostgreSQL JSONB 활용 쿼리 예시
+타입 정의: [saegim-frontend/src/lib/types/omnidocbench.ts](saegim-frontend/src/lib/types/omnidocbench.ts)
+
+### 6.3 PostgreSQL JSONB 활용
 
 JSONB를 쓰면 정규화 없이도 내부 필드를 검색할 수 있다.
-
-```sql
--- 특정 프로젝트에서 table 카테고리가 포함된 페이지 찾기
-SELECT p.id, p.page_no
-FROM pages p
-WHERE p.document_id IN (SELECT id FROM documents WHERE project_id = :pid)
-  AND p.annotation_data @> '{"layout_dets": [{"category_type": "table"}]}';
-
--- 아직 page_attribute.language가 설정 안 된 페이지 찾기
-SELECT p.id
-FROM pages p
-WHERE p.annotation_data->'page_attribute'->>'language' IS NULL;
-
--- GIN 인덱스 (대량 데이터 시 성능 최적화)
-CREATE INDEX idx_pages_annotation ON pages USING GIN (annotation_data);
-```
+주요 연산: `@>` (containment), `->>`(텍스트 추출), `jsonb_set()` (부분 업데이트), GIN 인덱스.
+쿼리 예시: [saegim-backend/docs/design/database.md](saegim-backend/docs/design/database.md)
 
 ### 6.4 Export 로직 (OmniDocBench JSON 생성)
 
-```python
-# export_service.py (의사코드)
-def export_project(project_id: str) -> list[dict]:
-    pages = page_repo.get_all_by_project(project_id)
-
-    result = []
-    for page in pages:
-        entry = page.annotation_data                  # JSONB 그대로 사용
-        entry["page_info"] = {
-            "page_no": page.page_no,
-            "height": page.height,
-            "width": page.width,
-            "image_path": page.image_path,
-            "page_attribute": entry.pop("page_attribute", {})
-        }
-        result.append(entry)
-
-    return result  # → JSON 파일로 저장하면 OmniDocBench 포맷 완성
-```
+구현: [saegim-backend/src/saegim/services/export_service.py](saegim-backend/src/saegim/services/export_service.py)
 
 annotation_data를 OmniDocBench 구조로 저장했기 때문에,
 Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부다.
@@ -864,45 +865,45 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 
 ## 7. 개발 단계별 로드맵
 
-### Phase 1: MVP (4~6주)
+### Phase 1: MVP ✅ 완료
 
 **목표**: 단일 PDF를 업로드하고, 수동으로 OmniDocBench JSON을 생산할 수 있는 최소 기능.
 
 #### 개발 환경 셋업
 
-- SQLite + SQLAlchemy ORM으로 로컬 개발 시작 (DB 설치 불필요)
-- Repository 패턴 적용하여 DB 접근 캡슐화
+- PostgreSQL + asyncpg (raw SQL) + Repository 패턴
+- Docker Compose로 개발/배포 동일 환경
 - 파일 저장은 로컬 `./storage/` 디렉토리
 
-#### 기능 구현
+#### 구현 완료 기능
 
-- PDF → 이미지 변환 파이프라인 구축
-- 이미지 뷰어 + bbox 드로잉/편집 기본 기능
+- PDF → 이미지 변환 파이프라인 (PyMuPDF 2x 렌더링)
+- 3-layer 하이브리드 레이블링 UI (배경 이미지 → Konva bbox → DOM TextOverlay)
 - Category 선택 UI (드롭다운)
 - Page/Block Attribute 입력 UI
 - Text/LaTeX/HTML 편집 패널
 - OmniDocBench JSON 내보내기 (annotation_data 조합)
-- 사용자 인증 기본 구현
+- 프로젝트/문서/페이지 CRUD
+- E2E 테스트 (Playwright + Docker Compose)
 
-**자동 추출 없이** 순수 수동 레이블링만 지원. 이 단계에서 UI/UX를 검증한다.
+### Phase 2: 자동 추출 통합 (진행 중)
 
-### Phase 2: 자동 추출 통합 + PostgreSQL 전환 (3~4주)
+**목표**: 자동 추출 → 사람 검수 파이프라인 완성.
 
-**목표**: 자동 추출 → 사람 검수 파이프라인 완성. 팀 작업 준비.
+#### 구현 완료 (Stage 1~3, PR #4)
 
-#### 인프라 전환
+- **PyMuPDF 텍스트/이미지 자동 추출**: PDF 업로드 시 `page.get_text("dict")`로 텍스트 블록과 이미지 위치를 추출하여 `auto_extracted_data` JSONB에 저장
+- **좌표 스케일링**: PyMuPDF 72 DPI × 2.0 = 이미지 픽셀 좌표로 변환
+- **accept-extraction API**: 프론트에서 "수락" 버튼 → `auto_extracted_data`를 `annotation_data`로 복사
+- **ExtractionPreview UI**: 자동 추출 결과 프리뷰 배너 + 수락/무시 버튼
+- **TextOverlay 연동**: 수락 후 텍스트 블록의 text가 투명 오버레이로 렌더링 → 드래그 선택 가능
 
-- Docker Compose 구성 (PostgreSQL + Backend + Frontend)
-- .env의 DATABASE_URL을 PostgreSQL로 변경 (코드 수정 없음)
-- JSONB GIN 인덱스 추가
-- Celery + Redis 도입 (PDF 변환, 자동 추출 비동기 처리)
+#### 미구현 (후속 PR)
 
-#### 기능 구현 (자동 추출)
-
-- MinerU 또는 PP-StructureV3 통합
-- 한국어 OCR 엔진 통합
+- PaddleOCR 연동 — PyMuPDF로 텍스트 추출 안 되는 영역에 OCR 수행
+- MinerU 또는 PP-StructureV3 레이아웃 검출 통합
 - 자동 Attribute 분류기 추가
-- 자동 추출 결과를 auto_extracted_data 컬럼에 저장 → annotation_data에 복사 → 사람이 수정
+- Celery + Redis 비동기 처리
 - 읽기 순서 에디터
 - Relation 연결 도구
 
@@ -1028,36 +1029,40 @@ OmniDocBench는 영어/중국어 중심이므로, 한국어 문서에 맞게 다
 
 ### 핵심 엔드포인트
 
+구현 완료된 엔드포인트에 ✅ 표시.
+
 ```text
 # 프로젝트 관리
-POST   /api/projects                   프로젝트 생성
-GET    /api/projects/{id}              프로젝트 조회
+POST   /api/v1/projects                      ✅ 프로젝트 생성
+GET    /api/v1/projects                      ✅ 프로젝트 목록
+GET    /api/v1/projects/{id}/documents       ✅ 프로젝트 문서 목록
+DELETE /api/v1/projects/{id}                 ✅ 프로젝트 삭제
 
 # 문서 업로드 & 처리
-POST   /api/projects/{id}/documents    PDF 업로드 (→ 자동 변환 시작)
-GET    /api/documents/{id}/status      변환/추출 진행 상태
+POST   /api/v1/projects/{id}/documents       ✅ PDF 업로드 (→ 변환 + 텍스트/이미지 추출)
+DELETE /api/v1/documents/{id}                ✅ 문서 삭제
 
 # 페이지 레이블링
-GET    /api/pages/{id}                 페이지 데이터 + 자동 추출 결과 로드
-PUT    /api/pages/{id}                 레이블링 결과 저장
-PUT    /api/pages/{id}/attributes      페이지 속성 저장
+GET    /api/v1/pages/{id}                    ✅ 페이지 데이터 + annotation + auto_extracted 로드
+PUT    /api/v1/pages/{id}                    ✅ 어노테이션 저장
+PUT    /api/v1/pages/{id}/attributes         ✅ 페이지 속성 저장
+
+# 자동 추출 수락
+POST   /api/v1/pages/{id}/accept-extraction  ✅ auto_extracted_data → annotation_data 복사
 
 # 레이아웃 요소
-POST   /api/pages/{id}/elements        새 요소 추가
-PUT    /api/elements/{id}              요소 수정 (bbox, category, attribute, text 등)
-DELETE /api/elements/{id}              요소 삭제
-
-# 관계
-POST   /api/pages/{id}/relations       관계 추가
-DELETE /api/relations/{id}             관계 삭제
+POST   /api/v1/pages/{id}/elements           ✅ 새 요소 추가
+DELETE /api/v1/pages/{id}/elements/{anno_id} ✅ 요소 삭제
 
 # 내보내기
-POST   /api/projects/{id}/export       OmniDocBench JSON 생성 & 다운로드
+POST   /api/v1/projects/{id}/export          ✅ OmniDocBench JSON 생성 & 다운로드
 
-# 작업 관리
-GET    /api/tasks                      내 할당 작업 목록
-PUT    /api/tasks/{id}/submit          작업 제출
-PUT    /api/tasks/{id}/review          리뷰 결과 (승인/반려)
+# 미구현 (후속)
+POST   /api/v1/pages/{id}/relations          관계 추가
+DELETE /api/v1/relations/{id}                관계 삭제
+GET    /api/v1/tasks                         내 할당 작업 목록
+PUT    /api/v1/tasks/{id}/submit             작업 제출
+PUT    /api/v1/tasks/{id}/review             리뷰 결과 (승인/반려)
 ```
 
 ---
@@ -1071,7 +1076,7 @@ PUT    /api/tasks/{id}/review          리뷰 결과 (승인/반려)
 | 복잡한 레이블링 UI로 인한 어노테이터 학습 곡선 | 중 | 튜토리얼 모드, 단계별 가이드, 단축키 치트시트 |
 | 동시 편집 충돌 | 중 | 페이지 단위 배타적 잠금 (locked_at + assigned_to) |
 | JSONB 데이터 일관성 깨짐 | 중 | JSON Schema 검증을 저장 시 서버에서 수행; task_history 스냅샷으로 복원 |
-| SQLite → PostgreSQL 전환 시 호환성 | 낮 | SQLAlchemy ORM으로 추상화; JSONB 전용 기능은 Phase 2부터 추가 |
+| asyncpg raw SQL 마이그레이션 | 낮 | Repository 패턴으로 SQL 격리; 마이그레이션 파일(`migrations/`)로 스키마 관리 |
 | 파일 저장소 유실 | 중 | Docker volume 마운트; 추후 S3/MinIO 전환 시 백업 자동화 |
 | OmniDocBench 스키마 버전 변경 | 낮 | annotation_data에 schema_version 필드 관리; 마이그레이션 스크립트 준비 |
 
