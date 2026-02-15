@@ -13,6 +13,7 @@ async def create(
     width: int,
     height: int,
     image_path: str,
+    auto_extracted_data: dict | None = None,
 ) -> asyncpg.Record:
     """Create a new page record.
 
@@ -23,14 +24,15 @@ async def create(
         width: Page image width in pixels.
         height: Page image height in pixels.
         image_path: Path to the page image file.
+        auto_extracted_data: Auto-extracted annotation data from PDF parsing.
 
     Returns:
         asyncpg.Record: Created page record.
     """
     return await pool.fetchrow(
         """
-        INSERT INTO pages (document_id, page_no, width, height, image_path)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO pages (document_id, page_no, width, height, image_path, auto_extracted_data)
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb)
         RETURNING id, document_id, page_no, width, height, image_path,
                   annotation_data, auto_extracted_data, status, assigned_to,
                   locked_at, updated_at
@@ -40,6 +42,7 @@ async def create(
         width,
         height,
         image_path,
+        json.dumps(auto_extracted_data) if auto_extracted_data else None,
     )
 
 
