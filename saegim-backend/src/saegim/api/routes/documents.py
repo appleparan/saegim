@@ -7,10 +7,34 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_repo
-from saegim.schemas.document import DocumentResponse, DocumentUploadResponse
+from saegim.schemas.document import DocumentListResponse, DocumentResponse, DocumentUploadResponse
 from saegim.schemas.page import PageListResponse
 
 router = APIRouter()
+
+
+@router.get(
+    '/projects/{project_id}/documents',
+    response_model=list[DocumentListResponse],
+)
+async def list_project_documents(project_id: uuid.UUID) -> list[DocumentListResponse]:
+    """List all documents for a project.
+
+    Args:
+        project_id: Parent project UUID.
+
+    Returns:
+        list[DocumentListResponse]: Documents in the project.
+
+    Raises:
+        HTTPException: If project not found.
+    """
+    pool = get_pool()
+    project = await project_repo.get_by_id(pool, project_id)
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+    records = await document_repo.list_by_project(pool, project_id)
+    return [DocumentListResponse(**dict(r)) for r in records]
 
 
 @router.post(
