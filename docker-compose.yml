@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: labeling
       POSTGRES_USER: labeling
@@ -15,11 +16,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - saegim-net
 
   backend:
     build:
       context: ./saegim-backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
       API_HOST: "0.0.0.0"
@@ -31,14 +35,23 @@ services:
       - ./storage:/workspace/storage
     ports:
       - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - saegim-net
 
   backend-gpu:
     build:
       context: ./saegim-backend
       dockerfile: Dockerfile.source
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
       API_HOST: "0.0.0.0"
@@ -50,6 +63,12 @@ services:
       - ./storage:/workspace/storage
     ports:
       - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,16 +81,26 @@ services:
               capabilities: [gpu]
     profiles:
       - gpu
+    networks:
+      - saegim-net
 
   frontend:
     build:
       context: ./saegim-frontend
       args:
-        VITE_API_URL: http://localhost:5000
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    restart: unless-stopped
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - saegim-net
 
 volumes:
   postgres_data:
+
+networks:
+  saegim-net:
+    driver: bridge
