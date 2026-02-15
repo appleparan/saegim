@@ -4,7 +4,7 @@
   import Sidebar from '$lib/components/layout/Sidebar.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import Button from '$lib/components/common/Button.svelte'
-  import ImageViewer from '$lib/components/canvas/ImageViewer.svelte'
+  import HybridViewer from '$lib/components/canvas/HybridViewer.svelte'
   import ElementList from '$lib/components/panels/ElementList.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
@@ -146,7 +146,7 @@
 
       <!-- Center: Canvas area -->
       <div class="flex-1 relative bg-gray-100">
-        <div class="absolute top-3 left-3 z-10 flex gap-2">
+        <div class="absolute top-3 left-3 z-30 flex gap-2">
           <!-- Tool group -->
           <div class="flex bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-gray-200/80 p-1 gap-0.5">
             <button class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all
@@ -171,7 +171,7 @@
         </div>
 
         {#if pageData}
-          <ImageViewer
+          <HybridViewer
             imageUrl={`${API_BASE}${pageData.image_url}`}
             width={pageData.width}
             height={pageData.height}

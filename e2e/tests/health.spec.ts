@@ -13,7 +13,7 @@ test.describe('Health Checks', () => {
 
   test('frontend loads project list page', async ({ page }) => {
     await page.goto('/#/')
-    await expect(page.locator('text=프로젝트')).toBeVisible()
+    await expect(page.getByRole('heading', { name: '프로젝트' })).toBeVisible()
   })
 
   test('frontend shows empty state initially or project list', async ({ page }) => {

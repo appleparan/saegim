@@ -8,9 +8,13 @@
 
   interface Props {
     stage: Konva.Stage
+    /** Optional filter to render only a subset of elements. */
+    filter?: (el: LayoutElement) => boolean
+    /** Interaction mode from HybridViewer. Controls bbox visibility. */
+    interactionMode?: 'browse' | 'edit'
   }
 
-  let { stage }: Props = $props()
+  let { stage, filter, interactionMode }: Props = $props()
 
   let bboxLayer: Konva.Layer | null = null
   let transformer: Konva.Transformer | null = null
@@ -47,10 +51,53 @@
     })
   }
 
+  function computeRectStyle(
+    el: LayoutElement,
+    isSelected: boolean,
+    mode: 'browse' | 'edit' | undefined,
+  ): { opacity: number; stroke: string; strokeWidth: number; fill: string } {
+    const color = getCategoryColor(el.category_type)
+
+    // In browse mode (hybrid), rects are invisible unless selected
+    if (mode === 'browse' && !isSelected) {
+      return { opacity: 0, stroke: '#2563eb', strokeWidth: 2, fill: 'transparent' }
+    }
+
+    const opacity = el.ignore ? 0.3 : 0.5
+    return {
+      opacity,
+      stroke: color,
+      strokeWidth: isSelected ? 3 : 2,
+      fill: color,
+    }
+  }
+
+  function addHoverHandlers(konvaRect: Konva.Rect): void {
+    konvaRect.on('mouseenter', () => {
+      if (interactionMode !== 'browse') return
+      konvaRect.setAttrs({
+        opacity: 0.2,
+        stroke: '#2563eb',
+        strokeWidth: 2,
+      })
+      bboxLayer?.batchDraw()
+    })
+
+    konvaRect.on('mouseleave', () => {
+      if (interactionMode !== 'browse') return
+      const isSelected = annotationStore.selectedElementId === konvaRect.getAttr('annoId')
+      if (!isSelected) {
+        konvaRect.setAttrs({ opacity: 0, stroke: '#2563eb', strokeWidth: 2 })
+        bboxLayer?.batchDraw()
+      }
+    })
+  }
+
   function syncRects(elements: readonly LayoutElement[]) {
     if (!bboxLayer || !transformer) return
 
-    const currentIds = new Set(elements.map((el) => el.anno_id))
+    const filtered = filter ? elements.filter(filter) : elements
+    const currentIds = new Set(filtered.map((el) => el.anno_id))
 
     // Remove rects for deleted elements
     for (const [id, rect] of rects) {
@@ -61,11 +108,10 @@
     }
 
     // Add or update rects
-    for (const el of elements) {
+    for (const el of filtered) {
       const rect = polyToRect(el.poly)
-      const color = getCategoryColor(el.category_type)
       const isSelected = annotationStore.selectedElementId === el.anno_id
-      const opacity = el.ignore ? 0.3 : 0.5
+      const style = computeRectStyle(el, isSelected, interactionMode)
 
       let konvaRect = rects.get(el.anno_id)
       if (!konvaRect) {
@@ -74,13 +120,16 @@
           y: rect.y,
           width: rect.width,
           height: rect.height,
-          stroke: color,
-          strokeWidth: isSelected ? 3 : 2,
-          fill: color,
-          opacity,
+          stroke: style.stroke,
+          strokeWidth: style.strokeWidth,
+          fill: style.fill,
+          opacity: style.opacity,
           draggable: canvasStore.toolMode === 'select',
           name: `bbox-${el.anno_id}`,
         })
+
+        // Store anno_id as custom attribute for hover handler
+        konvaRect.setAttr('annoId', el.anno_id)
 
         konvaRect.on('click tap', () => {
           if (canvasStore.toolMode !== 'select') return
@@ -89,12 +138,19 @@
 
         konvaRect.on('dragend', () => {
           const newRect = clampRect(
-            { x: konvaRect!.x(), y: konvaRect!.y(), width: konvaRect!.width(), height: konvaRect!.height() },
+            {
+              x: konvaRect!.x(),
+              y: konvaRect!.y(),
+              width: konvaRect!.width(),
+              height: konvaRect!.height(),
+            },
             canvasStore.imageWidth,
             canvasStore.imageHeight,
           )
           konvaRect!.position({ x: newRect.x, y: newRect.y })
-          annotationStore.updateElement(el.anno_id, { poly: rectToPoly(newRect) })
+          annotationStore.updateElement(el.anno_id, {
+            poly: rectToPoly(newRect),
+          })
         })
 
         konvaRect.on('transformend', () => {
@@ -112,9 +168,21 @@
             canvasStore.imageWidth,
             canvasStore.imageHeight,
           )
-          konvaRect!.setAttrs({ x: newRect.x, y: newRect.y, width: newRect.width, height: newRect.height })
-          annotationStore.updateElement(el.anno_id, { poly: rectToPoly(newRect) })
+          konvaRect!.setAttrs({
+            x: newRect.x,
+            y: newRect.y,
+            width: newRect.width,
+            height: newRect.height,
+          })
+          annotationStore.updateElement(el.anno_id, {
+            poly: rectToPoly(newRect),
+          })
         })
+
+        // Add hover handlers for hybrid browse mode
+        if (interactionMode !== undefined) {
+          addHoverHandlers(konvaRect)
+        }
 
         bboxLayer!.add(konvaRect)
         rects.set(el.anno_id, konvaRect)
@@ -124,19 +192,20 @@
           y: rect.y,
           width: rect.width,
           height: rect.height,
-          stroke: color,
-          strokeWidth: isSelected ? 3 : 2,
-          fill: color,
-          opacity,
+          stroke: style.stroke,
+          strokeWidth: style.strokeWidth,
+          fill: style.fill,
+          opacity: style.opacity,
           draggable: canvasStore.toolMode === 'select',
         })
       }
     }
 
     // Update transformer selection
-    const selectedRect = annotationStore.selectedElementId !== null
-      ? rects.get(annotationStore.selectedElementId)
-      : null
+    const selectedRect =
+      annotationStore.selectedElementId !== null
+        ? rects.get(annotationStore.selectedElementId)
+        : null
 
     if (selectedRect && canvasStore.toolMode === 'select') {
       transformer.nodes([selectedRect])
@@ -163,6 +232,7 @@
     const _elements = annotationStore.elements
     const _selected = annotationStore.selectedElementId
     const _tool = canvasStore.toolMode
+    const _mode = interactionMode
     syncRects(_elements)
   })
 </script>
