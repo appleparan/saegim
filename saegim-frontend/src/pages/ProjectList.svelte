@@ -5,6 +5,7 @@
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import { listProjects, createProject, deleteProject } from '$lib/api/projects'
   import type { ProjectResponse } from '$lib/api/types'
+  import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
 
   let projects = $state<readonly ProjectResponse[]>([])
@@ -63,7 +64,7 @@
   }
 
   $effect(() => {
-    loadProjects()
+    untrack(() => loadProjects())
   })
 </script>
 
