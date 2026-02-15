@@ -177,6 +177,49 @@ async def add_element(
     }
 
 
+async def accept_auto_extraction(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+) -> dict[str, Any] | None:
+    """Accept auto-extracted data as the initial annotation.
+
+    Copies auto_extracted_data to annotation_data only when annotation is empty.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+
+    Returns:
+        dict or None: Updated page data, or None if page not found or
+        preconditions not met (no auto data or annotation already exists).
+    """
+    record = await page_repo.accept_auto_extracted(pool, page_id)
+    if record is None:
+        return None
+
+    result_annotation = record['annotation_data']
+    if isinstance(result_annotation, str):
+        result_annotation = json.loads(result_annotation)
+
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
+    return {
+        'id': record['id'],
+        'document_id': record['document_id'],
+        'page_no': record['page_no'],
+        'width': record['width'],
+        'height': record['height'],
+        'image_path': record['image_path'],
+        'annotation_data': result_annotation or {},
+        'auto_extracted_data': auto_extracted,
+        'status': record['status'],
+        'assigned_to': record['assigned_to'],
+        'updated_at': record['updated_at'],
+    }
+
+
 async def delete_element(
     pool: asyncpg.Pool,
     page_id: uuid.UUID,

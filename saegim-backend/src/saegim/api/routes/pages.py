@@ -104,6 +104,32 @@ async def add_element(page_id: uuid.UUID, body: ElementCreate) -> PageResponse:
     return PageResponse(**result)
 
 
+@router.post('/pages/{page_id}/accept-extraction', response_model=PageResponse)
+async def accept_extraction(page_id: uuid.UUID) -> PageResponse:
+    """Accept auto-extracted data as the initial annotation.
+
+    Copies auto_extracted_data to annotation_data. Only works when
+    the page has auto_extracted_data and annotation_data is empty.
+
+    Args:
+        page_id: Page UUID.
+
+    Returns:
+        PageResponse: Updated page data with accepted annotations.
+
+    Raises:
+        HTTPException: If page not found or preconditions not met.
+    """
+    pool = get_pool()
+    result = await labeling_service.accept_auto_extraction(pool, page_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Cannot accept: no auto-extracted data or annotation already exists',
+        )
+    return PageResponse(**result)
+
+
 @router.delete('/pages/{page_id}/elements/{anno_id}', response_model=PageResponse)
 async def delete_element(page_id: uuid.UUID, anno_id: int) -> PageResponse:
     """Delete a layout element by annotation ID.
