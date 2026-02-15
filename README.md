@@ -1,4 +1,4 @@
-# saegim (세짐)
+# saegim (새김)
 
 한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
 
