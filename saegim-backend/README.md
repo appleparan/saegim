@@ -159,20 +159,23 @@ sh scripts/release.sh
 
 What `release.sh` do:
 
-1. Set next version to `BUMPED_VERSION`: This ensures that the `git-cliff --bumped-version` command produces consistent results.
+1. Set next version to `BUMPED_VERSION`:
+   This ensures that the `git-cliff --bumped-version` command produces consistent results.
 
     ```shell
     BUMPED_VERSION=$(uv run git-cliff --bumped-version)
     ```
 
-2. Generate `CHANGELOG.md` and `RELEASE.md`: The script creates or updates the changelog and release notes using the bumped version:
+2. Generate `CHANGELOG.md` and `RELEASE.md`:
+   The script creates or updates the changelog and release notes using the bumped version:
 
     ```shell
     uv run git-cliff --strip header --tag $BUMPED_VERSION -o CHANGELOG.md
     uv run git-cliff --latest --strip header --tag $BUMPED_VERSION --unreleased -o RELEASE.md
     ```
 
-3. Commit updated `CHANGELOG.md` and `RELEASE.md` then add tags and push: It commits the updated files, creates a tag for the new version, and pushes the changes to the repository:
+3. Commit updated `CHANGELOG.md` and `RELEASE.md` then add tags and push:
+   It commits the updated files, creates a tag for the new version, and pushes the changes to the repository:
 
     ```shell
     git add CHANGELOG.md RELEASE.md

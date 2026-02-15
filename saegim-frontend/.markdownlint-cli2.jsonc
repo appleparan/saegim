@@ -1,0 +1,12 @@
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    "**/node_modules/**"
+  ],
+  "config": {
+    // Line length 120 (matches project convention)
+    "MD013": { "line_length": 120 },
+    // Allow duplicate headings under different parent sections (e.g. State, Methods per store)
+    "MD024": { "siblings_only": true }
+  }
+}

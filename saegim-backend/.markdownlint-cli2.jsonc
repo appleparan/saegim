@@ -1,0 +1,12 @@
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    "**/.venv/**",
+    "docs/javascripts/**",
+    "docs/requirements.txt"
+  ],
+  "config": {
+    // Line length 120 (matches ruff settings)
+    "MD013": { "line_length": 120 }
+  }
+}
