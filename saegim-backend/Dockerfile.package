@@ -84,8 +84,11 @@ RUN apt-get update && \
     curl \
     ca-certificates \
     gosu \
+    locales \
     libgomp1 \
     libzstd1 && \
+    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Python interpreter from builder (same path ensures venv pyvenv.cfg works)
