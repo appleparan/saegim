@@ -1,9 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const FIXTURES_DIR = resolve(__dirname, '..', 'fixtures')
+const FIXTURES_DIR = resolve(process.cwd(), 'fixtures')
 const PDF_PATH = resolve(FIXTURES_DIR, 'attention.pdf')
 const PDF_URL = 'https://arxiv.org/pdf/1706.03762v7'
 
@@ -39,7 +37,8 @@ export async function ensureTestPdf(): Promise<string> {
 }
 
 // CLI entrypoint: npx tsx helpers/pdf.ts
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+const scriptPath = process.argv[1]
+if (scriptPath && resolve(scriptPath).includes('helpers/pdf')) {
   ensureTestPdf().catch((err) => {
     console.error('Failed to download PDF:', err)
     process.exit(1)

@@ -1,9 +1,7 @@
 import { writeFileSync, existsSync, readFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const RESULTS_PATH = resolve(__dirname, '..', 'fixtures', 'benchmark_results.json')
+const RESULTS_PATH = resolve(process.cwd(), 'fixtures', 'benchmark_results.json')
 
 export interface BenchmarkEntry {
   name: string

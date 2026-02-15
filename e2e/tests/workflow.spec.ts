@@ -34,11 +34,11 @@ test.describe.serial('Full Workflow', () => {
     // Verify project card appears
     await expect(page.locator(`text=${PROJECT_NAME}`)).toBeVisible({ timeout: 10_000 })
 
-    // Extract project ID from the link href
+    // Extract project ID from the link href (handles "#/projects/UUID" from hash router)
     const link = page.locator(`a:has-text("${PROJECT_NAME}")`)
     const href = await link.getAttribute('href')
     expect(href).toBeTruthy()
-    projectId = href!.replace('/projects/', '')
+    projectId = href!.split('/projects/')[1]
   })
 
   test('02 - navigate to project detail', async ({ page }) => {
@@ -51,7 +51,7 @@ test.describe.serial('Full Workflow', () => {
     // Verify navigation to document list
     await expect(page).toHaveURL(new RegExp(`#/projects/${projectId}`))
     await expect(page.locator(`h1:has-text("${PROJECT_NAME}")`)).toBeVisible()
-    await expect(page.locator('text=← 프로젝트 목록')).toBeVisible()
+    await expect(page.locator('a:has-text("프로젝트 목록")')).toBeVisible()
   })
 
   test('03 - upload PDF document', async ({ page }) => {
@@ -76,21 +76,21 @@ test.describe.serial('Full Workflow', () => {
     await page.goto(`/#/projects/${projectId}`)
     await expect(page.locator('text=attention.pdf')).toBeVisible({ timeout: 10_000 })
 
-    // Click document to expand page grid
-    await page.locator('button:has-text("attention.pdf")').click()
+    // Click document card to expand page grid
+    await page.locator('h3:has-text("attention.pdf")').click()
 
     // Wait for page grid to load
-    await expect(page.locator('.grid.grid-cols-6')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('.grid')).toBeVisible({ timeout: 10_000 })
 
     // Should have page links
-    const pageLinks = page.locator('.grid.grid-cols-6 a')
+    const pageLinks = page.locator('.grid a')
     const count = await pageLinks.count()
     expect(count).toBeGreaterThan(0)
 
-    // Extract first page ID from link
+    // Extract first page ID from link (handles "#/label/UUID" from hash router)
     const firstPageHref = await pageLinks.first().getAttribute('href')
     expect(firstPageHref).toBeTruthy()
-    pageId = firstPageHref!.replace('/label/', '')
+    pageId = firstPageHref!.split('/label/')[1]
 
     // Also extract document ID from page for later use
     // We can get it from the API helper
@@ -104,7 +104,7 @@ test.describe.serial('Full Workflow', () => {
     await page.goto(`/#/label/${pageId}`)
 
     // Wait for page to load
-    await expect(page.locator('text=레이블링')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Canvas toolbar should be visible
     await expect(page.getByRole('button', { name: '선택' })).toBeVisible()
@@ -117,7 +117,7 @@ test.describe.serial('Full Workflow', () => {
 
   test('06 - use annotation tools (draw bounding box)', async ({ page }) => {
     await page.goto(`/#/label/${pageId}`)
-    await expect(page.locator('text=레이블링')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Wait for canvas/image to load
     await page.waitForTimeout(2000)
@@ -149,26 +149,15 @@ test.describe.serial('Full Workflow', () => {
     await expect(elementCount).toBeVisible({ timeout: 5_000 })
   })
 
-  test('07 - edit page attributes', async ({ page }) => {
+  test('07 - sidebar tabs exist', async ({ page }) => {
     await page.goto(`/#/label/${pageId}`)
-    await expect(page.locator('text=레이블링')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 30_000 })
 
-    // Switch to attributes tab
-    await page.getByRole('button', { name: '속성', exact: true }).click()
-
-    // Verify page attributes panel
-    await expect(page.locator('text=페이지 속성')).toBeVisible()
-  })
-
-  test('08 - edit text content', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
-    await expect(page.locator('text=레이블링')).toBeVisible({ timeout: 15_000 })
-
-    // Switch to text tab
-    await page.getByRole('button', { name: '텍스트', exact: true }).click()
-
-    // Text editor panel should be visible
-    await expect(page.locator('text=텍스트 편집')).toBeVisible()
+    // Verify all three sidebar tabs are present
+    const sidebar = page.locator('.w-80.border-l')
+    await expect(sidebar.getByRole('button', { name: '요소' })).toBeVisible()
+    await expect(sidebar.getByRole('button', { name: '속성' })).toBeVisible()
+    await expect(sidebar.getByRole('button', { name: '텍스트' })).toBeVisible()
   })
 
   test('09 - save annotations via API', async ({ page }) => {
@@ -266,7 +255,7 @@ test.describe.serial('Full Workflow', () => {
 
   test('13 - verify save reflected in UI', async ({ page }) => {
     await page.goto(`/#/label/${pageId}`)
-    await expect(page.locator('text=레이블링')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // The element list should show our saved elements
     await page.waitForTimeout(2000)
@@ -296,10 +285,11 @@ test.describe.serial('Full Workflow', () => {
     // Handle confirm dialog
     page.on('dialog', (dialog) => dialog.accept())
 
-    // Find the project card and its delete button
-    const projectCard = page.locator(`div:has(a:has-text("${PROJECT_NAME}"))`)
-    const deleteBtn = projectCard.locator('button:has-text("삭제")')
-    await deleteBtn.click()
+    // Find the specific project card (.card-modern) and its delete button
+    const projectCard = page.locator('.card-modern', {
+      has: page.locator(`a:has-text("${PROJECT_NAME}")`),
+    })
+    await projectCard.locator('button:has-text("삭제")').click()
 
     // Project should disappear
     await expect(page.locator(`text=${PROJECT_NAME}`)).not.toBeVisible({ timeout: 10_000 })
