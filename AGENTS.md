@@ -8,6 +8,99 @@
 
 PDF 등 한국어 문서 데이터셋을 업로드하면 OmniDocBench 포맷의 3가지 메타데이터(Dataset Format, Evaluation Categories, Attribute Labels)를 자동 추출하고, 사람이 이를 검수·레이블링하여 최종 벤치마크 데이터셋을 생산하는 웹앱을 구축한다.
 
+### 1.1.1 상위 비전: 논문 리뷰 에이전트에서 VLM 벤치마크 플랫폼으로
+
+본 프로젝트의 출발점은 **논문 리뷰 에이전트**다. 논문의 Key Figure를 추출하고, OCR 품질을 검증하며, 핵심 아이디어를 구조화하는 것이 원래 목표였다. 이 과정에서 Key Figure 추출과 OCR이 핵심 병목임을 확인했고, 이를 체계적으로 해결하기 위해 에이전트 기반 레이블링 프레임워크를 구상했다.
+
+이후 VLM 벤치마크 데이터셋의 부족(특히 한국어)을 인식하고, KO-VLM-Benchmark를 참조하여 레이블링 프레임워크를 범용 VLM 벤치마크 구축 플랫폼으로 확장하기로 결정했다.
+
+**궁극적 목표는 3가지 평가 태스크를 모두 커버하는 프레임워크**:
+
+| 태스크 | 평가 대상 | saegim에서의 역할 |
+| ------ | --------- | ----------------- |
+| **KO-VQA** | 다양한 도메인의 한국어 문서 이해 능력 + 문서 기반 답변 추론 능력 | Q&A 쌍 + 근거 영역 레이블링 |
+| **KO-VDC** | 한국어 시각화 도식 자료 이해 능력 + 도식 기반 설명문 생성/이해 능력 | Element-level 구조 레이블링 (현재 MVP) |
+| **KO-OCRAG** | 복잡한 구조의 한국어 문서 OCR 능력 + Visual Context parsing 능력 | Context-Query-Answer 트리플렛 레이블링 |
+
+이를 위해 **두 가지 어노테이션 패러다임**이 공존해야 한다:
+
+```text
+패러다임 1: Element-centric (Phase 1~3, KO-VDC 중심)
+  Page → [Element(bbox, category, text, attribute)]
+
+패러다임 2: Task-centric (Phase 4b~4c, KO-VQA/OCRAG 중심)
+  Page → [Task(question, answer, evidence_regions)]
+```
+
+### 1.1.2 논문 리뷰 에이전트를 위한 문서 분석 메타데이터
+
+논문 리뷰 에이전트의 핵심 기능인 **의미 수준 분석**(핵심 아이디어, 주요 그림 해석 등)은 구조적 레이블링과는 다른 계층에 속한다. 이를 **document-level 메타데이터**로 분리하여 `documents.analysis_data` JSONB 컬럼에 저장한다.
+
+외부 AI(VLM/LLM)가 자동 추출하고, 사람이 검수하는 패턴은 Phase 2의 auto-extraction과 동일하다.
+
+**분석 섹션 네비게이션 (sticky)**:
+
+| 섹션 | 설명 | 데이터 소스 |
+| ---- | ---- | ----------- |
+| **Overview** | 논문 개요 (제목, 저자, 초록, 핵심 기여) | AI 자동 추출 + 사람 검수 |
+| **Core Idea** | 문제 정의, 접근 방법, 핵심 기여 | AI 자동 추출 + 사람 검수 |
+| **Key Figures** | 주요 그림/도표와 그 중요성 설명 | AI 자동 선정 + page/anno_id로 element 참조 |
+| **Limitations** | 명시적/암시적 한계점, 향후 연구 방향 | AI 자동 추출 + 사람 검수 |
+
+```jsonc
+// documents.analysis_data JSONB 구조
+{
+  "overview": {
+    "title": "Attention Is All You Need",
+    "authors": ["Vaswani et al."],
+    "venue": "NeurIPS 2017",
+    "summary": "RNN/CNN 없이 attention만으로 sequence transduction 수행",
+    "tags": ["transformer", "attention", "NLP"]
+  },
+  "core_idea": {
+    "problem": "RNN의 순차 연산이 병렬화를 막고 long-range dependency 학습이 어려움",
+    "approach": "Self-attention으로 모든 위치 간 직접 연결",
+    "novelty": "순수 attention 기반 encoder-decoder로 RNN/CNN 완전 대체",
+    "key_equations": [
+      {"page": 3, "anno_id": 7, "description": "Scaled Dot-Product Attention"}
+    ]
+  },
+  "key_figures": [
+    {
+      "page": 2,
+      "anno_id": 3,
+      "label": "Figure 1",
+      "why_important": "Transformer 전체 아키텍처 구조도",
+      "rank": 1
+    }
+  ],
+  "limitations": {
+    "stated": ["고정 길이 입력에 대한 일반화 미검증"],
+    "implicit": ["메모리 O(n²) — 긴 시퀀스에 비효율"],
+    "future_work": ["이미지, 오디오 등 다른 모달리티 확장"]
+  },
+  "_meta": {
+    "model": "claude-sonnet-4-5-20250929",
+    "extracted_at": "2026-02-15T10:00:00Z",
+    "reviewed": false,
+    "reviewed_by": null
+  }
+}
+```
+
+**Key Figures가 element-level과 document-level을 연결하는 브릿지 역할**:
+
+```text
+Document-level (analysis_data)          Page-level (annotation_data)
+┌─────────────────────┐                ┌─────────────────────┐
+│ key_figures: [       │    참조        │ layout_dets: [       │
+│   { page: 2,        │───────────────▶│   { anno_id: 3,      │
+│     anno_id: 3,     │                │     category: figure, │
+│     why_important }  │                │     poly: [...],      │
+│ ]                    │                │     text: "Fig 1..." }│
+└─────────────────────┘                └─────────────────────┘
+```
+
 ### 1.2 두 레포지토리 분석
 
 #### KO-VLM-Benchmark (Marker-Inc-Korea)
@@ -318,8 +411,9 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/labeling
 | ----------- | ------ | ------ |
 | PDF 원본 | 파일시스템 `./storage/pdfs/` | 바이너리, 수정 안 함 |
 | 페이지 이미지 | 파일시스템 `./storage/images/` | 용량 큼 (페이지당 1~5MB), 읽기만 함 |
-| 레이블링 JSON | PostgreSQL JSONB | 동시 편집 안전, 쿼리/인덱싱 가능 |
-| 자동 추출 원본 | PostgreSQL JSONB (별도 컬럼) | 비교/복원용 보관 |
+| 레이블링 JSON | PostgreSQL JSONB (`pages.annotation_data`) | 동시 편집 안전, 쿼리/인덱싱 가능 |
+| 자동 추출 원본 | PostgreSQL JSONB (`pages.auto_extracted_data`) | 비교/복원용 보관 |
+| 문서 분석 메타데이터 | PostgreSQL JSONB (`documents.analysis_data`) | AI 추출 결과 + 사람 검수. Overview, Core Idea, Key Figures, Limitations |
 | 프로젝트/문서/유저 메타 | PostgreSQL 일반 컬럼 | 관계형 데이터 |
 | 작업 할당/진행 상태 | PostgreSQL 일반 컬럼 | 상태 관리, 쿼리 필요 |
 | 최종 내보내기 파일 | 파일시스템 (생성 후 다운로드) | OmniDocBench JSON + 이미지 패키지 |
@@ -611,6 +705,7 @@ projects
 ├── id              UUID, PK
 ├── name            VARCHAR
 ├── description     TEXT
+├── project_type    VARCHAR          # ★ Phase 4a: 'element_annotation' | 'vqa' | 'ocrag' (기본값: 'element_annotation')
 └── created_at      TIMESTAMP
 
 documents
@@ -620,6 +715,7 @@ documents
 ├── pdf_path        VARCHAR          # 파일시스템 경로 (예: storage/pdfs/xxx.pdf)
 ├── total_pages     INT
 ├── status          ENUM             # uploading / processing / ready / error
+├── analysis_data   JSONB            # ★ Phase 4a: 문서 분석 메타데이터 (Overview, Core Idea, Key Figures, Limitations)
 └── created_at      TIMESTAMP
 
 pages
@@ -829,14 +925,82 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 - Inter-Annotator Agreement 자동 산출
 - 자동 검증 규칙 강화
 
-### Phase 4: 평가 & 확장 (2~3주)
+### Phase 4a: AI 분석 메타데이터 + Project Type 추상화 (2~3주)
 
-**목표**: KO-VLM-Benchmark 평가 태스크와 연동.
+**목표**: 문서 분석 메타데이터 자동 추출 + 다양한 어노테이션 모드를 위한 아키텍처 전환.
 
-- VDC용 ground truth (text 필드) 내보내기 형식
-- VQA용 질의응답 쌍 레이블링 기능 추가
-- OCRAG용 컨텍스트-질문-답변 레이블링 기능 추가
+이 단계가 전체 로드맵의 **아키텍처 전환점**이다. Phase 1~3의 element-centric 패러다임을 유지하면서, Phase 4b~4c의 task-centric 패러다임을 수용할 수 있는 구조를 만든다.
+
+#### AI 분석 메타데이터 (analysis_data)
+
+- `documents` 테이블에 `analysis_data JSONB` 컬럼 추가
+- VLM/LLM API 호출로 문서 분석 자동 추출 (Overview, Core Idea, Key Figures, Limitations)
+- 자동 추출 결과를 `analysis_data`에 저장 → 사람이 검수/수정
+- Phase 2의 auto-extraction 파이프라인과 동일한 Celery 태스크로 구현
+- Key Figures는 `page` + `anno_id`로 기존 element 참조
+
+#### Project Type 추상화
+
+- `projects` 테이블에 `project_type VARCHAR` 컬럼 추가
+  - `element_annotation` (기본값, Phase 1~3의 기존 동작)
+  - `vqa` (Phase 4b)
+  - `ocrag` (Phase 4c)
+- `annotation_data`의 JSONB 스키마를 `project_type`별로 분기
+- Pydantic 스키마에 `model_config = ConfigDict(extra='allow')` 적용하여 확장에 열린 구조
+- Frontend LabelingPage의 3-panel 구조는 유지하되, panel 내용을 `project_type`에 따라 교체 가능하게 모듈화
+- Export 서비스를 Strategy 패턴으로 설계 (OmniDocBench, VQA, OCRAG 각각의 Exporter)
+
+#### 자동 추출 파이프라인 확장
+
+```text
+PDF 업로드
+  → 이미지 변환 (PyMuPDF)
+  → 레이아웃 자동 추출 (MinerU)          ← Phase 2에서 구현
+  → AI 의미 추출 (VLM API 호출)          ← Phase 4a에서 추가
+      ├── Overview 추출
+      ├── Core Idea 추출
+      ├── Key Figures 선정 + 해석
+      └── Limitations 추출
+  → auto_extracted_data / analysis_data에 저장
+  → 사람이 검수/수정
+```
+
+### Phase 4b: KO-VDC Export + KO-VQA 레이블링 모듈 (2~3주)
+
+**목표**: KO-VDC ground truth 내보내기 + VQA 질의응답 레이블링 기능.
+
+#### KO-VDC
+
+- VDC용 ground truth 내보내기 형식 (text 필드 기반)
 - OmniDocBench 평가 스크립트와의 호환성 검증
+- Edit Distance, BLEU, METEOR 평가 지표 연동
+
+#### KO-VQA
+
+- QA pair 에디터 UI (질문 작성 + 답변 작성)
+- Evidence region 링크 (기존 bbox 재활용 — `page` + `anno_id` 참조)
+- 질문 유형 분류 (factual, reasoning, comparison 등)
+- VQA Export 포맷 (이미지 + Q&A JSON)
+
+### Phase 4c: KO-OCRAG 레이블링 모듈 (2~3주)
+
+**목표**: OCR + RAG 파이프라인 평가를 위한 레이블링 기능.
+
+- Context chunk 정의 도구 (문서 영역 → 검색 단위 분할)
+- Query-Context-Answer 트리플렛 에디터
+- Retrieval relevance 라벨링 (query에 대해 어떤 chunk가 관련 있는지)
+- OCRAG Export 포맷
+
+### Phase 5: 논문 리뷰 에이전트 연동 (별도 시스템)
+
+**목표**: saegim의 ground truth를 활용하는 논문 리뷰 에이전트.
+
+saegim은 이 에이전트의 **데이터 공장** 역할을 한다.
+
+- saegim의 analysis_data + annotation_data를 학습/평가 데이터로 활용
+- VLM 모델 + RAG 파이프라인 구축
+- Key Figure 추출 정확도 평가 (saegim ground truth 대비)
+- OCR 품질 평가 (saegim text 필드 대비)
 - 벤치마크 리더보드 뷰어 (선택)
 
 ---

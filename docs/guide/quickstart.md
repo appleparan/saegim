@@ -18,7 +18,7 @@ cp .env.example .env
 필요에 따라 `.env` 파일을 수정합니다:
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `DB_PASSWORD` | `labeling` | PostgreSQL 비밀번호 |
 | `VITE_API_URL` | `http://localhost:5000` | 프론트엔드가 호출할 백엔드 API 주소 |
 
@@ -45,10 +45,10 @@ docker compose --profile gpu up -d
 ## 접속 확인
 
 | URL | 설명 |
-|-----|------|
-| http://localhost:3000 | 프론트엔드 (웹 UI) |
-| http://localhost:5000/api/v1/health | 백엔드 헬스체크 |
-| http://localhost:5000/docs | Swagger UI (`DEBUG=true` 시) |
+| ----- | ------ |
+| <http://localhost:3000> | 프론트엔드 (웹 UI) |
+| <http://localhost:5000/api/v1/health> | 백엔드 헬스체크 |
+| <http://localhost:5000/docs> | Swagger UI (`DEBUG=true` 시) |
 | `localhost:5432` | PostgreSQL (외부 접속) |
 
 ### 헬스체크

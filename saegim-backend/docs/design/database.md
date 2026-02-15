@@ -19,6 +19,7 @@ erDiagram
         uuid id PK
         varchar name
         text description
+        varchar project_type "element_annotation | vqa | ocrag"
         timestamptz created_at
     }
 
@@ -29,6 +30,7 @@ erDiagram
         varchar pdf_path
         int total_pages
         varchar status
+        jsonb analysis_data "AI 문서 분석 메타데이터"
         timestamptz created_at
     }
 
@@ -72,10 +74,11 @@ erDiagram
 프로젝트 단위로 문서를 관리합니다.
 
 | 컬럼 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `id` | UUID PK | `uuid_generate_v4()` | 프로젝트 ID |
 | `name` | VARCHAR(255) | - | 프로젝트 이름 |
 | `description` | TEXT | `''` | 프로젝트 설명 |
+| `project_type` | VARCHAR(30) | `'element_annotation'` | 프로젝트 유형: `element_annotation`, `vqa`, `ocrag` |
 | `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
 
 ### documents
@@ -83,19 +86,20 @@ erDiagram
 PDF 문서 정보를 저장합니다.
 
 | 컬럼 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `id` | UUID PK | `uuid_generate_v4()` | 문서 ID |
 | `project_id` | UUID FK | - | 소속 프로젝트 |
 | `filename` | VARCHAR(512) | - | 원본 파일명 |
 | `pdf_path` | VARCHAR(1024) | - | PDF 저장 경로 |
 | `total_pages` | INT | `0` | 총 페이지 수 |
 | `status` | VARCHAR(20) | `'uploading'` | 문서 상태 |
+| `analysis_data` | JSONB | `'{}'` | AI 문서 분석 메타데이터 (Overview, Core Idea, Key Figures, Limitations) |
 | `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
 
 **status 값:**
 
 | 값 | 설명 |
-|----|------|
+| ---- | ------ |
 | `uploading` | 업로드 중 |
 | `processing` | 이미지 변환 중 |
 | `ready` | 변환 완료, 레이블링 가능 |
@@ -110,7 +114,7 @@ PDF 문서 정보를 저장합니다.
 페이지별 어노테이션 데이터를 저장합니다. 핵심 테이블입니다.
 
 | 컬럼 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `id` | UUID PK | `uuid_generate_v4()` | 페이지 ID |
 | `document_id` | UUID FK | - | 소속 문서 |
 | `page_no` | INT | - | 페이지 번호 (1부터) |
@@ -127,7 +131,7 @@ PDF 문서 정보를 저장합니다.
 **status 값:**
 
 | 값 | 설명 |
-|----|------|
+| ---- | ------ |
 | `pending` | 미할당/미시작 |
 | `in_progress` | 레이블링 진행 중 |
 | `submitted` | 제출 완료 |
@@ -145,7 +149,7 @@ PDF 문서 정보를 저장합니다.
 사용자 정보를 저장합니다.
 
 | 컬럼 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `id` | UUID PK | `uuid_generate_v4()` | 사용자 ID |
 | `name` | VARCHAR(255) | - | 이름 |
 | `email` | VARCHAR(255) UNIQUE | - | 이메일 |
@@ -159,7 +163,7 @@ PDF 문서 정보를 저장합니다.
 작업 이력을 추적합니다.
 
 | 컬럼 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `id` | UUID PK | `uuid_generate_v4()` | 이력 ID |
 | `page_id` | UUID FK | - | 대상 페이지 |
 | `user_id` | UUID FK | - | 작업 사용자 |
@@ -225,11 +229,77 @@ SET annotation_data = jsonb_set(
 WHERE id = $2
 ```
 
+## analysis_data JSONB 구조 (Phase 4a)
+
+`documents.analysis_data`에 저장되는 문서 분석 메타데이터입니다.
+외부 AI(VLM/LLM)가 자동 추출하고 사람이 검수합니다.
+
+```json
+{
+  "overview": {
+    "title": "논문 제목",
+    "authors": ["저자 1", "저자 2"],
+    "venue": "학회/저널",
+    "summary": "1~2문장 요약",
+    "tags": ["keyword1", "keyword2"]
+  },
+  "core_idea": {
+    "problem": "해결하려는 문제",
+    "approach": "접근 방법",
+    "novelty": "핵심 기여/차별점",
+    "key_equations": [
+      {"page": 3, "anno_id": 7, "description": "수식 설명"}
+    ]
+  },
+  "key_figures": [
+    {
+      "page": 2,
+      "anno_id": 3,
+      "label": "Figure 1",
+      "why_important": "이 그림이 중요한 이유",
+      "rank": 1
+    }
+  ],
+  "limitations": {
+    "stated": ["논문에서 명시한 한계"],
+    "implicit": ["암시적 한계"],
+    "future_work": ["향후 연구 방향"]
+  },
+  "_meta": {
+    "model": "claude-sonnet-4-5-20250929",
+    "extracted_at": "2026-02-15T10:00:00Z",
+    "reviewed": false,
+    "reviewed_by": null
+  }
+}
+```
+
+`key_figures`의 `page` + `anno_id`가 해당 문서 pages의 `annotation_data.layout_dets[]`를
+참조하여 document-level과 page-level을 연결합니다.
+
+### analysis_data 업데이트
+
+```sql
+-- 전체 업데이트
+UPDATE documents
+SET analysis_data = $1::jsonb
+WHERE id = $2
+
+-- 특정 섹션만 업데이트 (예: key_figures)
+UPDATE documents
+SET analysis_data = jsonb_set(
+    COALESCE(analysis_data, '{}'::jsonb),
+    '{key_figures}',
+    $1::jsonb
+)
+WHERE id = $2
+```
+
 ## 마이그레이션
 
 SQL 파일 기반으로 수동 관리합니다:
 
-```
+```text
 migrations/
 └── 001_init.sql    # 초기 스키마
 ```

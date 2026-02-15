@@ -53,7 +53,7 @@ docker build -t saegim-frontend \
 ### docker-compose 서비스
 
 | 서비스 | 이미지 | 포트 | 프로파일 |
-|--------|--------|------|----------|
+| -------- | -------- | ------ | ---------- |
 | `postgres` | `postgres:16` | 5432 | default |
 | `backend` | `Dockerfile` (CPU) | 5000 | default |
 | `backend-gpu` | `Dockerfile.source` (GPU) | 5000 | gpu |
@@ -67,13 +67,13 @@ docker build -t saegim-frontend \
 ### 볼륨
 
 | 볼륨 | 경로 | 설명 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `postgres_data` | `/var/lib/postgresql/data` | PostgreSQL 영구 데이터 |
 | `./storage` | `/workspace/storage` | PDF 원본 및 페이지 이미지 |
 
 ### 의존성 순서
 
-```
+```text
 postgres (healthy) → backend (healthy) → frontend
 ```
 
@@ -109,7 +109,7 @@ docker compose --profile gpu exec backend-gpu nvidia-smi
 ### 백엔드
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `DATABASE_URL` | `postgresql://labeling:labeling@localhost:5432/labeling` | DB 연결 URL |
 | `API_HOST` | `0.0.0.0` | 바인드 호스트 |
 | `API_PORT` | `5000` | API 포트 |
@@ -121,16 +121,16 @@ docker compose --profile gpu exec backend-gpu nvidia-smi
 | `DB_POOL_MAX_SIZE` | `10` | 최대 DB 커넥션 |
 | `MAX_WORKERS` | `1` | Uvicorn 워커 수 |
 
-### 프론트엔드
+### 프론트엔드 환경변수
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `VITE_API_URL` | `http://localhost:5000` | 백엔드 API URL (빌드 시점) |
 
 ## 헬스체크
 
 | 서비스 | 엔드포인트 | 간격 |
-|--------|-----------|------|
+| -------- | ----------- | ------ |
 | PostgreSQL | `pg_isready -U labeling -d labeling` | 5초 |
 | Backend | `curl http://localhost:5000/api/v1/health` | 10초 |
 | Frontend | nginx 기본 (포트 80) | - |

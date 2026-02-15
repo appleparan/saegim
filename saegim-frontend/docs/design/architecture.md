@@ -7,7 +7,7 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 ## Tech Stack
 
 | 영역 | 기술 | 버전 |
-|------|------|------|
+| ------ | ------ | ------ |
 | UI Framework | Svelte 5 (runes) | ^5.43 |
 | Build Tool | Vite | ^7.2 |
 | Styling | Tailwind CSS 4 | ^4.1 |
@@ -18,7 +18,7 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 
 ## Directory Structure
 
-```
+```text
 src/
 ├── main.ts                 # 앱 마운트
 ├── App.svelte              # 라우터 + 전역 레이아웃
@@ -62,14 +62,14 @@ src/
 Hash-based SPA 라우팅 (`svelte-spa-router`):
 
 | 경로 | 페이지 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `#/` | ProjectList | 프로젝트 목록 + 생성 |
 | `#/projects/:id` | DocumentList | 문서 목록 + PDF 업로드 |
 | `#/label/:pageId` | LabelingPage | 3패널 레이블링 화면 |
 
 ## Data Flow
 
-```
+```text
 Backend API  →  api/client.ts  →  stores/annotation.svelte.ts  →  components
                                   stores/canvas.svelte.ts
                                   stores/ui.svelte.ts
@@ -124,7 +124,7 @@ $effect(() => {
 ## Environment Variables
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `VITE_API_URL` | `http://localhost:8000` | 백엔드 API 주소 |
 
 ## Scripts

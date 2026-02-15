@@ -13,7 +13,7 @@ uvx pre-commit install
 ## 코드 스타일
 
 | 항목 | 규칙 |
-|------|------|
+| ------ | ------ |
 | Python 버전 | 3.13+ |
 | 줄 길이 | 100자 |
 | 따옴표 | 작은따옴표 (`'`) |
@@ -61,7 +61,7 @@ uv run pytest tests/services/test_labeling_service.py::TestAddElement -v
 
 ### 테스트 구조
 
-```
+```text
 tests/
 ├── conftest.py                     # 공통 픽스처
 ├── api/                            # API 라우터 테스트
@@ -116,7 +116,7 @@ class TestSaveAnnotation:
 `tests/conftest.py`에 정의된 공통 픽스처:
 
 | 픽스처 | 설명 |
-|--------|------|
+| -------- | ------ |
 | `test_settings` | 테스트용 Settings (debug=True) |
 | `mock_pool` | asyncpg Pool 모의 객체 |
 | `app` | FastAPI 앱 (DB mock 적용) |
@@ -148,7 +148,7 @@ class TestSaveAnnotation:
 ### 환경 변수
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `API_HOST` | `0.0.0.0` | API 바인드 호스트 |
 | `API_PORT` | `5000` | API 포트 |
 | `DEBUG` | `false` | 디버그 모드 (docs/redoc 활성화) |

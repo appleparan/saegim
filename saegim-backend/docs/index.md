@@ -1,6 +1,6 @@
 # saegim
 
-**Human-in-the-loop labeling platform for Korean document benchmarks**
+Human-in-the-loop labeling platform for Korean document benchmarks
 
 saegim은 한국어 문서 VLM(Vision-Language Model) 벤치마크를 위한 레이블링 플랫폼 백엔드입니다.
 [OmniDocBench](https://github.com/opendatalab/OmniDocBench) 포맷을 기반으로
@@ -17,7 +17,7 @@ saegim은 한국어 문서 VLM(Vision-Language Model) 벤치마크를 위한 레
 ## 기술 스택
 
 | 구분 | 기술 |
-|------|------|
+| ------ | ------ |
 | Framework | FastAPI |
 | Database | PostgreSQL + asyncpg (raw SQL) |
 | PDF 변환 | PyMuPDF (fitz) |
@@ -27,7 +27,7 @@ saegim은 한국어 문서 VLM(Vision-Language Model) 벤치마크를 위한 레
 
 ## 프로젝트 구조
 
-```
+```text
 src/saegim/
 ├── app.py                  # FastAPI 앱 팩토리
 ├── api/

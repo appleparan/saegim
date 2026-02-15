@@ -86,6 +86,7 @@ kubectl get all -n saegim
 ```
 
 배포 순서:
+
 1. PostgreSQL StatefulSet 시작 → readiness 확인
 2. Migration Job 실행 → SQL 적용 완료
 3. Backend Deployment 시작 (initContainer에서 DB 대기) → readiness 확인
@@ -129,20 +130,21 @@ kubectl port-forward svc/postgres 5432:5432 -n saegim
 ```
 
 접속:
-- 프론트엔드: http://localhost:3000
-- 백엔드 API: http://localhost:5000/api/v1/health
+
+- 프론트엔드: <http://localhost:3000>
+- 백엔드 API: <http://localhost:5000/api/v1/health>
 
 ## 리소스 요약
 
 | 리소스 | 타입 | CPU 요청/제한 | 메모리 요청/제한 | 스토리지 |
-|--------|------|-------------|----------------|---------|
+| -------- | ------ | ------------- | ---------------- | --------- |
 | PostgreSQL | StatefulSet | 250m / 1 | 256Mi / 1Gi | 10Gi PVC |
 | Backend | Deployment | 250m / 2 | 512Mi / 2Gi | 20Gi PVC |
 | Frontend | Deployment | 100m / 500m | 64Mi / 128Mi | - |
 
 ## k8s 매니페스트 구조
 
-```
+```text
 k8s/
 ├── kustomization.yaml          # Kustomize 엔트리포인트
 ├── namespace.yaml              # saegim 네임스페이스

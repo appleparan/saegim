@@ -16,7 +16,7 @@ VITE_API_URL=http://localhost:8000
 ### `api` 객체
 
 | 메서드 | 시그니처 | 설명 |
-|--------|----------|------|
+| -------- | ---------- | ------ |
 | `api.get<T>` | `(path: string) => Promise<T>` | GET 요청, JSON 응답 파싱 |
 | `api.post<T>` | `(path: string, body?: unknown) => Promise<T>` | POST 요청, JSON body |
 | `api.put<T>` | `(path: string, body?: unknown) => Promise<T>` | PUT 요청, JSON body |
@@ -45,7 +45,7 @@ try {
 ### Projects (`src/lib/api/projects.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `listProjects()` | GET | `/api/projects` | 프로젝트 목록 |
 | `getProject(id)` | GET | `/api/projects/:id` | 프로젝트 상세 |
 | `createProject(data)` | POST | `/api/projects` | 프로젝트 생성 |
@@ -53,7 +53,7 @@ try {
 ### Documents (`src/lib/api/documents.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `listDocuments(projectId)` | GET | `/api/projects/:id/documents` | 문서 목록 |
 | `uploadDocument(projectId, file)` | POST | `/api/projects/:id/documents` | PDF 업로드 (FormData) |
 | `getDocumentStatus(docId)` | GET | `/api/documents/:id/status` | 처리 상태 조회 |
@@ -62,7 +62,7 @@ try {
 ### Pages (`src/lib/api/pages.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `getPage(pageId)` | GET | `/api/pages/:id` | 페이지 데이터 + 어노테이션 |
 | `savePage(pageId, data)` | PUT | `/api/pages/:id` | 어노테이션 전체 저장 |
 | `savePageAttributes(pageId, data)` | PUT | `/api/pages/:id/attributes` | 페이지 속성 저장 |
@@ -70,7 +70,7 @@ try {
 ### Elements (`src/lib/api/elements.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `createElement(pageId, data)` | POST | `/api/pages/:id/elements` | 요소 생성 |
 | `updateElement(elementId, data)` | PUT | `/api/elements/:id` | 요소 수정 |
 | `deleteElement(elementId)` | DELETE | `/api/elements/:id` | 요소 삭제 |
@@ -78,7 +78,7 @@ try {
 ### Relations (`src/lib/api/relations.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `createRelation(pageId, data)` | POST | `/api/pages/:id/relations` | 관계 생성 |
 | `deleteRelation(relationId)` | DELETE | `/api/relations/:id` | 관계 삭제 |
 

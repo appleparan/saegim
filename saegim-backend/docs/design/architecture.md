@@ -34,14 +34,15 @@ saegim 백엔드는 3계층 구조를 따릅니다:
 
 HTTP 요청을 받아 적절한 서비스를 호출하고 응답을 반환합니다.
 
-```
+```text
 src/saegim/api/routes/
 ├── health.py       # GET /api/v1/health
-├── projects.py     # 프로젝트 CRUD
+├── projects.py     # 프로젝트 CRUD (project_type 포함)
 ├── documents.py    # 문서 업로드/조회
 ├── pages.py        # 페이지 레이블링
 ├── users.py        # 사용자 관리
-└── export.py       # 데이터 내보내기
+├── analysis.py     # Phase 4a: 문서 분석 메타데이터 CRUD
+└── export.py       # 데이터 내보내기 (OmniDocBench / VQA / OCRAG)
 ```
 
 - FastAPI의 `APIRouter`를 사용
@@ -52,11 +53,12 @@ src/saegim/api/routes/
 
 핵심 비즈니스 로직을 처리합니다.
 
-```
+```text
 src/saegim/services/
-├── document_service.py   # PDF 업로드 → 이미지 변환 → DB 저장
-├── labeling_service.py   # 어노테이션 CRUD, 요소 추가/삭제
-└── export_service.py     # OmniDocBench JSON 조합
+├── document_service.py    # PDF 업로드 → 이미지 변환 → DB 저장
+├── labeling_service.py    # 어노테이션 CRUD, 요소 추가/삭제
+├── analysis_service.py    # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
+└── export_service.py      # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
 ```
 
 - Repository를 호출하여 데이터 접근
@@ -67,7 +69,7 @@ src/saegim/services/
 
 asyncpg를 사용하여 PostgreSQL에 raw SQL을 실행합니다.
 
-```
+```text
 src/saegim/repositories/
 ├── project_repo.py    # INSERT/SELECT projects
 ├── document_repo.py   # INSERT/SELECT/UPDATE documents
@@ -170,7 +172,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 페이지 이미지는 FastAPI `StaticFiles`로 제공됩니다:
 
-```
+```text
 /storage/images/{document_id}_p{page_no}.png
 ```
 

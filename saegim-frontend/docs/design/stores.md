@@ -9,7 +9,7 @@ Svelte 5 runes 기반 class store 패턴을 사용한다. 각 store는 `$state`�
 ### State
 
 | 필드 | 타입 | 설명 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `pageId` | `string \| null` | 현재 페이지 ID |
 | `annotationData` | `AnnotationData \| null` | 전체 어노테이션 (OmniDocBench) |
 | `selectedElementId` | `number \| null` | 선택된 요소의 anno_id |
@@ -20,7 +20,7 @@ Svelte 5 runes 기반 class store 패턴을 사용한다. 각 store는 `$state`�
 ### Derived
 
 | 필드 | 타입 | 설명 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `elements` | `readonly LayoutElement[]` | `annotationData.layout_dets` |
 | `selectedElement` | `LayoutElement \| null` | 선택된 요소 객체 |
 | `pageAttribute` | `PageAttribute \| null` | 페이지 속성 |
@@ -29,7 +29,7 @@ Svelte 5 runes 기반 class store 패턴을 사용한다. 각 store는 `$state`�
 ### Methods
 
 | 메서드 | 설명 |
-|--------|------|
+| -------- | ------ |
 | `load(pageId, data)` | 페이지 데이터 로드, dirty 초기화 |
 | `clear()` | 전체 상태 초기화 |
 | `selectElement(annoId)` | 요소 선택 (null = 해제) |
@@ -67,7 +67,7 @@ Canvas 뷰포트 상태를 관리한다.
 ### State
 
 | 필드 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `toolMode` | `'select' \| 'draw' \| 'pan'` | `'select'` | 현재 도구 모드 |
 | `scale` | `number` | `1` | 줌 배율 (0.1 ~ 10) |
 | `offsetX` | `number` | `0` | 뷰포트 X 오프셋 |
@@ -79,13 +79,13 @@ Canvas 뷰포트 상태를 관리한다.
 ### Derived
 
 | 필드 | 타입 | 설명 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `viewport` | `ViewportState` | `{ scale, offsetX, offsetY }` |
 
 ### Methods
 
 | 메서드 | 설명 |
-|--------|------|
+| -------- | ------ |
 | `setTool(mode)` | 도구 모드 변경 |
 | `setScale(scale)` | 줌 레벨 설정 (min/max 클램프) |
 | `setOffset(x, y)` | 뷰포트 오프셋 설정 |
@@ -104,7 +104,7 @@ UI 상태 (사이드바, 알림)를 관리한다.
 ### State
 
 | 필드 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `sidebarOpen` | `boolean` | `true` | 사이드바 열림 |
 | `activePanel` | `PanelTab` | `'elements'` | 활성 탭 |
 | `notification` | `Notification \| null` | `null` | 알림 토스트 |
@@ -120,7 +120,7 @@ interface Notification { message: string; type: NotificationType }
 ### Methods
 
 | 메서드 | 설명 |
-|--------|------|
+| -------- | ------ |
 | `toggleSidebar()` | 사이드바 토글 |
 | `setActivePanel(panel)` | 탭 변경 |
 | `showNotification(message, type)` | 알림 표시 (3초 후 자동 소멸) |
