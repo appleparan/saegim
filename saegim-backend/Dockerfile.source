@@ -76,7 +76,7 @@ EXPOSE 5000
 
 # Health check for FastAPI
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:5000/api/v1/health || exit 1
 
 # Run FastAPI with uvicorn using settings-based startup script
 # Configuration is loaded from environment variables and .env file
