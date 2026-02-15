@@ -70,6 +70,7 @@ class TestGetPageData:
             mock_repo.get_by_id = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
+        assert result is not None
         assert result['id'] == page_id
         assert result['page_no'] == 1
         assert result['annotation_data'] == annotation
@@ -84,19 +85,24 @@ class TestGetPageData:
             mock_repo.get_by_id = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
+        assert result is not None
         assert result['annotation_data'] == {'layout_dets': [{'anno_id': 0}]}
 
     @pytest.mark.asyncio
     async def test_parses_json_string_auto_extracted(self, mock_pool, page_id, document_id):
         auto_data_str = '{"model": "test", "results": []}'
         record = _make_page_record(
-            page_id, document_id, annotation_data=None, auto_extracted_data=auto_data_str,
+            page_id,
+            document_id,
+            annotation_data=None,
+            auto_extracted_data=auto_data_str,
         )
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
             mock_repo.get_by_id = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
+        assert result is not None
         assert result['auto_extracted_data'] == {'model': 'test', 'results': []}
 
     @pytest.mark.asyncio
@@ -107,6 +113,7 @@ class TestGetPageData:
             mock_repo.get_by_id = AsyncMock(return_value=record)
             result = await labeling_service.get_page_data(mock_pool, page_id)
 
+        assert result is not None
         assert result['annotation_data'] == {}
 
 
@@ -129,6 +136,7 @@ class TestSaveAnnotation:
             result = await labeling_service.save_annotation(mock_pool, page_id, annotation)
 
         mock_repo.update_annotation.assert_called_once_with(mock_pool, page_id, annotation)
+        assert result is not None
         assert result['annotation_data'] == annotation
 
     @pytest.mark.asyncio
@@ -140,6 +148,7 @@ class TestSaveAnnotation:
             mock_repo.update_annotation = AsyncMock(return_value=record)
             result = await labeling_service.save_annotation(mock_pool, page_id, {})
 
+        assert result is not None
         assert result['annotation_data'] == {'layout_dets': []}
 
 
@@ -163,12 +172,14 @@ class TestSavePageAttribute:
             result = await labeling_service.save_page_attribute(mock_pool, page_id, page_attr)
 
         mock_repo.update_page_attribute.assert_called_once_with(mock_pool, page_id, page_attr)
+        assert result is not None
         assert result['annotation_data']['page_attribute'] == page_attr
 
     @pytest.mark.asyncio
     async def test_returns_all_page_fields(self, mock_pool, page_id, document_id):
         record = _make_page_record(
-            page_id, document_id,
+            page_id,
+            document_id,
             annotation_data={'page_attribute': {'language': 'en'}},
         )
 
@@ -176,6 +187,7 @@ class TestSavePageAttribute:
             mock_repo.update_page_attribute = AsyncMock(return_value=record)
             result = await labeling_service.save_page_attribute(mock_pool, page_id, {})
 
+        assert result is not None
         assert result['id'] == page_id
         assert result['document_id'] == document_id
         assert result['page_no'] == 1
@@ -191,7 +203,9 @@ class TestAddElement:
         with patch.object(labeling_service, 'page_repo') as mock_repo:
             mock_repo.get_by_id = AsyncMock(return_value=None)
             result = await labeling_service.add_element(
-                mock_pool, page_id, {'category_type': 'text_block'},
+                mock_pool,
+                page_id,
+                {'category_type': 'text_block'},
             )
 
         assert result is None
@@ -199,11 +213,13 @@ class TestAddElement:
     @pytest.mark.asyncio
     async def test_assigns_anno_id_starting_from_zero(self, mock_pool, page_id, document_id):
         record = _make_page_record(
-            page_id, document_id,
+            page_id,
+            document_id,
             annotation_data={'layout_dets': []},
         )
         updated = _make_page_record(
-            page_id, document_id,
+            page_id,
+            document_id,
             annotation_data={'layout_dets': [{'anno_id': 0, 'category_type': 'text_block'}]},
         )
 
@@ -221,7 +237,8 @@ class TestAddElement:
     @pytest.mark.asyncio
     async def test_assigns_next_anno_id(self, mock_pool, page_id, document_id):
         record = _make_page_record(
-            page_id, document_id,
+            page_id,
+            document_id,
             annotation_data={
                 'layout_dets': [
                     {'anno_id': 0, 'category_type': 'text_block'},
@@ -261,7 +278,8 @@ class TestAddElement:
     @pytest.mark.asyncio
     async def test_handles_json_string_annotation(self, mock_pool, page_id, document_id):
         record = _make_page_record(
-            page_id, document_id,
+            page_id,
+            document_id,
             annotation_data='{"layout_dets": [{"anno_id": 5}]}',
         )
         updated = _make_page_record(page_id, document_id, annotation_data={'layout_dets': []})
@@ -285,7 +303,9 @@ class TestAddElement:
             mock_repo.get_by_id = AsyncMock(return_value=record)
             mock_repo.add_element = AsyncMock(return_value=None)
             result = await labeling_service.add_element(
-                mock_pool, page_id, {'category_type': 'text_block'},
+                mock_pool,
+                page_id,
+                {'category_type': 'text_block'},
             )
 
         assert result is None
@@ -310,12 +330,14 @@ class TestDeleteElement:
             result = await labeling_service.delete_element(mock_pool, page_id, 0)
 
         mock_repo.delete_element.assert_called_once_with(mock_pool, page_id, 0)
+        assert result is not None
         assert result['annotation_data'] == remaining
 
     @pytest.mark.asyncio
     async def test_parses_json_string_result(self, mock_pool, page_id, document_id):
         record = _make_page_record(
-            page_id, document_id,
+            page_id,
+            document_id,
             annotation_data='{"layout_dets": []}',
         )
 
@@ -323,4 +345,5 @@ class TestDeleteElement:
             mock_repo.delete_element = AsyncMock(return_value=record)
             result = await labeling_service.delete_element(mock_pool, page_id, 0)
 
+        assert result is not None
         assert result['annotation_data'] == {'layout_dets': []}

@@ -50,14 +50,18 @@ class TestUploadAndConvert:
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
-            mock_pdf.__getitem__ = lambda _, i: mock_page
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
             mock_fitz.open.return_value = mock_pdf
             mock_fitz.Matrix.return_value = MagicMock()
 
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
-                mock_pool, project_id, 'test.pdf', b'%PDF-fake', str(tmp_path),
+                mock_pool,
+                project_id,
+                'test.pdf',
+                b'%PDF-fake',
+                str(tmp_path),
             )
 
         assert (tmp_path / 'pdfs').is_dir()
@@ -85,7 +89,11 @@ class TestUploadAndConvert:
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
-                mock_pool, project_id, 'test.pdf', pdf_bytes, str(tmp_path),
+                mock_pool,
+                project_id,
+                'test.pdf',
+                pdf_bytes,
+                str(tmp_path),
             )
 
         pdf_file = tmp_path / 'pdfs' / f'{doc_id}_test.pdf'
@@ -94,7 +102,10 @@ class TestUploadAndConvert:
 
     @pytest.mark.asyncio
     async def test_creates_document_record_with_processing_status(
-        self, mock_pool, project_id, tmp_path,
+        self,
+        mock_pool,
+        project_id,
+        tmp_path,
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -113,7 +124,11 @@ class TestUploadAndConvert:
             mock_fitz.open.return_value = mock_pdf
 
             await document_service.upload_and_convert(
-                mock_pool, project_id, 'report.pdf', b'%PDF', str(tmp_path),
+                mock_pool,
+                project_id,
+                'report.pdf',
+                b'%PDF',
+                str(tmp_path),
             )
 
         mock_doc_repo.create.assert_called_once_with(
@@ -157,7 +172,11 @@ class TestUploadAndConvert:
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
-                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path),
+                mock_pool,
+                project_id,
+                'test.pdf',
+                b'%PDF',
+                str(tmp_path),
             )
 
         assert mock_page_repo.create.call_count == 2
@@ -193,7 +212,7 @@ class TestUploadAndConvert:
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
-            mock_pdf.__getitem__ = lambda _, i: mock_page
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
             mock_fitz.open.return_value = mock_pdf
 
             matrix_instance = MagicMock()
@@ -202,7 +221,11 @@ class TestUploadAndConvert:
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
-                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path),
+                mock_pool,
+                project_id,
+                'test.pdf',
+                b'%PDF',
+                str(tmp_path),
             )
 
         mock_fitz.Matrix.assert_called_once_with(2.0, 2.0)
@@ -230,18 +253,25 @@ class TestUploadAndConvert:
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 3
-            mock_pdf.__getitem__ = lambda _, i: mock_page
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
             mock_fitz.open.return_value = mock_pdf
             mock_fitz.Matrix.return_value = MagicMock()
 
             mock_page_repo.create = AsyncMock()
 
             result = await document_service.upload_and_convert(
-                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path),
+                mock_pool,
+                project_id,
+                'test.pdf',
+                b'%PDF',
+                str(tmp_path),
             )
 
         mock_doc_repo.update_status.assert_called_once_with(
-            mock_pool, document_id=doc_id, status='ready', total_pages=3,
+            mock_pool,
+            document_id=doc_id,
+            status='ready',
+            total_pages=3,
         )
         assert result == {
             'id': doc_id,
@@ -267,11 +297,17 @@ class TestUploadAndConvert:
 
             with pytest.raises(RuntimeError, match='Corrupt PDF'):
                 await document_service.upload_and_convert(
-                    mock_pool, project_id, 'bad.pdf', b'bad', str(tmp_path),
+                    mock_pool,
+                    project_id,
+                    'bad.pdf',
+                    b'bad',
+                    str(tmp_path),
                 )
 
         mock_doc_repo.update_status.assert_called_once_with(
-            mock_pool, document_id=doc_id, status='error',
+            mock_pool,
+            document_id=doc_id,
+            status='error',
         )
 
     @pytest.mark.asyncio
@@ -294,7 +330,11 @@ class TestUploadAndConvert:
             mock_page_repo.create = AsyncMock()
 
             result = await document_service.upload_and_convert(
-                mock_pool, project_id, 'empty.pdf', b'%PDF', str(tmp_path),
+                mock_pool,
+                project_id,
+                'empty.pdf',
+                b'%PDF',
+                str(tmp_path),
             )
 
         assert result['id'] == doc_id

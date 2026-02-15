@@ -43,6 +43,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         assert result['project_name'] == 'Empty Project'
         assert result['total_pages'] == 0
         assert result['data'] == []
@@ -72,6 +73,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[page])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         assert result['project_name'] == 'Test Project'
         assert result['total_pages'] == 1
         assert len(result['data']) == 1
@@ -83,7 +85,8 @@ class TestExportProject:
         assert entry['page_info']['height'] == 1600
         assert entry['page_info']['image_path'] == '/storage/images/p1.png'
         assert entry['page_info']['page_attribute'] == {
-            'language': 'ko', 'layout': 'single_column',
+            'language': 'ko',
+            'layout': 'single_column',
         }
 
     @pytest.mark.asyncio
@@ -109,6 +112,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[page])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         entry = result['data'][0]
         assert 'page_attribute' not in entry
         assert entry['page_info']['page_attribute'] == {'language': 'en'}
@@ -139,6 +143,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[page])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         entry = result['data'][0]
         assert entry['layout_dets'] == elements
 
@@ -164,6 +169,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=pages)
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         assert result['total_pages'] == 3
         for i, entry in enumerate(result['data'], start=1):
             assert entry['page_info']['page_no'] == i
@@ -187,6 +193,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[page])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         entry = result['data'][0]
         assert entry['layout_dets'] == []
         assert entry['page_info']['page_attribute'] == {'language': 'ko'}
@@ -210,6 +217,7 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[page])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         entry = result['data'][0]
         assert entry['page_info']['page_attribute'] == {}
 
@@ -236,5 +244,6 @@ class TestExportProject:
             mock_page.get_all_by_project = AsyncMock(return_value=[page])
             result = await export_service.export_project(mock_pool, project_id)
 
+        assert result is not None
         entry = result['data'][0]
         assert entry['extra'] == {'relation': [{'src': 0, 'dst': 1}]}
