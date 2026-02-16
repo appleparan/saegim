@@ -42,6 +42,30 @@ class Settings(BaseSettings):
     # Server Settings
     max_workers: int = Field(default=1, description='Maximum number of workers')
 
+    # Extraction Settings
+    extraction_backend: str = Field(
+        default='mineru',
+        description="PDF extraction backend: 'mineru' or 'pymupdf'",
+    )
+    mineru_backend: str = Field(
+        default='pipeline',
+        description="MinerU parsing backend: 'pipeline', 'hybrid-auto-engine', 'vlm-auto-engine'",
+    )
+    mineru_language: str = Field(
+        default='korean',
+        description='MinerU OCR language setting',
+    )
+
+    # Celery Settings
+    celery_broker_url: str = Field(
+        default='redis://localhost:6379/0',
+        description='Celery broker URL (Redis)',
+    )
+    celery_result_backend: str = Field(
+        default='redis://localhost:6379/1',
+        description='Celery result backend URL (Redis)',
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
