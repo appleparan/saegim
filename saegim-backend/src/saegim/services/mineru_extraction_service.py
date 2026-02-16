@@ -184,7 +184,7 @@ def content_list_to_omnidocbench(
         }
 
     # Track per-page anno_id counters
-    anno_counters: dict[int, int] = {idx: 0 for idx in page_dimensions}
+    anno_counters: dict[int, int] = dict.fromkeys(page_dimensions, 0)
 
     for item in content_list:
         page_idx = item.get('page_idx', 0)
@@ -218,17 +218,13 @@ def content_list_to_omnidocbench(
 
         # Extract caption/footnote sub-elements for images and tables
         if category_type == 'figure':
-            captions = _extract_caption_elements(
-                item, poly, anno_counters[page_idx], 'figure'
-            )
+            captions = _extract_caption_elements(item, poly, anno_counters[page_idx], 'figure')
             for cap in captions:
                 result[page_idx]['layout_dets'].append(cap)
                 anno_counters[page_idx] += 1
 
         elif category_type == 'table':
-            captions = _extract_caption_elements(
-                item, poly, anno_counters[page_idx], 'table'
-            )
+            captions = _extract_caption_elements(item, poly, anno_counters[page_idx], 'table')
             for cap in captions:
                 result[page_idx]['layout_dets'].append(cap)
                 anno_counters[page_idx] += 1
@@ -324,9 +320,7 @@ def extract_document(
     if not page_dimensions:
         page_indices = {item.get('page_idx', 0) for item in content_list}
         # Use default dimensions (will be overridden by caller in production)
-        page_dimensions = {idx: (1, 1) for idx in page_indices}
-        logger.warning(
-            'No page_dimensions provided; coordinates will not be properly scaled'
-        )
+        page_dimensions = dict.fromkeys(page_indices, (1, 1))
+        logger.warning('No page_dimensions provided; coordinates will not be properly scaled')
 
     return content_list_to_omnidocbench(content_list, page_dimensions)

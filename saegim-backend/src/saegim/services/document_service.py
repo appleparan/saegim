@@ -92,12 +92,14 @@ async def upload_and_convert(
 
             # Collect page info for MinerU async extraction
             if not use_pymupdf:
-                page_info_list.append({
-                    'page_id': str(page_record['id']),
-                    'page_idx': page_no,
-                    'width': pix.width,
-                    'height': pix.height,
-                })
+                page_info_list.append(
+                    {
+                        'page_id': str(page_record['id']),
+                        'page_idx': page_no,
+                        'width': pix.width,
+                        'height': pix.height,
+                    }
+                )
 
         pdf_doc.close()
 

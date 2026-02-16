@@ -8,8 +8,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-labeling}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
-      - ./saegim-backend/migrations/002_extraction_status.sql:/docker-entrypoint-initdb.d/002_extraction_status.sql:ro
+      - ./saegim-backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "${PG_PORT:-15432}:5432"
     healthcheck:

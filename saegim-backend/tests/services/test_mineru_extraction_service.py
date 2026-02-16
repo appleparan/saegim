@@ -1,6 +1,6 @@
 """Tests for MinerU extraction service."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -291,11 +291,28 @@ class TestContentListToOmnidocbench:
 
     def test_mixed_element_types(self):
         content_list = [
-            {'type': 'text', 'text_level': 1, 'text': 'Title', 'bbox': [0, 0, 1000, 50], 'page_idx': 0},
+            {
+                'type': 'text',
+                'text_level': 1,
+                'text': 'Title',
+                'bbox': [0, 0, 1000, 50],
+                'page_idx': 0,
+            },
             {'type': 'text', 'text': 'Body text', 'bbox': [0, 50, 1000, 200], 'page_idx': 0},
             {'type': 'image', 'bbox': [100, 200, 900, 500], 'page_idx': 0},
-            {'type': 'equation', 'text': '$$x^2$$', 'text_format': 'latex', 'bbox': [100, 500, 900, 600], 'page_idx': 0},
-            {'type': 'table', 'table_body': '<table></table>', 'bbox': [0, 600, 1000, 900], 'page_idx': 0},
+            {
+                'type': 'equation',
+                'text': '$$x^2$$',
+                'text_format': 'latex',
+                'bbox': [100, 500, 900, 600],
+                'page_idx': 0,
+            },
+            {
+                'type': 'table',
+                'table_body': '<table></table>',
+                'bbox': [0, 600, 1000, 900],
+                'page_idx': 0,
+            },
         ]
         page_dims = {0: (2000, 3000)}
         result = content_list_to_omnidocbench(content_list, page_dims)

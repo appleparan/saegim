@@ -111,10 +111,7 @@ def run_mineru_extraction(
 
     try:
         # Build page dimensions mapping
-        page_dimensions = {
-            p['page_idx']: (p['width'], p['height'])
-            for p in page_info
-        }
+        page_dimensions = {p['page_idx']: (p['width'], p['height']) for p in page_info}
 
         # Run MinerU extraction
         settings = get_settings()
@@ -131,11 +128,14 @@ def run_mineru_extraction(
         for page in page_info:
             page_idx = page['page_idx']
             page_id = page['page_id']
-            extracted = results.get(page_idx, {
-                'layout_dets': [],
-                'page_attribute': {},
-                'extra': {'relation': []},
-            })
+            extracted = results.get(
+                page_idx,
+                {
+                    'layout_dets': [],
+                    'page_attribute': {},
+                    'extra': {'relation': []},
+                },
+            )
             _update_page_extraction(dsn, page_id, extracted)
             logger.info(
                 'Updated page %s (idx=%d) with %d elements',

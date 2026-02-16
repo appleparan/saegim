@@ -88,9 +88,7 @@ class TestUploadAndConvert:
         assert (tmp_path / 'images').is_dir()
 
     @pytest.mark.asyncio
-    async def test_saves_pdf_to_disk(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
-    ):
+    async def test_saves_pdf_to_disk(self, mock_pool, project_id, tmp_path, mock_pymupdf_settings):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
         pdf_bytes = b'%PDF-1.4 fake content'
@@ -519,18 +517,17 @@ class TestDispatchMineruExtraction:
         ):
             from saegim.tasks.extraction_task import run_mineru_extraction
 
-            with patch.object(run_mineru_extraction, 'delay') as mock_delay:
-                with patch(
-                    'saegim.services.document_service.run_mineru_extraction',
-                    run_mineru_extraction,
-                    create=True,
-                ):
-                    document_service._dispatch_mineru_extraction(
-                        document_id=doc_id,
-                        pdf_path=pdf_path,
-                        page_info_list=page_info_list,
-                        settings=mock_mineru_settings,
-                    )
+            with patch.object(run_mineru_extraction, 'delay') as mock_delay, patch(
+                'saegim.services.document_service.run_mineru_extraction',
+                run_mineru_extraction,
+                create=True,
+            ):
+                document_service._dispatch_mineru_extraction(
+                    document_id=doc_id,
+                    pdf_path=pdf_path,
+                    page_info_list=page_info_list,
+                    settings=mock_mineru_settings,
+                )
 
         mock_delay.assert_called_once_with(
             document_id=str(doc_id),

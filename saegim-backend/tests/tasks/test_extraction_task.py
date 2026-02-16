@@ -1,6 +1,6 @@
 """Tests for MinerU extraction Celery task."""
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -57,9 +57,7 @@ class TestRunMineruExtraction:
     @patch('saegim.tasks.extraction_task._update_page_extraction')
     @patch('saegim.tasks.extraction_task.mineru_extraction_service')
     @patch('saegim.tasks.extraction_task._get_dsn', return_value='postgresql://test')
-    def test_successful_extraction(
-        self, mock_dsn, mock_service, mock_update_page, mock_update_doc
-    ):
+    def test_successful_extraction(self, mock_dsn, mock_service, mock_update_page, mock_update_doc):
         mock_service.extract_document.return_value = {
             0: {
                 'layout_dets': [{'category_type': 'text_block', 'anno_id': 0}],
@@ -87,9 +85,7 @@ class TestRunMineruExtraction:
     @patch('saegim.tasks.extraction_task._update_page_extraction')
     @patch('saegim.tasks.extraction_task.mineru_extraction_service')
     @patch('saegim.tasks.extraction_task._get_dsn', return_value='postgresql://test')
-    def test_multi_page_extraction(
-        self, mock_dsn, mock_service, mock_update_page, mock_update_doc
-    ):
+    def test_multi_page_extraction(self, mock_dsn, mock_service, mock_update_page, mock_update_doc):
         mock_service.extract_document.return_value = {
             0: {'layout_dets': [{'anno_id': 0}], 'page_attribute': {}, 'extra': {'relation': []}},
             1: {'layout_dets': [{'anno_id': 0}], 'page_attribute': {}, 'extra': {'relation': []}},

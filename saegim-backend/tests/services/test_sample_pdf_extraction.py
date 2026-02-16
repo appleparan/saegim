@@ -60,9 +60,7 @@ class TestPyMuPDFExtractionEnglishPaper:
         result = extract_page_elements(page, scale=2.0)
         pdf.close()
 
-        all_text = ' '.join(
-            el.get('text', '') for el in result['layout_dets'] if el.get('text')
-        )
+        all_text = ' '.join(el.get('text', '') for el in result['layout_dets'] if el.get('text'))
         # English paper should contain Latin characters
         assert any(c.isascii() and c.isalpha() for c in all_text)
 
@@ -131,11 +129,9 @@ class TestPyMuPDFExtractionKoreanDocument:
         result = extract_page_elements(page, scale=2.0)
         pdf.close()
 
-        all_text = ' '.join(
-            el.get('text', '') for el in result['layout_dets'] if el.get('text')
-        )
+        all_text = ' '.join(el.get('text', '') for el in result['layout_dets'] if el.get('text'))
         # Korean document should contain Hangul characters
-        has_hangul = any('\uAC00' <= c <= '\uD7A3' for c in all_text)
+        has_hangul = any('\uac00' <= c <= '\ud7a3' for c in all_text)
         assert has_hangul, f'Expected Korean text, got: {all_text[:200]}'
 
     @skipif_no_samples

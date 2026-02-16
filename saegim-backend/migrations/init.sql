@@ -1,4 +1,4 @@
--- Initial schema for saegim labeling platform
+-- Schema for saegim labeling platform
 -- PostgreSQL + JSONB for annotation data
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS documents (
     pdf_path VARCHAR(1024) NOT NULL,
     total_pages INT NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'uploading'
-        CHECK (status IN ('uploading', 'processing', 'ready', 'error')),
+        CHECK (status IN ('uploading', 'processing', 'extracting', 'ready', 'error', 'extraction_failed')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
