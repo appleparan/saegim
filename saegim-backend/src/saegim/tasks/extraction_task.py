@@ -69,7 +69,7 @@ def _update_document_status(dsn: str, document_id: str, status: str) -> None:
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
 def run_mineru_extraction(
-    self,
+    self: celery_app.Task,
     document_id: str,
     pdf_path: str,
     page_info: list[dict],
@@ -169,4 +169,4 @@ def run_mineru_extraction(
             raise
 
         # Retry
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

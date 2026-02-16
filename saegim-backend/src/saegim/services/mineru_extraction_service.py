@@ -203,11 +203,9 @@ def content_list_to_omnidocbench(
         latex = None
         html = None
 
-        if category_type == 'equation_isolated':
-            # Equations have LaTeX in the text field with text_format="latex"
-            if item.get('text_format') == 'latex':
-                latex = text
-                text = None
+        if category_type == 'equation_isolated' and item.get('text_format') == 'latex':
+            latex = text
+            text = None
 
         if category_type == 'table':
             html = item.get('table_body')

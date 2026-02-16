@@ -517,10 +517,13 @@ class TestDispatchMineruExtraction:
         ):
             from saegim.tasks.extraction_task import run_mineru_extraction
 
-            with patch.object(run_mineru_extraction, 'delay') as mock_delay, patch(
-                'saegim.services.document_service.run_mineru_extraction',
-                run_mineru_extraction,
-                create=True,
+            with (
+                patch.object(run_mineru_extraction, 'delay') as mock_delay,
+                patch(
+                    'saegim.services.document_service.run_mineru_extraction',
+                    run_mineru_extraction,
+                    create=True,
+                ),
             ):
                 document_service._dispatch_mineru_extraction(
                     document_id=doc_id,

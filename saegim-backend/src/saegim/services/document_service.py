@@ -7,7 +7,7 @@ from pathlib import Path
 import asyncpg
 import fitz
 
-from saegim.api.settings import get_settings
+from saegim.api.settings import Settings, get_settings
 from saegim.repositories import document_repo, page_repo
 from saegim.services import extraction_service
 
@@ -148,7 +148,7 @@ def _dispatch_mineru_extraction(
     document_id: uuid.UUID,
     pdf_path: Path,
     page_info_list: list[dict],
-    settings: object,
+    settings: Settings,
 ) -> None:
     """Dispatch MinerU extraction as a Celery task.
 

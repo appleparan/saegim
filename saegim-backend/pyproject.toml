@@ -246,11 +246,13 @@ max-complexity = 18
 ]
 "**/tests/**.py" = [
     "ANN",
+    "ARG002",
     "D100",
     "D102",
     "D103",
     "D104",
     "S101",
+    "S108",
 ]
 "configs/**.py" = [
     "F401",

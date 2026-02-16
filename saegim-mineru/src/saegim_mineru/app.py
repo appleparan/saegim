@@ -165,9 +165,7 @@ def _run_pipeline_backend(
     )
 
     image_dir = str(Path(local_image_dir).name)
-    content_list = pipeline_union_make(
-        middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir
-    )
+    content_list = pipeline_union_make(middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir)
 
     return content_list
 
@@ -217,9 +215,7 @@ def _run_hybrid_backend(
     )
 
     image_dir = str(Path(local_image_dir).name)
-    content_list = vlm_union_make(
-        middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir
-    )
+    content_list = vlm_union_make(middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir)
 
     return content_list
 
@@ -264,8 +260,6 @@ def _run_vlm_backend(
     )
 
     image_dir = str(Path(local_image_dir).name)
-    content_list = vlm_union_make(
-        middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir
-    )
+    content_list = vlm_union_make(middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir)
 
     return content_list

@@ -168,8 +168,9 @@ class TestPyMuPDFExtractionComparison:
             for page_no in range(min(3, len(pdf))):  # Check first 3 pages
                 result = extract_page_elements(pdf[page_no], scale=2.0)
                 categories = {el['category_type'] for el in result['layout_dets']}
+                unexpected = categories - valid_categories
                 assert categories.issubset(valid_categories), (
-                    f'{pdf_path.name} page {page_no}: unexpected categories {categories - valid_categories}'
+                    f'{pdf_path.name} page {page_no}: unexpected categories {unexpected}'
                 )
             pdf.close()
 
@@ -292,5 +293,6 @@ class TestMineruExtractionSamplePDFs:
 
         # MinerU should detect more diverse categories
         assert len(mineru_categories) >= len(pymupdf_categories), (
-            f'MinerU ({mineru_categories}) should have >= categories than PyMuPDF ({pymupdf_categories})'
+            f'MinerU ({mineru_categories}) should have >= categories'
+            f' than PyMuPDF ({pymupdf_categories})'
         )
