@@ -237,9 +237,9 @@ PDF 등 한국어 문서 데이터셋을 업로드하면 OmniDocBench 포맷의 
 | **DB 드라이버** | asyncpg (raw SQL) | 비동기 PostgreSQL 드라이버. ORM 없이 raw SQL + Repository 패턴으로 JSONB 직접 제어 |
 | **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
 | **파일 저장** | 로컬 파일시스템 (→ 추후 MinIO/S3) | PDF 원본, 페이지 이미지 등 바이너리 파일 |
-| **자동 추출** | MinerU / PP-StructureV3 / DocLayout-YOLO 중 택1 | 레이아웃 검출 + OCR 통합 파이프라인 |
-| **PDF 추출** | PyMuPDF | PDF → 이미지 렌더링 + 텍스트/이미지 블록 자동 추출 (구현 완료) |
-| **태스크 큐** | Celery + Redis (미구현) | PDF 변환, 자동 추출 등 비동기 무거운 작업 처리 |
+| **자동 추출** | MinerU (pipeline backend) | 15+ 카테고리 레이아웃 검출 + OCR + 수식 LaTeX + 테이블 HTML (구현 완료) |
+| **PDF 추출 (폴백)** | PyMuPDF | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
+| **태스크 큐** | Celery + Redis (구현 완료) | MinerU 비동기 추출, GPU 워커 지원 |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
 
 #### 프론트엔드 ↔ 백엔드 연결 구조
@@ -335,6 +335,8 @@ ORM 없이 asyncpg raw SQL을 사용하며, Repository가 SQL 쿼리를 캡슐�
 | postgres | postgres:18.2-trixie | 5432 |
 | backend | ./saegim-backend | 5000 |
 | frontend | ./saegim-frontend | 80 (→ 5173) |
+| redis | redis:7-alpine | 6379 |
+| celery-worker | ./saegim-backend | - (Celery 워커) |
 
 `docker compose up` 한 줄이면 로컬/서버 동일 환경.
 E2E 테스트용 격리 환경: [e2e/docker-compose.e2e.yml](e2e/docker-compose.e2e.yml) (Section 3.8).
@@ -402,7 +404,8 @@ saegim/
 │   ├── pyproject.toml            # uv 패키지 관리
 │   ├── mkdocs.yml                # MkDocs 문서 설정
 │   ├── migrations/
-│   │   └── 001_init.sql          # 초기 DB 스키마
+│   │   ├── 001_init.sql          # 초기 DB 스키마
+│   │   └── 002_extraction_status.sql  # extracting/extraction_failed 상태 추가
 │   ├── docs/                     # 백엔드 문서 (MkDocs)
 │   │   ├── index.md
 │   │   ├── guide/                # API 문서, 시작하기, 개요
@@ -428,10 +431,14 @@ saegim/
 │   │   │   ├── project_repo.py
 │   │   │   └── user_repo.py
 │   │   ├── services/
-│   │   │   ├── document_service.py     # PDF 업로드/변환/추출
-│   │   │   ├── extraction_service.py   # PyMuPDF 텍스트/이미지 추출
+│   │   │   ├── document_service.py     # PDF 업로드/변환/추출 (pymupdf/mineru 분기)
+│   │   │   ├── extraction_service.py   # PyMuPDF 텍스트/이미지 추출 (CI 폴백)
+│   │   │   ├── mineru_extraction_service.py  # MinerU 추출 + OmniDocBench 변환
 │   │   │   ├── labeling_service.py     # 어노테이션 CRUD, accept_auto_extraction()
 │   │   │   └── export_service.py       # OmniDocBench JSON 내보내기
+│   │   ├── tasks/                # Celery 비동기 태스크
+│   │   │   ├── celery_app.py     # Celery 앱 설정 (Redis broker)
+│   │   │   └── extraction_task.py # MinerU 추출 Celery 태스크
 │   │   └── schemas/              # Pydantic 요청/응답 스키마
 │   │       ├── annotation.py     # AnnotationData, LayoutElement
 │   │       ├── page.py           # PageResponse, ElementCreate
@@ -450,11 +457,14 @@ saegim/
 │       │   ├── test_users.py
 │       │   ├── test_settings.py
 │       │   └── test_app.py
-│       └── services/             # 서비스 유닛 테스트
-│           ├── test_document_service.py
-│           ├── test_extraction_service.py
-│           ├── test_export_service.py
-│           └── test_labeling_service.py
+│       ├── services/             # 서비스 유닛 테스트
+│       │   ├── test_document_service.py
+│       │   ├── test_extraction_service.py
+│       │   ├── test_mineru_extraction_service.py  # MinerU 변환 테스트 (38개)
+│       │   ├── test_export_service.py
+│       │   └── test_labeling_service.py
+│       └── tasks/                # Celery 태스크 테스트
+│           └── test_extraction_task.py
 │
 ├── saegim-frontend/              # Svelte 5 (Runes) SPA
 │   ├── Dockerfile
@@ -713,40 +723,64 @@ Step 7: 완료 & 제출
 
 ## 5. 자동 추출 파이프라인 상세
 
-### 5.0 현재 구현: PyMuPDF 기반 추출 (구현 완료)
+### 5.0 현재 구현: 이중 백엔드 추출 (구현 완료)
 
-PDF 업로드 시 PyMuPDF `page.get_text("dict")`로 텍스트/이미지 블록을 자동 추출한다.
+`EXTRACTION_BACKEND` 환경변수로 추출 백엔드를 선택한다:
+
+#### 5.0.1 MinerU 백엔드 (기본값, `EXTRACTION_BACKEND=mineru`)
 
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → page.get_text("dict") → blocks 배열
+  → Celery 태스크 디스패치 (비동기)
+     → MinerU pipeline 백엔드 실행
+     → content_list.json 생성
+     → content_list → OmniDocBench 변환
+        ├── 15+ 카테고리 매핑 (title, text_block, figure, table, equation_isolated, ...)
+        ├── bbox 0-1000 정규화 → 픽셀 좌표 변환
+        ├── 수식 → latex 필드, 테이블 → html 필드
+        └── 캡션/각주 → 별도 element 생성
+     → psycopg (동기)로 각 페이지 auto_extracted_data 업데이트
+     → document status: extracting → ready (또는 extraction_failed)
+  → 프론트엔드에서 "수락" → annotation_data로 복사
+```
+
+#### 5.0.2 PyMuPDF 백엔드 (CI 폴백, `EXTRACTION_BACKEND=pymupdf`)
+
+```text
+PDF 업로드
+  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → page.get_text("dict") → blocks 배열 (동기)
      ├── type=0 (텍스트) → category_type: "text_block", spans의 text 합침
      └── type=1 (이미지) → category_type: "figure"
   → page.get_images() + get_image_bbox() → 임베디드 이미지 추출
   → 좌표 스케일링: PyMuPDF 72 DPI × 2.0 = 이미지 픽셀 좌표
   → auto_extracted_data JSONB에 OmniDocBench 형식으로 저장
+  → document status: processing → ready (즉시)
   → 프론트엔드에서 "수락" → annotation_data로 복사
 ```
 
 구현 파일:
 
-- `extraction_service.py`: `extract_page_elements()`, `bbox_to_poly()`
-- `document_service.py`: 업로드 시 추출 호출
-- `page_repo.py`: `create()`, `accept_auto_extracted()`
+- `mineru_extraction_service.py`: MinerU 래핑 + OmniDocBench 변환
+- `extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
+- `document_service.py`: 업로드 시 백엔드 분기 + Celery 디스패치
+- `tasks/celery_app.py`: Celery 앱 설정 (Redis broker)
+- `tasks/extraction_task.py`: MinerU 추출 Celery 태스크
+- `page_repo.py`: `create()`, `accept_auto_extracted()`, `update_auto_extracted_data()`
 - `labeling_service.py`: `accept_auto_extraction()`
-- `ExtractionPreview.svelte`: 수락/무시 UI
+- `ExtractionPreview.svelte`: 추출 진행중 표시 + 수락/무시 UI
 
-### 5.1 후보 도구 비교 (후속 고도화)
+### 5.1 후보 도구 비교
 
-| 도구 | 특징 | 장점 | 단점 |
-| ------ | ------ | ------ | ------ |
-| **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 | OmniDocBench 포맷과 직접 호환 | 한국어 최적화 필요 |
-| **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 |
-| **DocLayout-YOLO** | 경량 레이아웃 검출 | 빠른 추론 속도 | 텍스트 인식 별도 필요 |
-| **Marker** (VikParuchuri) | PDF → Markdown 변환 | 간단한 파이프라인 | Attribute 정보 없음 |
+| 도구 | 특징 | 장점 | 단점 | 상태 |
+| ------ | ------ | ------ | ------ | ------ |
+| **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 | OmniDocBench 포맷과 직접 호환, 15+ 카테고리 | 한국어 최적화 필요 | **구현 완료** |
+| **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 | 미구현 |
+| **DocLayout-YOLO** | 경량 레이아웃 검출 | 빠른 추론 속도 | 텍스트 인식 별도 필요 | 미구현 |
+| **Marker** (VikParuchuri) | PDF → Markdown 변환 | 간단한 파이프라인 | Attribute 정보 없음 | 미구현 |
 
-**권장**: MinerU 또는 PP-StructureV3를 1차 파이프라인으로 쓰고, 한국어 OCR 부분은 별도 보강(예: Naver Clova OCR, PaddleOCR 한국어 모델). 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
+**현재**: MinerU pipeline 백엔드를 1차 파이프라인으로 사용. 한국어 OCR 부분은 별도 보강 필요(예: PaddleOCR 한국어 모델). 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
 
 ### 5.2 자동 Attribute 분류 전략
 
@@ -784,7 +818,7 @@ documents
 ├── filename        VARCHAR          # 원본 PDF 파일명
 ├── pdf_path        VARCHAR          # 파일시스템 경로 (예: storage/pdfs/xxx.pdf)
 ├── total_pages     INT
-├── status          ENUM             # uploading / processing / ready / error
+├── status          ENUM             # uploading / processing / extracting / ready / error / extraction_failed
 ├── analysis_data   JSONB            # ★ Phase 4a: 문서 분석 메타데이터 (Overview, Core Idea, Key Figures, Limitations)
 └── created_at      TIMESTAMP
 
@@ -898,12 +932,20 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 - **ExtractionPreview UI**: 자동 추출 결과 프리뷰 배너 + 수락/무시 버튼
 - **TextOverlay 연동**: 수락 후 텍스트 블록의 text가 투명 오버레이로 렌더링 → 드래그 선택 가능
 
+#### 구현 완료 (Stage 4~6, PR #5)
+
+- **MinerU 구조 추출 통합**: MinerU pipeline 백엔드를 통한 15+ 카테고리 레이아웃 검출, 수식 LaTeX 변환, 테이블 HTML 변환
+- **content_list → OmniDocBench 변환**: MinerU의 `content_list.json` 출력을 OmniDocBench 형식으로 변환 (좌표 0-1000 정규화 → 픽셀 좌표)
+- **Celery + Redis 비동기 처리**: MinerU 추출을 Celery 태스크로 비동기 실행, Redis를 broker/backend로 사용
+- **추출 백엔드 분기**: `EXTRACTION_BACKEND` 환경변수로 `pymupdf`(동기 폴백) / `mineru`(비동기) 선택
+- **문서 상태 확장**: `extracting`, `extraction_failed` 상태 추가
+- **프론트엔드 UI**: 추출 진행중 배지 + 자동 폴링, ExtractionPreview 컴포넌트에 MinerU 추출 중 표시
+- **Docker Compose**: Redis 서비스 + Celery 워커 + GPU 워커(주석) 추가
+
 #### 미구현 (후속 PR)
 
 - PaddleOCR 연동 — PyMuPDF로 텍스트 추출 안 되는 영역에 OCR 수행
-- MinerU 또는 PP-StructureV3 레이아웃 검출 통합
 - 자동 Attribute 분류기 추가
-- Celery + Redis 비동기 처리
 - 읽기 순서 에디터
 - Relation 연결 도구
 
