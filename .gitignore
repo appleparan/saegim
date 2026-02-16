@@ -1,5 +1,6 @@
 # Storage (uploaded PDFs and page images)
 storage/
+test_storage/
 
 # Environment
 .env
