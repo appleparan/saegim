@@ -287,6 +287,35 @@ async def accept_auto_extracted(
     )
 
 
+async def update_auto_extracted_data(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+    auto_extracted_data: dict,
+) -> asyncpg.Record | None:
+    """Update auto_extracted_data for a page after async extraction.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        auto_extracted_data: OmniDocBench dict from MinerU extraction.
+
+    Returns:
+        asyncpg.Record or None: Updated page record.
+    """
+    return await pool.fetchrow(
+        """
+        UPDATE pages
+        SET auto_extracted_data = $1::jsonb, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, document_id, page_no, width, height, image_path,
+                  annotation_data, auto_extracted_data, status, assigned_to,
+                  locked_at, updated_at
+        """,
+        json.dumps(auto_extracted_data),
+        page_id,
+    )
+
+
 async def get_all_by_project(
     pool: asyncpg.Pool,
     project_id: uuid.UUID,

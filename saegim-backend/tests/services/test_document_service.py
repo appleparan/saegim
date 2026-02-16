@@ -27,9 +27,27 @@ def document_id():
     return uuid.uuid4()
 
 
+@pytest.fixture
+def mock_pymupdf_settings():
+    settings = MagicMock()
+    settings.extraction_backend = 'pymupdf'
+    return settings
+
+
+@pytest.fixture
+def mock_mineru_settings():
+    settings = MagicMock()
+    settings.extraction_backend = 'mineru'
+    settings.mineru_language = 'korean'
+    settings.mineru_backend = 'pipeline'
+    return settings
+
+
 class TestUploadAndConvert:
     @pytest.mark.asyncio
-    async def test_creates_storage_directories(self, mock_pool, project_id, tmp_path):
+    async def test_creates_storage_directories(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
 
@@ -38,6 +56,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -68,7 +87,9 @@ class TestUploadAndConvert:
         assert (tmp_path / 'images').is_dir()
 
     @pytest.mark.asyncio
-    async def test_saves_pdf_to_disk(self, mock_pool, project_id, tmp_path):
+    async def test_saves_pdf_to_disk(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
         pdf_bytes = b'%PDF-1.4 fake content'
@@ -78,6 +99,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -102,10 +124,7 @@ class TestUploadAndConvert:
 
     @pytest.mark.asyncio
     async def test_creates_document_record_with_processing_status(
-        self,
-        mock_pool,
-        project_id,
-        tmp_path,
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -115,6 +134,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo'),
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -124,11 +144,7 @@ class TestUploadAndConvert:
             mock_fitz.open.return_value = mock_pdf
 
             await document_service.upload_and_convert(
-                mock_pool,
-                project_id,
-                'report.pdf',
-                b'%PDF',
-                str(tmp_path),
+                mock_pool, project_id, 'report.pdf', b'%PDF', str(tmp_path)
             )
 
         mock_doc_repo.create.assert_called_once_with(
@@ -140,7 +156,9 @@ class TestUploadAndConvert:
         )
 
     @pytest.mark.asyncio
-    async def test_converts_pages_to_images(self, mock_pool, project_id, tmp_path):
+    async def test_converts_pages_to_images(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
 
@@ -149,6 +167,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -172,25 +191,18 @@ class TestUploadAndConvert:
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
-                mock_pool,
-                project_id,
-                'test.pdf',
-                b'%PDF',
-                str(tmp_path),
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
             )
 
         assert mock_page_repo.create.call_count == 2
-
-        call1 = mock_page_repo.create.call_args_list[0]
-        assert call1.kwargs['page_no'] == 1
-        assert call1.kwargs['width'] == 1200
-        assert call1.kwargs['height'] == 1600
-
-        call2 = mock_page_repo.create.call_args_list[1]
-        assert call2.kwargs['page_no'] == 2
+        assert mock_page_repo.create.call_args_list[0].kwargs['page_no'] == 1
+        assert mock_page_repo.create.call_args_list[0].kwargs['width'] == 1200
+        assert mock_page_repo.create.call_args_list[1].kwargs['page_no'] == 2
 
     @pytest.mark.asyncio
-    async def test_uses_2x_matrix_for_rendering(self, mock_pool, project_id, tmp_path):
+    async def test_uses_2x_matrix_for_rendering(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
 
@@ -199,6 +211,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -206,7 +219,6 @@ class TestUploadAndConvert:
             mock_pix = MagicMock()
             mock_pix.width = 800
             mock_pix.height = 1000
-
             mock_page = MagicMock()
             mock_page.get_pixmap.return_value = mock_pix
 
@@ -217,22 +229,19 @@ class TestUploadAndConvert:
 
             matrix_instance = MagicMock()
             mock_fitz.Matrix.return_value = matrix_instance
-
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
-                mock_pool,
-                project_id,
-                'test.pdf',
-                b'%PDF',
-                str(tmp_path),
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
             )
 
         mock_fitz.Matrix.assert_called_once_with(2.0, 2.0)
         mock_page.get_pixmap.assert_called_once_with(matrix=matrix_instance)
 
     @pytest.mark.asyncio
-    async def test_updates_status_to_ready_on_success(self, mock_pool, project_id, tmp_path):
+    async def test_updates_status_to_ready_on_success(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
 
@@ -241,6 +250,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -256,22 +266,14 @@ class TestUploadAndConvert:
             mock_pdf.__getitem__ = lambda _, _i: mock_page
             mock_fitz.open.return_value = mock_pdf
             mock_fitz.Matrix.return_value = MagicMock()
-
             mock_page_repo.create = AsyncMock()
 
             result = await document_service.upload_and_convert(
-                mock_pool,
-                project_id,
-                'test.pdf',
-                b'%PDF',
-                str(tmp_path),
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
             )
 
         mock_doc_repo.update_status.assert_called_once_with(
-            mock_pool,
-            document_id=doc_id,
-            status='ready',
-            total_pages=3,
+            mock_pool, document_id=doc_id, status='ready', total_pages=3
         )
         assert result == {
             'id': doc_id,
@@ -281,7 +283,9 @@ class TestUploadAndConvert:
         }
 
     @pytest.mark.asyncio
-    async def test_updates_status_to_error_on_failure(self, mock_pool, project_id, tmp_path):
+    async def test_updates_status_to_error_on_failure(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
 
@@ -290,6 +294,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo'),
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -297,21 +302,17 @@ class TestUploadAndConvert:
 
             with pytest.raises(RuntimeError, match='Corrupt PDF'):
                 await document_service.upload_and_convert(
-                    mock_pool,
-                    project_id,
-                    'bad.pdf',
-                    b'bad',
-                    str(tmp_path),
+                    mock_pool, project_id, 'bad.pdf', b'bad', str(tmp_path)
                 )
 
         mock_doc_repo.update_status.assert_called_once_with(
-            mock_pool,
-            document_id=doc_id,
-            status='error',
+            mock_pool, document_id=doc_id, status='error'
         )
 
     @pytest.mark.asyncio
-    async def test_returns_correct_result_dict(self, mock_pool, project_id, tmp_path):
+    async def test_returns_correct_result_dict(
+        self, mock_pool, project_id, tmp_path, mock_pymupdf_settings
+    ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
 
@@ -320,6 +321,7 @@ class TestUploadAndConvert:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'fitz') as mock_fitz,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_pymupdf_settings),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -330,14 +332,173 @@ class TestUploadAndConvert:
             mock_page_repo.create = AsyncMock()
 
             result = await document_service.upload_and_convert(
-                mock_pool,
-                project_id,
-                'empty.pdf',
-                b'%PDF',
-                str(tmp_path),
+                mock_pool, project_id, 'empty.pdf', b'%PDF', str(tmp_path)
             )
 
         assert result['id'] == doc_id
         assert result['filename'] == 'empty.pdf'
         assert result['total_pages'] == 0
         assert result['status'] == 'ready'
+
+
+class TestUploadAndConvertMineru:
+    @pytest.mark.asyncio
+    async def test_dispatches_celery_task(
+        self, mock_pool, project_id, tmp_path, mock_mineru_settings
+    ):
+        doc_id = uuid.uuid4()
+        doc_record = {'id': doc_id}
+        page_record = {'id': uuid.uuid4()}
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_mineru_settings),
+            patch.object(document_service, '_dispatch_mineru_extraction') as mock_dispatch,
+        ):
+            mock_doc_repo.create = AsyncMock(return_value=doc_record)
+            mock_doc_repo.update_status = AsyncMock()
+
+            mock_pix = MagicMock()
+            mock_pix.width = 800
+            mock_pix.height = 1000
+            mock_page = MagicMock()
+            mock_page.get_pixmap.return_value = mock_pix
+
+            mock_pdf = MagicMock()
+            mock_pdf.__len__ = lambda _: 1
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
+            mock_fitz.open.return_value = mock_pdf
+            mock_fitz.Matrix.return_value = MagicMock()
+
+            mock_page_repo.create = AsyncMock(return_value=page_record)
+
+            result = await document_service.upload_and_convert(
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
+            )
+
+        assert result['status'] == 'extracting'
+        mock_dispatch.assert_called_once()
+        mock_doc_repo.update_status.assert_called_once_with(
+            mock_pool, document_id=doc_id, status='extracting', total_pages=1
+        )
+
+    @pytest.mark.asyncio
+    async def test_does_not_call_pymupdf_extraction(
+        self, mock_pool, project_id, tmp_path, mock_mineru_settings
+    ):
+        doc_id = uuid.uuid4()
+        doc_record = {'id': doc_id}
+        page_record = {'id': uuid.uuid4()}
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_mineru_settings),
+            patch.object(document_service, '_dispatch_mineru_extraction'),
+            patch.object(document_service, 'extraction_service') as mock_ext,
+        ):
+            mock_doc_repo.create = AsyncMock(return_value=doc_record)
+            mock_doc_repo.update_status = AsyncMock()
+
+            mock_pix = MagicMock()
+            mock_pix.width = 800
+            mock_pix.height = 1000
+            mock_page = MagicMock()
+            mock_page.get_pixmap.return_value = mock_pix
+
+            mock_pdf = MagicMock()
+            mock_pdf.__len__ = lambda _: 1
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
+            mock_fitz.open.return_value = mock_pdf
+            mock_fitz.Matrix.return_value = MagicMock()
+
+            mock_page_repo.create = AsyncMock(return_value=page_record)
+
+            await document_service.upload_and_convert(
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
+            )
+
+        mock_ext.extract_page_elements.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_creates_pages_without_extracted_data(
+        self, mock_pool, project_id, tmp_path, mock_mineru_settings
+    ):
+        doc_id = uuid.uuid4()
+        doc_record = {'id': doc_id}
+        page_record = {'id': uuid.uuid4()}
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_mineru_settings),
+            patch.object(document_service, '_dispatch_mineru_extraction'),
+        ):
+            mock_doc_repo.create = AsyncMock(return_value=doc_record)
+            mock_doc_repo.update_status = AsyncMock()
+
+            mock_pix = MagicMock()
+            mock_pix.width = 800
+            mock_pix.height = 1000
+            mock_page = MagicMock()
+            mock_page.get_pixmap.return_value = mock_pix
+
+            mock_pdf = MagicMock()
+            mock_pdf.__len__ = lambda _: 1
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
+            mock_fitz.open.return_value = mock_pdf
+            mock_fitz.Matrix.return_value = MagicMock()
+
+            mock_page_repo.create = AsyncMock(return_value=page_record)
+
+            await document_service.upload_and_convert(
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
+            )
+
+        assert mock_page_repo.create.call_args.kwargs['auto_extracted_data'] is None
+
+    @pytest.mark.asyncio
+    async def test_renders_images_regardless_of_backend(
+        self, mock_pool, project_id, tmp_path, mock_mineru_settings
+    ):
+        doc_id = uuid.uuid4()
+        doc_record = {'id': doc_id}
+        page_record = {'id': uuid.uuid4()}
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
+            patch.object(document_service, 'get_settings', return_value=mock_mineru_settings),
+            patch.object(document_service, '_dispatch_mineru_extraction'),
+        ):
+            mock_doc_repo.create = AsyncMock(return_value=doc_record)
+            mock_doc_repo.update_status = AsyncMock()
+
+            mock_pix = MagicMock()
+            mock_pix.width = 800
+            mock_pix.height = 1000
+            mock_page = MagicMock()
+            mock_page.get_pixmap.return_value = mock_pix
+
+            mock_pdf = MagicMock()
+            mock_pdf.__len__ = lambda _: 1
+            mock_pdf.__getitem__ = lambda _, _i: mock_page
+            mock_fitz.open.return_value = mock_pdf
+            mock_fitz.Matrix.return_value = MagicMock()
+
+            mock_page_repo.create = AsyncMock(return_value=page_record)
+
+            await document_service.upload_and_convert(
+                mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
+            )
+
+        mock_pix.save.assert_called_once()
