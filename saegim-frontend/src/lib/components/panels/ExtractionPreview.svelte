@@ -5,16 +5,21 @@
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import { isImageBlock, isTextBlock } from '$lib/types/element-groups'
 
+  import type { DocumentStatus } from '$lib/api/types'
+
   interface Props {
     pageId: string
     autoExtractedData: AnnotationData | null
+    documentStatus?: DocumentStatus
     onAccepted: (data: AnnotationData) => void
   }
 
-  let { pageId, autoExtractedData, onAccepted }: Props = $props()
+  let { pageId, autoExtractedData, documentStatus, onAccepted }: Props = $props()
 
   let dismissed = $state(false)
   let loading = $state(false)
+
+  let isExtracting = $derived(documentStatus === 'extracting')
 
   let hasAutoData = $derived(
     autoExtractedData !== null &&
@@ -24,7 +29,7 @@
 
   let annotationEmpty = $derived(annotationStore.elements.length === 0)
 
-  let visible = $derived(hasAutoData && annotationEmpty && !dismissed)
+  let visible = $derived((hasAutoData && annotationEmpty && !dismissed) || isExtracting)
 
   let textCount = $derived(
     autoExtractedData?.layout_dets?.filter((el) => isTextBlock(el)) .length ?? 0,
@@ -54,7 +59,22 @@
   }
 </script>
 
-{#if visible}
+{#if isExtracting}
+  <div
+    class="mx-3 mt-3 p-3 rounded-lg border border-amber-200 bg-amber-50/80 shadow-sm"
+  >
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-amber-600 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+      <div>
+        <p class="text-sm font-medium text-amber-900">MinerU 추출 진행 중...</p>
+        <p class="text-xs text-amber-700 mt-0.5">구조 분석이 완료되면 자동으로 결과가 표시됩니다.</p>
+      </div>
+    </div>
+  </div>
+{:else if visible}
   <div
     class="mx-3 mt-3 p-3 rounded-lg border border-blue-200 bg-blue-50/80 shadow-sm"
   >

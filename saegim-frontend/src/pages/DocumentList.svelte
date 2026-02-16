@@ -9,6 +9,8 @@
   import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
 
+  const POLL_INTERVAL_MS = 5000
+
   let { params }: { params: { id: string } } = $props()
 
   let project = $state<ProjectResponse | null>(null)
@@ -18,8 +20,43 @@
   let error = $state<string | null>(null)
   let isUploading = $state(false)
   let expandedDoc = $state<string | null>(null)
+  let pollTimer = $state<ReturnType<typeof setInterval> | null>(null)
 
   let fileInput: HTMLInputElement
+
+  let hasPendingDocs = $derived(
+    documents.some((d) => d.status === 'processing' || d.status === 'extracting'),
+  )
+
+  function startPolling() {
+    stopPolling()
+    pollTimer = setInterval(async () => {
+      if (!params?.id) return
+      try {
+        const docs = await listDocuments(params.id)
+        documents = docs
+        if (!docs.some((d) => d.status === 'processing' || d.status === 'extracting')) {
+          stopPolling()
+        }
+      } catch {
+        // Polling failures are non-critical
+      }
+    }, POLL_INTERVAL_MS)
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer)
+      pollTimer = null
+    }
+  }
+
+  $effect(() => {
+    if (hasPendingDocs && !pollTimer) {
+      startPolling()
+    }
+    return () => stopPolling()
+  })
 
   async function loadData() {
     if (!params?.id) return
@@ -166,9 +203,15 @@
                       <span class="badge
                         {doc.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                          doc.status === 'processing' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                         doc.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                         doc.status === 'extracting' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                         doc.status === 'error' || doc.status === 'extraction_failed' ? 'bg-red-50 text-red-700 border border-red-200' :
                          'bg-gray-50 text-gray-600 border border-gray-200'}">
-                        {doc.status === 'ready' ? '준비됨' : doc.status === 'processing' ? '처리 중' : doc.status === 'error' ? '오류' : '업로드 중'}
+                        {doc.status === 'ready' ? '준비됨' :
+                         doc.status === 'processing' ? '처리 중' :
+                         doc.status === 'extracting' ? '추출 중' :
+                         doc.status === 'error' ? '오류' :
+                         doc.status === 'extraction_failed' ? '추출 실패' :
+                         '업로드 중'}
                       </span>
                     </div>
                   </div>
