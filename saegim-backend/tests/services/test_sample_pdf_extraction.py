@@ -2,12 +2,13 @@
 
 Uses real PDF files in saegim-backend/sample/ to verify:
 - PyMuPDF extraction produces valid OmniDocBench structure
-- MinerU extraction (marked @slow, requires GPU + model downloads)
+- MinerU extraction via HTTP API (marked @slow, requires saegim-mineru service)
 """
 
 from pathlib import Path
 
 import fitz
+import httpx
 import pytest
 
 from saegim.services.extraction_service import extract_page_elements
@@ -177,14 +178,35 @@ class TestPyMuPDFExtractionComparison:
             pdf.close()
 
 
+def _mineru_service_available() -> bool:
+    """Check if the saegim-mineru HTTP service is reachable."""
+    from saegim.api.settings import get_settings
+
+    settings = get_settings()
+    try:
+        with httpx.Client(timeout=httpx.Timeout(5.0)) as client:
+            resp = client.get(f'{settings.mineru_api_url}/api/v1/health')
+            return resp.status_code == 200
+    except httpx.RequestError:
+        return False
+
+
+skipif_no_mineru = pytest.mark.skipif(
+    not _mineru_service_available(),
+    reason='saegim-mineru HTTP service not available',
+)
+
+
 @pytest.mark.slow
 class TestMineruExtractionSamplePDFs:
-    """MinerU extraction on sample PDFs. Requires GPU + model downloads.
+    """MinerU extraction on sample PDFs via HTTP API.
 
+    Requires saegim-mineru service running (e.g. via docker compose).
     Run with: uv run pytest -m slow tests/services/test_sample_pdf_extraction.py
     """
 
     @skipif_no_samples
+    @skipif_no_mineru
     def test_english_paper_extraction(self, tmp_path):
         from saegim.services.mineru_extraction_service import extract_document
 
@@ -219,6 +241,7 @@ class TestMineruExtractionSamplePDFs:
         assert 'text_block' in categories or 'title' in categories
 
     @skipif_no_samples
+    @skipif_no_mineru
     def test_korean_document_extraction(self, tmp_path):
         from saegim.services.mineru_extraction_service import extract_document
 
@@ -244,6 +267,7 @@ class TestMineruExtractionSamplePDFs:
         assert len(first_page['layout_dets']) > 0
 
     @skipif_no_samples
+    @skipif_no_mineru
     def test_mineru_produces_more_categories_than_pymupdf(self, tmp_path):
         from saegim.services.mineru_extraction_service import extract_document
 
@@ -260,7 +284,7 @@ class TestMineruExtractionSamplePDFs:
         pymupdf_categories = {el['category_type'] for el in pymupdf_result['layout_dets']}
         pdf.close()
 
-        # MinerU extraction
+        # MinerU extraction via HTTP API
         mineru_result = extract_document(
             pdf_path=ENG_PDF,
             language='en',
