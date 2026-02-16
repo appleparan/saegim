@@ -1,6 +1,7 @@
 """Tests for document upload and PDF conversion service."""
 
 import uuid
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -502,3 +503,120 @@ class TestUploadAndConvertMineru:
             )
 
         mock_pix.save.assert_called_once()
+
+
+class TestDispatchMineruExtraction:
+    def test_dispatches_celery_task_with_correct_args(self, mock_mineru_settings):
+        doc_id = uuid.uuid4()
+        pdf_path = Path('/tmp/test.pdf')
+        page_info_list = [
+            {'page_id': str(uuid.uuid4()), 'page_idx': 0, 'width': 800, 'height': 1000},
+        ]
+
+        with patch(
+            'saegim.services.document_service.run_mineru_extraction',
+            create=True,
+        ):
+            from saegim.tasks.extraction_task import run_mineru_extraction
+
+            with patch.object(run_mineru_extraction, 'delay') as mock_delay:
+                with patch(
+                    'saegim.services.document_service.run_mineru_extraction',
+                    run_mineru_extraction,
+                    create=True,
+                ):
+                    document_service._dispatch_mineru_extraction(
+                        document_id=doc_id,
+                        pdf_path=pdf_path,
+                        page_info_list=page_info_list,
+                        settings=mock_mineru_settings,
+                    )
+
+        mock_delay.assert_called_once_with(
+            document_id=str(doc_id),
+            pdf_path=str(pdf_path),
+            page_info=page_info_list,
+            language='korean',
+            backend='pipeline',
+        )
+
+
+class TestDeleteWithFiles:
+    @pytest.mark.asyncio
+    async def test_returns_false_when_document_not_found(self, mock_pool):
+        doc_id = uuid.uuid4()
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=None)
+
+            result = await document_service.delete_with_files(mock_pool, doc_id)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_deletes_document_and_files(self, mock_pool, tmp_path):
+        doc_id = uuid.uuid4()
+
+        # Create actual files to verify deletion
+        pdf_file = tmp_path / 'test.pdf'
+        pdf_file.write_bytes(b'%PDF')
+        img_file = tmp_path / 'page1.png'
+        img_file.write_bytes(b'PNG')
+
+        doc_record = {'id': doc_id, 'pdf_path': str(pdf_file)}
+        page_records = [{'image_path': str(img_file)}]
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+            mock_doc_repo.delete = AsyncMock(return_value=True)
+            mock_page_repo.list_by_document = AsyncMock(return_value=page_records)
+
+            result = await document_service.delete_with_files(mock_pool, doc_id)
+
+        assert result is True
+        assert not pdf_file.exists()
+        assert not img_file.exists()
+
+    @pytest.mark.asyncio
+    async def test_does_not_delete_files_when_db_delete_fails(self, mock_pool, tmp_path):
+        doc_id = uuid.uuid4()
+
+        pdf_file = tmp_path / 'test.pdf'
+        pdf_file.write_bytes(b'%PDF')
+
+        doc_record = {'id': doc_id, 'pdf_path': str(pdf_file)}
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+            mock_doc_repo.delete = AsyncMock(return_value=False)
+            mock_page_repo.list_by_document = AsyncMock(return_value=[])
+
+            result = await document_service.delete_with_files(mock_pool, doc_id)
+
+        assert result is False
+        assert pdf_file.exists()
+
+    @pytest.mark.asyncio
+    async def test_handles_no_pdf_path(self, mock_pool):
+        doc_id = uuid.uuid4()
+        doc_record = {'id': doc_id, 'pdf_path': None}
+
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+            mock_doc_repo.delete = AsyncMock(return_value=True)
+            mock_page_repo.list_by_document = AsyncMock(return_value=[])
+
+            result = await document_service.delete_with_files(mock_pool, doc_id)
+
+        assert result is True
