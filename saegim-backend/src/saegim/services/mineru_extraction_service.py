@@ -1,15 +1,19 @@
 """MinerU-based PDF extraction service for structured layout detection.
 
-Wraps the MinerU Python API to extract text, images, tables, equations, and other
-layout elements from PDF documents. Converts MinerU's content_list output to
-OmniDocBench-compatible format for storage in pages.auto_extracted_data.
+Calls the saegim-mineru HTTP service to extract content_list, then converts
+the result to OmniDocBench-compatible format for storage in pages.auto_extracted_data.
+
+The actual MinerU code runs in a separate AGPL-licensed container; this module
+only contains the HTTP client and the OmniDocBench conversion logic (Apache 2.0).
 """
 
-import copy
-import json
 import logging
 from pathlib import Path
 from typing import Any
+
+import httpx
+
+from saegim.api.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +236,50 @@ def content_list_to_omnidocbench(
     return result
 
 
+def _call_mineru_api(
+    pdf_path: Path,
+    language: str,
+    backend: str,
+    output_dir: Path,
+) -> list[dict[str, Any]]:
+    """Call the saegim-mineru HTTP service to extract content_list.
+
+    Args:
+        pdf_path: Path to the PDF file (accessible via shared volume).
+        language: OCR language setting.
+        backend: MinerU parsing backend name.
+        output_dir: Directory for MinerU output files (shared volume).
+
+    Returns:
+        content_list entries from the MinerU service.
+
+    Raises:
+        RuntimeError: If the HTTP request fails.
+    """
+    settings = get_settings()
+    url = f'{settings.mineru_api_url}/api/v1/extract'
+
+    try:
+        with httpx.Client(timeout=httpx.Timeout(1800.0)) as client:
+            response = client.post(
+                url,
+                json={
+                    'pdf_path': str(pdf_path),
+                    'language': language,
+                    'backend': backend,
+                    'output_dir': str(output_dir),
+                },
+            )
+            response.raise_for_status()
+            return response.json()['content_list']
+    except httpx.HTTPStatusError as exc:
+        msg = f'MinerU API returned {exc.response.status_code}: {exc.response.text}'
+        raise RuntimeError(msg) from exc
+    except httpx.RequestError as exc:
+        msg = f'MinerU API request failed: {exc}'
+        raise RuntimeError(msg) from exc
+
+
 def extract_document(
     pdf_path: Path,
     language: str = 'korean',
@@ -241,7 +289,7 @@ def extract_document(
 ) -> dict[int, dict[str, Any]]:
     """Extract structured layout elements from a PDF using MinerU.
 
-    Runs MinerU's document analysis pipeline and converts the results to
+    Calls the saegim-mineru HTTP service and converts the results to
     per-page OmniDocBench format.
 
     Args:
@@ -266,7 +314,7 @@ def extract_document(
         page_dimensions = {}
 
     try:
-        content_list = _run_mineru(pdf_path, language, backend, output_dir)
+        content_list = _call_mineru_api(pdf_path, language, backend, output_dir)
     except Exception as exc:
         msg = f'MinerU extraction failed for {pdf_path}: {exc}'
         logger.exception(msg)
@@ -282,203 +330,3 @@ def extract_document(
         )
 
     return content_list_to_omnidocbench(content_list, page_dimensions)
-
-
-def _run_mineru(
-    pdf_path: Path,
-    language: str,
-    backend: str,
-    output_dir: Path,
-) -> list[dict[str, Any]]:
-    """Run MinerU extraction and return content_list.
-
-    Args:
-        pdf_path: Path to the PDF file.
-        language: OCR language setting.
-        backend: MinerU parsing backend name.
-        output_dir: Directory for output files.
-
-    Returns:
-        content_list entries from MinerU.
-    """
-    from mineru.cli.common import convert_pdf_bytes_to_bytes_by_pypdfium2, prepare_env, read_fn
-    from mineru.data.data_reader_writer import FileBasedDataWriter
-    from mineru.utils.enum_class import MakeMode
-
-    pdf_bytes = read_fn(str(pdf_path))
-    pdf_file_name = pdf_path.stem
-
-    if backend == 'pipeline':
-        return _run_pipeline_backend(
-            pdf_bytes, pdf_file_name, language, output_dir
-        )
-    elif backend.startswith('hybrid'):
-        return _run_hybrid_backend(
-            pdf_bytes, pdf_file_name, language, backend, output_dir
-        )
-    elif backend.startswith('vlm'):
-        return _run_vlm_backend(
-            pdf_bytes, pdf_file_name, backend, output_dir
-        )
-    else:
-        msg = f"Unsupported MinerU backend: '{backend}'"
-        raise ValueError(msg)
-
-
-def _run_pipeline_backend(
-    pdf_bytes: bytes,
-    pdf_file_name: str,
-    language: str,
-    output_dir: Path,
-) -> list[dict[str, Any]]:
-    """Run MinerU pipeline backend extraction.
-
-    Args:
-        pdf_bytes: Raw PDF file bytes.
-        pdf_file_name: PDF file name (without extension).
-        language: OCR language setting.
-        output_dir: Directory for output files.
-
-    Returns:
-        content_list entries from MinerU pipeline.
-    """
-    from mineru.backend.pipeline.model_json_to_middle_json import (
-        result_to_middle_json as pipeline_result_to_middle_json,
-    )
-    from mineru.backend.pipeline.pipeline_analyze import doc_analyze as pipeline_doc_analyze
-    from mineru.backend.pipeline.pipeline_middle_json_mkcontent import (
-        union_make as pipeline_union_make,
-    )
-    from mineru.cli.common import prepare_env
-    from mineru.data.data_reader_writer import FileBasedDataWriter
-    from mineru.utils.enum_class import MakeMode
-
-    infer_results, all_image_lists, all_pdf_docs, lang_list, ocr_enabled_list = (
-        pipeline_doc_analyze(
-            [pdf_bytes],
-            [language],
-            parse_method='auto',
-            formula_enable=True,
-            table_enable=True,
-        )
-    )
-
-    local_image_dir, _ = prepare_env(str(output_dir), pdf_file_name, 'auto')
-    image_writer = FileBasedDataWriter(local_image_dir)
-
-    model_list = copy.deepcopy(infer_results[0])
-    middle_json = pipeline_result_to_middle_json(
-        model_list,
-        all_image_lists[0],
-        all_pdf_docs[0],
-        image_writer,
-        lang_list[0],
-        ocr_enabled_list[0],
-        True,
-    )
-
-    image_dir = str(Path(local_image_dir).name)
-    content_list = pipeline_union_make(
-        middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir
-    )
-
-    return content_list
-
-
-def _run_hybrid_backend(
-    pdf_bytes: bytes,
-    pdf_file_name: str,
-    language: str,
-    backend: str,
-    output_dir: Path,
-) -> list[dict[str, Any]]:
-    """Run MinerU hybrid backend extraction.
-
-    Args:
-        pdf_bytes: Raw PDF file bytes.
-        pdf_file_name: PDF file name (without extension).
-        language: OCR language setting.
-        backend: Full backend name (e.g. 'hybrid-auto-engine').
-        output_dir: Directory for output files.
-
-    Returns:
-        content_list entries from MinerU hybrid backend.
-    """
-    from mineru.backend.hybrid.hybrid_analyze import doc_analyze as hybrid_doc_analyze
-    from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
-    from mineru.cli.common import prepare_env
-    from mineru.data.data_reader_writer import FileBasedDataWriter
-    from mineru.utils.engine_utils import get_vlm_engine
-    from mineru.utils.enum_class import MakeMode
-
-    engine = backend.removeprefix('hybrid-')
-    if engine == 'auto-engine':
-        engine = get_vlm_engine(inference_engine='auto', is_async=False)
-
-    parse_method = f'hybrid_auto'
-
-    local_image_dir, _ = prepare_env(str(output_dir), pdf_file_name, parse_method)
-    image_writer = FileBasedDataWriter(local_image_dir)
-
-    middle_json, _infer_result, _vlm_ocr_enable = hybrid_doc_analyze(
-        pdf_bytes,
-        image_writer=image_writer,
-        backend=engine,
-        parse_method=parse_method,
-        language=language,
-        inline_formula_enable=True,
-    )
-
-    image_dir = str(Path(local_image_dir).name)
-    content_list = vlm_union_make(
-        middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir
-    )
-
-    return content_list
-
-
-def _run_vlm_backend(
-    pdf_bytes: bytes,
-    pdf_file_name: str,
-    backend: str,
-    output_dir: Path,
-) -> list[dict[str, Any]]:
-    """Run MinerU VLM backend extraction.
-
-    Args:
-        pdf_bytes: Raw PDF file bytes.
-        pdf_file_name: PDF file name (without extension).
-        backend: Full backend name (e.g. 'vlm-auto-engine').
-        output_dir: Directory for output files.
-
-    Returns:
-        content_list entries from MinerU VLM backend.
-    """
-    from mineru.backend.vlm.vlm_analyze import doc_analyze as vlm_doc_analyze
-    from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
-    from mineru.cli.common import prepare_env
-    from mineru.data.data_reader_writer import FileBasedDataWriter
-    from mineru.utils.engine_utils import get_vlm_engine
-    from mineru.utils.enum_class import MakeMode
-
-    engine = backend.removeprefix('vlm-')
-    if engine == 'auto-engine':
-        engine = get_vlm_engine(inference_engine='auto', is_async=False)
-
-    parse_method = 'vlm'
-
-    local_image_dir, _ = prepare_env(str(output_dir), pdf_file_name, parse_method)
-    image_writer = FileBasedDataWriter(local_image_dir)
-
-    middle_json, _infer_result = vlm_doc_analyze(
-        pdf_bytes,
-        image_writer=image_writer,
-        backend=engine,
-    )
-
-    image_dir = str(Path(local_image_dir).name)
-    content_list = vlm_union_make(
-        middle_json['pdf_info'], MakeMode.CONTENT_LIST, image_dir
-    )
-
-    return content_list

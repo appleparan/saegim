@@ -47,6 +47,10 @@ class Settings(BaseSettings):
         default='mineru',
         description="PDF extraction backend: 'mineru' or 'pymupdf'",
     )
+    mineru_api_url: str = Field(
+        default='http://localhost:18000',
+        description='MinerU extraction service URL (saegim-mineru)',
+    )
     mineru_backend: str = Field(
         default='pipeline',
         description="MinerU parsing backend: 'pipeline', 'hybrid-auto-engine', 'vlm-auto-engine'",

@@ -312,9 +312,9 @@ class TestContentListToOmnidocbench:
 class TestExtractDocument:
     """Tests for the top-level extract_document function."""
 
-    @patch('saegim.services.mineru_extraction_service._run_mineru')
-    def test_calls_mineru_and_converts(self, mock_run):
-        mock_run.return_value = [
+    @patch('saegim.services.mineru_extraction_service._call_mineru_api')
+    def test_calls_mineru_api_and_converts(self, mock_api):
+        mock_api.return_value = [
             {'type': 'text', 'text': 'Hello', 'bbox': [0, 0, 500, 100], 'page_idx': 0},
         ]
         from pathlib import Path
@@ -326,13 +326,13 @@ class TestExtractDocument:
             page_dimensions={0: (2000, 3000)},
         )
 
-        mock_run.assert_called_once()
+        mock_api.assert_called_once()
         assert 0 in result
         assert len(result[0]['layout_dets']) == 1
 
-    @patch('saegim.services.mineru_extraction_service._run_mineru')
-    def test_raises_on_mineru_failure(self, mock_run):
-        mock_run.side_effect = Exception('MinerU crashed')
+    @patch('saegim.services.mineru_extraction_service._call_mineru_api')
+    def test_raises_on_mineru_api_failure(self, mock_api):
+        mock_api.side_effect = RuntimeError('MinerU API request failed: connection refused')
         from pathlib import Path
 
         from saegim.services.mineru_extraction_service import extract_document
