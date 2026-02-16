@@ -298,8 +298,6 @@ doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAI
 addopts = [
     "--strict-markers",
     "--tb=short",
-    "--doctest-modules",
-    "--doctest-continue-on-failure",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

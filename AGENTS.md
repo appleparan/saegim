@@ -237,9 +237,9 @@ PDF 등 한국어 문서 데이터셋을 업로드하면 OmniDocBench 포맷의 
 | **DB 드라이버** | asyncpg (raw SQL) | 비동기 PostgreSQL 드라이버. ORM 없이 raw SQL + Repository 패턴으로 JSONB 직접 제어 |
 | **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
 | **파일 저장** | 로컬 파일시스템 (→ 추후 MinIO/S3) | PDF 원본, 페이지 이미지 등 바이너리 파일 |
-| **자동 추출** | MinerU (pipeline backend) | 15+ 카테고리 레이아웃 검출 + OCR + 수식 LaTeX + 테이블 HTML (구현 완료) |
+| **자동 추출** | MinerU (AGPL, 독립 서비스) | 15+ 카테고리 레이아웃 검출. AGPL 라이선스 → `saegim-mineru` 별도 컨테이너로 HTTP API 통신 |
 | **PDF 추출 (폴백)** | PyMuPDF | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
-| **태스크 큐** | Celery + Redis (구현 완료) | MinerU 비동기 추출, GPU 워커 지원 |
+| **태스크 큐** | Celery + Redis | MinerU 비동기 추출, Celery worker → saegim-mineru HTTP 호출 |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
 
 #### 프론트엔드 ↔ 백엔드 연결 구조
@@ -330,13 +330,14 @@ ORM 없이 asyncpg raw SQL을 사용하며, Repository가 SQL 쿼리를 캡슐�
 
 설정 파일: [docker-compose.yml](docker-compose.yml)
 
-| 서비스 | 이미지/빌드 | 포트 |
-| ------ | ----------- | ---- |
-| postgres | postgres:18.2-trixie | 5432 |
-| backend | ./saegim-backend | 5000 |
-| frontend | ./saegim-frontend | 80 (→ 5173) |
-| redis | redis:7-alpine | 6379 |
-| celery-worker | ./saegim-backend | - (Celery 워커) |
+| 서비스 | 이미지/빌드 | 포트 | 비고 |
+| ------ | ----------- | ---- | ---- |
+| postgres | postgres:18.2-trixie | 5432 | |
+| backend | ./saegim-backend | 5000 | |
+| frontend | ./saegim-frontend | 80 (→ 5173) | |
+| redis | redis:7-alpine | 6379 | |
+| celery-worker | ./saegim-backend | - | Celery 워커, saegim-mineru HTTP 호출 |
+| saegim-mineru | ./saegim-mineru | 8000 | MinerU AGPL 독립 서비스 |
 
 `docker compose up` 한 줄이면 로컬/서버 동일 환경.
 E2E 테스트용 격리 환경: [e2e/docker-compose.e2e.yml](e2e/docker-compose.e2e.yml) (Section 3.8).
@@ -345,204 +346,50 @@ E2E 테스트용 격리 환경: [e2e/docker-compose.e2e.yml](e2e/docker-compose.
 
 ```text
 saegim/
-├── .env.example                  # 환경변수 템플릿
-├── .github/
-│   ├── ISSUE_TEMPLATE/           # 버그 리포트, 기능 요청 템플릿
-│   └── workflows/
-│       ├── ci.yml                # 린트/테스트/빌드 CI
-│       ├── claude.yml            # Claude Code 자동화
-│       └── publish-release.yml   # 릴리즈 발행
-├── .markdownlint-cli2.jsonc      # 마크다운 린트 설정 (line_length: 120)
-├── .markdownlint.json
+├── .github/workflows/            # CI (린트/테스트/빌드), Claude Code, 릴리즈
 ├── AGENTS.md                     # 플래닝 가이드 (이 문서)
-├── CHANGELOG.md                  # git-cliff 자동 생성
-├── README.md
-├── cliff.toml                    # git-cliff 설정
 ├── docker-compose.yml            # 개발/배포용 Docker Compose
 │
 ├── docs/                         # 루트 문서 (quickstart, 배포 가이드)
-│   ├── guide/quickstart.md
-│   └── dev/
-│       ├── docker.md
-│       └── kubernetes.md
-│
 ├── e2e/                          # E2E 테스트 (Playwright + Docker Compose)
-│   ├── docker-compose.e2e.yml    # E2E 전용 환경 (포트 2xxxx)
-│   ├── package.json              # bun + @playwright/test
-│   ├── playwright.config.ts
-│   ├── fixtures/                 # 테스트용 PDF 등 고정 데이터
-│   │   └── attention.pdf
-│   ├── helpers/                  # 테스트 유틸리티
-│   │   ├── api.ts                # 백엔드 API 호출 헬퍼
-│   │   ├── pdf.ts                # 테스트 PDF 생성
-│   │   └── timer.ts              # 대기/폴링 유틸
-│   └── tests/
-│       ├── health.spec.ts        # 헬스체크 (백엔드 + 프론트엔드)
-│       ├── workflow.spec.ts      # 프로젝트→문서→레이블링 전체 플로우
-│       ├── benchmark.spec.ts     # OmniDocBench Export 검증
-│       ├── hybrid-labeling.spec.ts # 3-layer 하이브리드 뷰어 테스트
-│       └── extraction.spec.ts    # PDF 텍스트/이미지 추출 + 수락 플로우
-│
 ├── k8s/                          # Kubernetes 매니페스트
-│   ├── kustomization.yaml
-│   ├── namespace.yaml
-│   ├── configmap.yaml
-│   ├── secret.yaml
-│   ├── postgres-pvc.yaml
-│   ├── postgres-statefulset.yaml
-│   ├── storage-pvc.yaml
-│   ├── migration-job.yaml
-│   ├── backend-deployment.yaml
-│   └── frontend-deployment.yaml
+├── scripts/                      # 릴리즈 등 유틸 스크립트
 │
-├── scripts/
-│   └── release.sh                # 릴리즈 스크립트
-│
-├── saegim-backend/               # FastAPI + asyncpg 백엔드
+├── saegim-backend/               # FastAPI + asyncpg 백엔드 (Apache 2.0)
 │   ├── Dockerfile
-│   ├── Makefile
 │   ├── pyproject.toml            # uv 패키지 관리
-│   ├── mkdocs.yml                # MkDocs 문서 설정
-│   ├── migrations/
-│   │   ├── 001_init.sql          # 초기 DB 스키마
-│   │   └── 002_extraction_status.sql  # extracting/extraction_failed 상태 추가
+│   ├── migrations/               # SQL 마이그레이션 (001_init, 002_extraction_status)
 │   ├── docs/                     # 백엔드 문서 (MkDocs)
-│   │   ├── index.md
-│   │   ├── guide/                # API 문서, 시작하기, 개요
-│   │   ├── design/               # 아키텍처, DB 설계
-│   │   └── dev/                  # 개발 가이드
 │   ├── src/saegim/
-│   │   ├── app.py                # FastAPI 앱 팩토리 + lifespan
-│   │   ├── cli.py                # CLI 엔트리포인트
-│   │   ├── core/
-│   │   │   └── database.py       # asyncpg 커넥션 풀
-│   │   ├── api/
-│   │   │   ├── settings.py       # Pydantic Settings (환경변수)
-│   │   │   └── routes/
-│   │   │       ├── health.py     # GET /api/v1/health
-│   │   │       ├── projects.py   # 프로젝트 CRUD
-│   │   │       ├── documents.py  # 문서 업로드/삭제
-│   │   │       ├── pages.py      # 페이지 레이블링 + accept-extraction
-│   │   │       ├── users.py      # 사용자 관리
-│   │   │       └── export.py     # OmniDocBench JSON 내보내기
-│   │   ├── repositories/         # DB 접근 (asyncpg raw SQL)
-│   │   │   ├── page_repo.py      # JSONB CRUD, accept_auto_extracted()
-│   │   │   ├── document_repo.py
-│   │   │   ├── project_repo.py
-│   │   │   └── user_repo.py
-│   │   ├── services/
-│   │   │   ├── document_service.py     # PDF 업로드/변환/추출 (pymupdf/mineru 분기)
-│   │   │   ├── extraction_service.py   # PyMuPDF 텍스트/이미지 추출 (CI 폴백)
-│   │   │   ├── mineru_extraction_service.py  # MinerU 추출 + OmniDocBench 변환
-│   │   │   ├── labeling_service.py     # 어노테이션 CRUD, accept_auto_extraction()
-│   │   │   └── export_service.py       # OmniDocBench JSON 내보내기
-│   │   ├── tasks/                # Celery 비동기 태스크
-│   │   │   ├── celery_app.py     # Celery 앱 설정 (Redis broker)
-│   │   │   └── extraction_task.py # MinerU 추출 Celery 태스크
+│   │   ├── api/                  # Settings, Routes (health, projects, documents, pages, export)
+│   │   ├── core/                 # asyncpg 커넥션 풀
+│   │   ├── repositories/         # DB 접근 (asyncpg raw SQL, JSONB CRUD)
+│   │   ├── services/             # 비즈니스 로직 (document, extraction, labeling, export)
+│   │   ├── tasks/                # Celery 비동기 태스크 (Redis broker)
 │   │   └── schemas/              # Pydantic 요청/응답 스키마
-│   │       ├── annotation.py     # AnnotationData, LayoutElement
-│   │       ├── page.py           # PageResponse, ElementCreate
-│   │       ├── document.py
-│   │       ├── project.py
-│   │       ├── export.py
-│   │       └── user.py
-│   └── tests/
-│       ├── conftest.py           # pytest 공통 fixture (asyncpg pool mock 등)
-│       ├── api/                  # API 라우트 테스트
-│       │   ├── test_health.py
-│       │   ├── test_projects.py
-│       │   ├── test_documents.py
-│       │   ├── test_pages.py
-│       │   ├── test_export.py
-│       │   ├── test_users.py
-│       │   ├── test_settings.py
-│       │   └── test_app.py
-│       ├── services/             # 서비스 유닛 테스트
-│       │   ├── test_document_service.py
-│       │   ├── test_extraction_service.py
-│       │   ├── test_mineru_extraction_service.py  # MinerU 변환 테스트 (38개)
-│       │   ├── test_export_service.py
-│       │   └── test_labeling_service.py
-│       └── tasks/                # Celery 태스크 테스트
-│           └── test_extraction_task.py
+│   └── tests/                    # pytest (api/, services/, tasks/)
+│
+├── saegim-mineru/                # MinerU PDF 추출 HTTP 서비스 (AGPL, 독립 컨테이너)
+│   ├── Dockerfile
+│   ├── pyproject.toml            # uv 패키지 관리 (mineru[pipeline] 의존)
+│   └── src/saegim_mineru/
+│       └── app.py                # FastAPI: POST /api/v1/extract → content_list JSON
 │
 ├── saegim-frontend/              # Svelte 5 (Runes) SPA
 │   ├── Dockerfile
 │   ├── package.json              # bun 패키지 관리
-│   ├── vite.config.ts
-│   ├── svelte.config.js
-│   ├── nginx.conf                # 프로덕션 nginx 설정
 │   ├── docs/                     # 프론트엔드 문서
-│   │   ├── guide/                # 컴포넌트 레퍼런스, 단축키
-│   │   ├── design/               # 아키텍처, 스토어 설계
-│   │   └── dev/                  # API 클라이언트 문서
 │   ├── src/
-│   │   ├── App.svelte            # 라우터 (hash-based SPA)
-│   │   ├── main.ts
-│   │   ├── app.css               # Tailwind CSS
 │   │   ├── lib/
-│   │   │   ├── api/              # FastAPI 호출 함수
-│   │   │   │   ├── client.ts     # fetch 래퍼 (BASE_URL 등)
-│   │   │   │   ├── pages.ts      # acceptExtraction() 포함
-│   │   │   │   ├── documents.ts
-│   │   │   │   ├── projects.ts
-│   │   │   │   ├── elements.ts
-│   │   │   │   ├── relations.ts
-│   │   │   │   └── types.ts      # API 응답 타입
-│   │   │   ├── components/
-│   │   │   │   ├── canvas/
-│   │   │   │   │   ├── HybridViewer.svelte   # 3-layer 통합 뷰어
-│   │   │   │   │   ├── ImageViewer.svelte    # Konva.js Stage + 줌/패닝
-│   │   │   │   │   ├── BboxLayer.svelte      # Konva bbox 렌더링/편집
-│   │   │   │   │   ├── BboxDrawTool.svelte   # 새 bbox 그리기
-│   │   │   │   │   └── TextOverlay.svelte    # DOM 텍스트 투명 오버레이
-│   │   │   │   ├── common/
-│   │   │   │   │   ├── Button.svelte
-│   │   │   │   │   ├── Select.svelte
-│   │   │   │   │   ├── Toggle.svelte
-│   │   │   │   │   └── LoadingSpinner.svelte
-│   │   │   │   ├── layout/
-│   │   │   │   │   ├── Header.svelte
-│   │   │   │   │   └── Sidebar.svelte
-│   │   │   │   └── panels/
-│   │   │   │       ├── ElementList.svelte
-│   │   │   │       ├── CategorySelect.svelte
-│   │   │   │       ├── AttributePanel.svelte
-│   │   │   │       ├── PageAttributePanel.svelte
-│   │   │   │       ├── TextEditor.svelte
-│   │   │   │       └── ExtractionPreview.svelte  # 자동 추출 수락 UI
-│   │   │   ├── stores/
-│   │   │   │   ├── annotation.svelte.ts  # $state 기반 어노테이션 상태
-│   │   │   │   ├── canvas.svelte.ts      # 캔버스 상태 (줌, 모드)
-│   │   │   │   └── ui.svelte.ts          # UI 상태 (사이드바, 알림)
-│   │   │   ├── types/
-│   │   │   │   ├── omnidocbench.ts       # OmniDocBench JSON 타입
-│   │   │   │   ├── categories.ts         # 블록 카테고리 상수
-│   │   │   │   ├── element-groups.ts     # isTextBlock(), isImageBlock()
-│   │   │   │   └── canvas.ts
-│   │   │   └── utils/
-│   │   │       ├── bbox.ts               # bbox 좌표 변환
-│   │   │       ├── color.ts              # 카테고리별 색상
-│   │   │       ├── interaction.ts        # 마우스/키보드 유틸
-│   │   │       ├── text-layout.ts        # 텍스트 레이아웃 계산
-│   │   │       └── validation.ts
-│   │   └── pages/
-│   │       ├── ProjectList.svelte        # 프로젝트 목록
-│   │       ├── DocumentList.svelte       # 문서 목록 + PDF 업로드
-│   │       └── LabelingPage.svelte       # 3-panel 레이블링 메인 화면
-│   └── tests/
-│       ├── setup.ts                      # Vitest 설정
-│       └── lib/
-│           ├── components/canvas/
-│           │   └── TextOverlay.test.ts
-│           ├── types/
-│           │   └── element-groups.test.ts
-│           └── utils/
-│               ├── bbox.test.ts
-│               ├── interaction.test.ts
-│               └── text-layout.test.ts
+│   │   │   ├── api/              # FastAPI 호출 함수 + 타입
+│   │   │   ├── components/       # canvas/ (HybridViewer, BboxLayer 등), panels/, common/, layout/
+│   │   │   ├── stores/           # $state 기반 어노테이션/캔버스/UI 상태
+│   │   │   ├── types/            # OmniDocBench JSON 타입, 카테고리 상수
+│   │   │   └── utils/            # bbox, color, interaction, text-layout
+│   │   └── pages/                # ProjectList, DocumentList, LabelingPage
+│   └── tests/                    # Vitest 단위 테스트
 │
-└── storage/                      # 파일시스템 저장소 (Docker volume 마운트)
+└── storage/                      # 파일시스템 저장소 (Docker volume, 공유)
     ├── pdfs/                     # 원본 PDF
     └── images/                   # 페이지별 렌더링 이미지
 ```
@@ -729,13 +576,17 @@ Step 7: 완료 & 제출
 
 #### 5.0.1 MinerU 백엔드 (기본값, `EXTRACTION_BACKEND=mineru`)
 
+**AGPL 라이선스 분리**: MinerU는 AGPL 라이선스이므로 saegim-backend (Apache 2.0)에서 직접 import하지 않고,
+별도 Docker 컨테이너(`saegim-mineru`)로 분리하여 HTTP API로 통신한다.
+
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
   → Celery 태스크 디스패치 (비동기)
-     → MinerU pipeline 백엔드 실행
-     → content_list.json 생성
-     → content_list → OmniDocBench 변환
+     → HTTP POST → saegim-mineru:8000/api/v1/extract (공유 볼륨으로 PDF 접근)
+     → saegim-mineru 컨테이너에서 MinerU pipeline 실행
+     → content_list JSON 응답
+     → content_list → OmniDocBench 변환 (saegim-backend 자체 코드)
         ├── 15+ 카테고리 매핑 (title, text_block, figure, table, equation_isolated, ...)
         ├── bbox 0-1000 정규화 → 픽셀 좌표 변환
         ├── 수식 → latex 필드, 테이블 → html 필드
@@ -762,7 +613,8 @@ PDF 업로드
 
 구현 파일:
 
-- `mineru_extraction_service.py`: MinerU 래핑 + OmniDocBench 변환
+- `saegim-mineru/src/saegim_mineru/app.py`: MinerU AGPL HTTP 서비스 (FastAPI)
+- `mineru_extraction_service.py`: HTTP 클라이언트 + OmniDocBench 변환 (Apache 2.0)
 - `extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
 - `document_service.py`: 업로드 시 백엔드 분기 + Celery 디스패치
 - `tasks/celery_app.py`: Celery 앱 설정 (Redis broker)
@@ -775,7 +627,7 @@ PDF 업로드
 
 | 도구 | 특징 | 장점 | 단점 | 상태 |
 | ------ | ------ | ------ | ------ | ------ |
-| **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 | OmniDocBench 포맷과 직접 호환, 15+ 카테고리 | 한국어 최적화 필요 | **구현 완료** |
+| **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 (AGPL) | OmniDocBench 포맷과 직접 호환, 15+ 카테고리 | AGPL 라이선스 → 독립 서비스 분리 필요 | **구현 완료** (saegim-mineru 독립 서비스) |
 | **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 | 미구현 |
 | **DocLayout-YOLO** | 경량 레이아웃 검출 | 빠른 추론 속도 | 텍스트 인식 별도 필요 | 미구현 |
 | **Marker** (VikParuchuri) | PDF → Markdown 변환 | 간단한 파이프라인 | Attribute 정보 없음 | 미구현 |
