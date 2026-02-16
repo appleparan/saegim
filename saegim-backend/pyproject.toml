@@ -8,13 +8,16 @@ authors = [
 readme = "README.md"
 dependencies = [
     "asyncpg~=0.31.0",
+    "celery[redis]~=5.6.2",
     "colorlog~=6.10.1",
     "datasets~=4.4.2",
     "fastapi[standard]~=0.128.0",
     "hf-xet~=1.2.0",
     "jsonargparse[all]~=4.45.0",
+    "httpx~=0.28",
     "numpy~=2.3.5",
     "pandas[parquet,performance]~=2.3.3",
+    "psycopg[binary]~=3.3.2",
     "pydantic~=2.12.5",
     "pydantic-settings~=2.12.0",
     "pydantic-extra-types~=2.11.0",
@@ -34,8 +37,6 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
-    "Environment :: GPU :: NVIDIA CUDA :: 12",
-    "Environment :: GPU :: NVIDIA CUDA :: 13",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
@@ -49,25 +50,6 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/appleparan/saegim"
-
-[project.optional-dependencies]
-cu130 = [
-  "torch==2.10.0",
-  "torchvision==0.25.0",
-]
-cu128 = [
-  "torch==2.10.0",
-  "torchvision==0.25.0",
-]
-cu126 = [
-  "torch==2.10.0",
-  "torchvision==0.25.0",
-]
-cpu = [
-  "torch==2.10.0",
-  "torchvision==0.25.0",
-]
-
 
 [dependency-groups]
 dev = [
@@ -118,86 +100,6 @@ packages = ["src/saegim"]
 package = true
 native-tls = false
 managed = true
-# default-groups = ["dev", "docs"]
-conflicts = [
-  [
-    { extra = "cpu" },
-    { extra = "cu130" },
-    { extra = "cu128" },
-    { extra = "cu126" },
-#    { extra = "rocm71" },
-  ],
-]
-
-
-[tool.uv.sources]
-torch = [
-  # macOS: CPU only (no CUDA support)
-  { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
-
-  # Linux: cu128/default uses PyPI default, no source needed
-  { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu126", extra = "cu126", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu130", extra = "cu130", marker = "sys_platform == 'linux'" },
-
-  # Windows: All CUDA versions require explicit index URL
-  { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cu126", extra = "cu126", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cu130", extra = "cu130", marker = "sys_platform == 'win32'" },
-
-  # Other platforms: fallback to CPU
-  { index = "pytorch-cpu", marker = "sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'" },
-]
-torchvision = [
-  # macOS: CPU only (no CUDA support)
-  { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
-
-  # Linux: cu128/default uses PyPI default, no source needed
-  { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu126", extra = "cu126", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform == 'linux'" },
-  { index = "pytorch-cu130", extra = "cu130", marker = "sys_platform == 'linux'" },
-
-  # Windows: All CUDA versions require explicit index URL
-  { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cu126", extra = "cu126", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform == 'win32'" },
-  { index = "pytorch-cu130", extra = "cu130", marker = "sys_platform == 'win32'" },
-
-  # Other platforms: fallback to CPU
-  { index = "pytorch-cpu", marker = "sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'" },
-]
-
-
-[tool.uv.pip]
-index-url = "https://pypi.org/simple"
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
-
-# [[tool.uv.index]]
-# name = "pytorch-rocm71"
-# url = "https://download.pytorch.org/whl/rocm7.1"
-# explicit = true
 
 
 [tool.ruff]
@@ -344,11 +246,13 @@ max-complexity = 18
 ]
 "**/tests/**.py" = [
     "ANN",
+    "ARG002",
     "D100",
     "D102",
     "D103",
     "D104",
     "S101",
+    "S108",
 ]
 "configs/**.py" = [
     "F401",
@@ -396,8 +300,6 @@ doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAI
 addopts = [
     "--strict-markers",
     "--tb=short",
-    "--doctest-modules",
-    "--doctest-continue-on-failure",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

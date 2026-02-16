@@ -20,7 +20,13 @@ export interface CreateProjectRequest {
 
 // --- Documents ---
 
-export type DocumentStatus = 'uploading' | 'processing' | 'ready' | 'error'
+export type DocumentStatus =
+  | 'uploading'
+  | 'processing'
+  | 'extracting'
+  | 'ready'
+  | 'error'
+  | 'extraction_failed'
 
 export interface DocumentResponse {
   readonly id: string

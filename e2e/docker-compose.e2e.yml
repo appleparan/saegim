@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: labeling_e2e
     volumes:
       - e2e_postgres_data:/var/lib/postgresql
-      - ../saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ../saegim-backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "25432:5432"
     healthcheck:
@@ -31,6 +31,7 @@ services:
       STORAGE_PATH: /workspace/storage
       CORS_ORIGINS: '["http://localhost:23000"]'
       LOG_LEVEL: INFO
+      EXTRACTION_BACKEND: pymupdf
     volumes:
       - e2e_storage:/workspace/storage
     ports:
