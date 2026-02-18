@@ -8,8 +8,11 @@ CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT DEFAULT '',
+    ocr_config JSONB DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+COMMENT ON COLUMN projects.ocr_config IS 'Per-project OCR pipeline configuration (layout_provider, ocr_provider, connection settings)';
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (

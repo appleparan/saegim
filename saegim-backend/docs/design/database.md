@@ -325,8 +325,7 @@ SQL 파일 기반으로 수동 관리합니다:
 
 ```text
 migrations/
-├── 001_init.sql        # 초기 스키마
-└── 002_ocr_config.sql  # projects.ocr_config JSONB 컬럼 추가
+└── 001_init.sql  # 전체 스키마 (projects, users, documents, pages, task_history)
 ```
 
 실행 방법:
