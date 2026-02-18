@@ -51,7 +51,7 @@ class TestRunOcrExtraction:
             },
         ]
         ocr_config = {
-            'provider': 'gemini',
+            'ocr_provider': 'gemini',
             'gemini': {'api_key': 'test', 'model': 'gemini-2.0-flash'},
         }
 
@@ -89,7 +89,7 @@ class TestRunOcrExtraction:
             },
         ]
         ocr_config = {
-            'provider': 'vllm',
+            'ocr_provider': 'olmocr',
             'vllm': {'host': 'localhost', 'port': 8000, 'model': 'test'},
         }
 
@@ -131,7 +131,7 @@ class TestRunOcrExtraction:
             for i in range(3)
         ]
         ocr_config = {
-            'provider': 'gemini',
+            'ocr_provider': 'gemini',
             'gemini': {'api_key': 'key', 'model': 'gemini-2.0-flash'},
         }
 

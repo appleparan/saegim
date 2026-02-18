@@ -110,9 +110,9 @@ async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
     config = await project_repo.get_ocr_config(pool, project_id)
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
-    if not config:
-        # No OCR config set yet — return default (pymupdf)
-        return OcrConfigResponse(provider='pymupdf')
+    if not config or 'layout_provider' not in config:
+        # No config or legacy format — return default (pymupdf)
+        return OcrConfigResponse(layout_provider='pymupdf')
     return OcrConfigResponse(**config)
 
 
@@ -133,17 +133,7 @@ async def update_ocr_config(
     Raises:
         HTTPException: If project not found or validation fails.
     """
-    # Validate provider-specific config is provided
-    if body.provider == 'gemini' and body.gemini is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail='gemini config is required when provider is gemini',
-        )
-    if body.provider == 'vllm' and body.vllm is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail='vllm config is required when provider is vllm',
-        )
+    _validate_ocr_config(body)
 
     pool = get_pool()
     project = await project_repo.get_by_id(pool, project_id)
@@ -158,6 +148,38 @@ async def update_ocr_config(
             detail='Failed to update OCR config',
         )
     return OcrConfigResponse(**config_dict)
+
+
+def _validate_ocr_config(body: OcrConfigUpdate) -> None:
+    """Validate 2-stage OCR configuration consistency.
+
+    Args:
+        body: OCR config to validate.
+
+    Raises:
+        HTTPException: If validation fails.
+    """
+    if body.layout_provider == 'ppstructure':
+        if body.ppstructure is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail='ppstructure config is required when layout_provider is ppstructure',
+            )
+        if body.ocr_provider is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail='ocr_provider is required when layout_provider is ppstructure',
+            )
+        if body.ocr_provider == 'gemini' and body.gemini is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail='gemini config is required when ocr_provider is gemini',
+            )
+        if body.ocr_provider == 'olmocr' and body.vllm is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail='vllm config is required when ocr_provider is olmocr',
+            )
 
 
 @router.post(

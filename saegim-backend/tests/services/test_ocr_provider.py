@@ -72,11 +72,11 @@ class TestBuildOmnidocbenchPage:
 
 
 class TestGetOcrProvider:
-    """Test OCR provider factory."""
+    """Test OCR provider factory (uses ocr_provider key)."""
 
     def test_get_gemini_provider(self):
         config = {
-            'provider': 'gemini',
+            'ocr_provider': 'gemini',
             'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
         }
         provider = get_ocr_provider(config)
@@ -84,9 +84,9 @@ class TestGetOcrProvider:
 
         assert isinstance(provider, GeminiOcrProvider)
 
-    def test_get_vllm_provider(self):
+    def test_get_olmocr_provider(self):
         config = {
-            'provider': 'vllm',
+            'ocr_provider': 'olmocr',
             'vllm': {'host': 'localhost', 'port': 8080, 'model': 'test-model'},
         }
         provider = get_ocr_provider(config)
@@ -96,8 +96,4 @@ class TestGetOcrProvider:
 
     def test_get_unknown_provider(self):
         with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'provider': 'unknown'})
-
-    def test_pymupdf_not_handled_by_factory(self):
-        with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'provider': 'pymupdf'})
+            get_ocr_provider({'ocr_provider': 'unknown'})

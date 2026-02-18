@@ -114,10 +114,10 @@ def build_omnidocbench_page(
 
 
 def get_ocr_provider(ocr_config: dict[str, Any]) -> OcrProvider:
-    """Get an OCR provider instance based on configuration.
+    """Get an OCR provider instance based on 2-stage configuration.
 
     Args:
-        ocr_config: OCR configuration dict with 'provider' key.
+        ocr_config: OCR configuration dict with 'ocr_provider' key.
 
     Returns:
         OcrProvider instance for the specified provider.
@@ -125,7 +125,7 @@ def get_ocr_provider(ocr_config: dict[str, Any]) -> OcrProvider:
     Raises:
         ValueError: If provider is unknown.
     """
-    provider = ocr_config.get('provider', '')
+    provider = ocr_config.get('ocr_provider', '')
 
     if provider == 'gemini':
         from saegim.services.gemini_ocr_service import GeminiOcrProvider
@@ -136,15 +136,15 @@ def get_ocr_provider(ocr_config: dict[str, Any]) -> OcrProvider:
             model=gemini_config.get('model', 'gemini-2.0-flash'),
         )
 
-    if provider == 'vllm':
+    if provider == 'olmocr':
         from saegim.services.vllm_ocr_service import VllmOcrProvider
 
         vllm_config = ocr_config.get('vllm', {})
         return VllmOcrProvider(
             host=vllm_config.get('host', 'localhost'),
             port=vllm_config.get('port', 8000),
-            model=vllm_config.get('model', 'Qwen/Qwen2.5-VL-72B-Instruct'),
+            model=vllm_config.get('model', 'allenai/olmOCR-2-7B-1025'),
         )
 
-    msg = f"Unknown OCR provider: '{provider}'. Use 'gemini' or 'vllm'."
+    msg = f"Unknown OCR provider: '{provider}'. Use 'gemini' or 'olmocr'."
     raise ValueError(msg)

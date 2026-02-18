@@ -29,7 +29,7 @@ def document_id():
 
 @pytest.fixture
 def mock_pymupdf_config():
-    return {'provider': 'pymupdf'}
+    return {'layout_provider': 'pymupdf'}
 
 
 @pytest.fixture
@@ -392,7 +392,12 @@ class TestUploadAndConvertOcr:
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value={'provider': 'gemini', 'gemini': {'api_key': 'k', 'model': 'm'}},
+                return_value={
+                    'layout_provider': 'ppstructure',
+                    'ocr_provider': 'gemini',
+                    'ppstructure': {'host': 'localhost', 'port': 18811},
+                    'gemini': {'api_key': 'k', 'model': 'm'},
+                },
             ),
             patch.object(document_service, '_dispatch_ocr_extraction') as mock_dispatch,
         ):
@@ -441,7 +446,9 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'provider': 'vllm',
+                    'layout_provider': 'ppstructure',
+                    'ocr_provider': 'olmocr',
+                    'ppstructure': {'host': 'localhost', 'port': 18811},
                     'vllm': {'host': 'h', 'port': 8000, 'model': 'm'},
                 },
             ),
@@ -488,7 +495,12 @@ class TestUploadAndConvertOcr:
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value={'provider': 'gemini', 'gemini': {'api_key': 'k', 'model': 'm'}},
+                return_value={
+                    'layout_provider': 'ppstructure',
+                    'ocr_provider': 'gemini',
+                    'ppstructure': {'host': 'localhost', 'port': 18811},
+                    'gemini': {'api_key': 'k', 'model': 'm'},
+                },
             ),
             patch.object(document_service, '_dispatch_ocr_extraction'),
         ):

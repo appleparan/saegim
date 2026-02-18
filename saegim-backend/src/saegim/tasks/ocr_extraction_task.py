@@ -98,10 +98,10 @@ def run_ocr_extraction(
             as extraction_failed.
     """
     dsn = _get_dsn()
-    provider_name = ocr_config.get('provider', 'unknown')
+    provider_name = ocr_config.get('ocr_provider', 'unknown')
 
     logger.info(
-        'Starting OCR extraction for document %s (%d pages, provider=%s)',
+        'Starting OCR extraction for document %s (%d pages, ocr=%s)',
         document_id,
         len(page_info),
         provider_name,
