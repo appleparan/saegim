@@ -3,12 +3,13 @@
 import logging
 import uuid
 from pathlib import Path
+from typing import Any
 
 import asyncpg
 import fitz
 
 from saegim.api.settings import Settings, get_settings
-from saegim.repositories import document_repo, page_repo
+from saegim.repositories import document_repo, page_repo, project_repo
 from saegim.services import extraction_service
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,15 @@ async def upload_and_convert(
 ) -> dict:
     """Upload a PDF and convert each page to an image.
 
-    Renders page images at 2x scale. Extraction behavior depends on
-    EXTRACTION_BACKEND setting:
+    Renders page images at 2x scale. Extraction backend is determined
+    by the project's ocr_config (if set), falling back to the
+    EXTRACTION_BACKEND environment variable.
+
+    Supported providers:
     - 'pymupdf': Synchronous extraction via PyMuPDF (fallback for CI)
     - 'mineru': Dispatches async Celery task for MinerU extraction
+    - 'gemini': Dispatches async Celery task for Gemini API OCR
+    - 'vllm': Dispatches async Celery task for local vLLM OCR
 
     Args:
         pool: Database connection pool.
@@ -44,6 +50,10 @@ async def upload_and_convert(
     images_dir = storage / 'images'
     pdfs_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
+
+    # Resolve extraction provider from project config or env
+    ocr_config = await _resolve_ocr_config(pool, project_id, settings)
+    provider = ocr_config.get('provider', 'mineru')
 
     doc_id = uuid.uuid4()
     safe_name = f'{doc_id}_{filename}'
@@ -63,7 +73,7 @@ async def upload_and_convert(
         pdf_doc = fitz.open(str(pdf_path))
         total_pages = len(pdf_doc)
 
-        use_pymupdf = settings.extraction_backend == 'pymupdf'
+        use_pymupdf = provider == 'pymupdf'
         page_info_list: list[dict] = []
 
         for page_no in range(total_pages):
@@ -78,7 +88,9 @@ async def upload_and_convert(
             # PyMuPDF fallback: synchronous extraction
             extracted = None
             if use_pymupdf:
-                extracted = extraction_service.extract_page_elements(page, scale=2.0)
+                extracted = extraction_service.extract_page_elements(
+                    page, scale=2.0
+                )
 
             page_record = await page_repo.create(
                 pool,
@@ -90,7 +102,7 @@ async def upload_and_convert(
                 auto_extracted_data=extracted,
             )
 
-            # Collect page info for MinerU async extraction
+            # Collect page info for async extraction
             if not use_pymupdf:
                 page_info_list.append(
                     {
@@ -98,12 +110,13 @@ async def upload_and_convert(
                         'page_idx': page_no,
                         'width': pix.width,
                         'height': pix.height,
+                        'image_path': str(image_path),
                     }
                 )
 
         pdf_doc.close()
 
-        # Dispatch based on extraction backend
+        # Dispatch based on extraction provider
         if use_pymupdf:
             await document_repo.update_status(
                 pool,
@@ -117,31 +130,64 @@ async def upload_and_convert(
                 'total_pages': total_pages,
                 'status': 'ready',
             }
-        else:
-            # MinerU async extraction via Celery
-            await document_repo.update_status(
-                pool,
-                document_id=document_id,
-                status='extracting',
-                total_pages=total_pages,
-            )
+
+        # Async extraction via Celery
+        await document_repo.update_status(
+            pool,
+            document_id=document_id,
+            status='extracting',
+            total_pages=total_pages,
+        )
+
+        if provider == 'mineru':
             _dispatch_mineru_extraction(
                 document_id=document_id,
                 pdf_path=pdf_path,
                 page_info_list=page_info_list,
                 settings=settings,
             )
-            return {
-                'id': document_id,
-                'filename': filename,
-                'total_pages': total_pages,
-                'status': 'extracting',
-            }
+        elif provider in ('gemini', 'vllm'):
+            _dispatch_ocr_extraction(
+                document_id=document_id,
+                page_info_list=page_info_list,
+                ocr_config=ocr_config,
+            )
+
+        return {
+            'id': document_id,
+            'filename': filename,
+            'total_pages': total_pages,
+            'status': 'extracting',
+        }
 
     except Exception:
         logger.exception('Failed to process PDF: %s', filename)
-        await document_repo.update_status(pool, document_id=document_id, status='error')
+        await document_repo.update_status(
+            pool, document_id=document_id, status='error'
+        )
         raise
+
+
+async def _resolve_ocr_config(
+    pool: asyncpg.Pool,
+    project_id: uuid.UUID,
+    settings: Settings,
+) -> dict[str, Any]:
+    """Resolve OCR configuration from project settings or env.
+
+    Args:
+        pool: Database connection pool.
+        project_id: Project UUID.
+        settings: Application settings (env fallback).
+
+    Returns:
+        OCR config dict with at least a 'provider' key.
+    """
+    config = await project_repo.get_ocr_config(pool, project_id)
+    if config and config.get('provider'):
+        return config
+    # Fallback to environment variable
+    return {'provider': settings.extraction_backend}
 
 
 def _dispatch_mineru_extraction(
@@ -171,6 +217,34 @@ def _dispatch_mineru_extraction(
         'Dispatched MinerU extraction task for document %s (%d pages)',
         document_id,
         len(page_info_list),
+    )
+
+
+def _dispatch_ocr_extraction(
+    document_id: uuid.UUID,
+    page_info_list: list[dict],
+    ocr_config: dict[str, Any],
+) -> None:
+    """Dispatch VLM-based OCR extraction as a Celery task.
+
+    Args:
+        document_id: Document UUID.
+        page_info_list: List of page info dicts with image_path.
+        ocr_config: OCR provider configuration dict.
+    """
+    from saegim.tasks.ocr_extraction_task import run_ocr_extraction
+
+    run_ocr_extraction.delay(
+        document_id=str(document_id),
+        page_info=page_info_list,
+        ocr_config=ocr_config,
+    )
+    logger.info(
+        'Dispatched OCR extraction task for document %s '
+        '(%d pages, provider=%s)',
+        document_id,
+        len(page_info_list),
+        ocr_config.get('provider'),
     )
 
 

@@ -1,0 +1,152 @@
+"""Tests for OCR extraction Celery task."""
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from saegim.tasks.ocr_extraction_task import run_ocr_extraction
+
+
+class TestRunOcrExtraction:
+    """Test run_ocr_extraction Celery task."""
+
+    @patch('saegim.tasks.ocr_extraction_task._update_document_status')
+    @patch('saegim.tasks.ocr_extraction_task._update_page_extraction')
+    @patch('saegim.tasks.ocr_extraction_task.get_ocr_provider')
+    @patch(
+        'saegim.tasks.ocr_extraction_task._get_dsn',
+        return_value='postgresql://test',
+    )
+    def test_successful_extraction(
+        self,
+        mock_dsn,
+        mock_get_provider,
+        mock_update_page,
+        mock_update_doc,
+    ):
+        mock_provider = MagicMock()
+        mock_provider.extract_page.return_value = {
+            'layout_dets': [
+                {
+                    'category_type': 'title',
+                    'poly': [10, 20, 400, 20, 400, 60, 10, 60],
+                    'text': 'Title',
+                    'anno_id': 0,
+                    'order': 0,
+                    'ignore': False,
+                },
+            ],
+            'page_attribute': {},
+            'extra': {'relation': []},
+        }
+        mock_get_provider.return_value = mock_provider
+
+        page_info = [
+            {
+                'page_id': 'page-1',
+                'page_idx': 0,
+                'width': 800,
+                'height': 1200,
+                'image_path': '/storage/images/test_p1.png',
+            },
+        ]
+        ocr_config = {
+            'provider': 'gemini',
+            'gemini': {'api_key': 'test', 'model': 'gemini-2.0-flash'},
+        }
+
+        result = run_ocr_extraction.apply(
+            args=['doc-123', page_info, ocr_config]
+        ).get()
+
+        assert result['document_id'] == 'doc-123'
+        assert result['pages_processed'] == 1
+        assert result['status'] == 'ready'
+        mock_update_page.assert_called_once()
+        mock_update_doc.assert_called_once_with(
+            'postgresql://test', 'doc-123', 'ready'
+        )
+
+    @patch('saegim.tasks.ocr_extraction_task._update_document_status')
+    @patch('saegim.tasks.ocr_extraction_task.get_ocr_provider')
+    @patch(
+        'saegim.tasks.ocr_extraction_task._get_dsn',
+        return_value='postgresql://test',
+    )
+    def test_marks_extraction_failed_after_max_retries(
+        self,
+        mock_dsn,
+        mock_get_provider,
+        mock_update_doc,
+    ):
+        mock_provider = MagicMock()
+        mock_provider.extract_page.side_effect = RuntimeError('API failed')
+        mock_get_provider.return_value = mock_provider
+
+        page_info = [
+            {
+                'page_id': 'page-1',
+                'page_idx': 0,
+                'width': 800,
+                'height': 1200,
+                'image_path': '/storage/images/test_p1.png',
+            },
+        ]
+        ocr_config = {
+            'provider': 'vllm',
+            'vllm': {'host': 'localhost', 'port': 8000, 'model': 'test'},
+        }
+
+        with pytest.raises(RuntimeError, match='API failed'):
+            run_ocr_extraction.apply(
+                args=['doc-fail', page_info, ocr_config]
+            ).get()
+
+        mock_update_doc.assert_called_with(
+            'postgresql://test', 'doc-fail', 'extraction_failed'
+        )
+
+    @patch('saegim.tasks.ocr_extraction_task._update_document_status')
+    @patch('saegim.tasks.ocr_extraction_task._update_page_extraction')
+    @patch('saegim.tasks.ocr_extraction_task.get_ocr_provider')
+    @patch(
+        'saegim.tasks.ocr_extraction_task._get_dsn',
+        return_value='postgresql://test',
+    )
+    def test_multiple_pages_extraction(
+        self,
+        mock_dsn,
+        mock_get_provider,
+        mock_update_page,
+        mock_update_doc,
+    ):
+        mock_provider = MagicMock()
+        mock_provider.extract_page.return_value = {
+            'layout_dets': [],
+            'page_attribute': {},
+            'extra': {'relation': []},
+        }
+        mock_get_provider.return_value = mock_provider
+
+        page_info = [
+            {
+                'page_id': f'page-{i}',
+                'page_idx': i,
+                'width': 800,
+                'height': 1200,
+                'image_path': f'/storage/images/test_p{i + 1}.png',
+            }
+            for i in range(3)
+        ]
+        ocr_config = {
+            'provider': 'gemini',
+            'gemini': {'api_key': 'key', 'model': 'gemini-2.0-flash'},
+        }
+
+        result = run_ocr_extraction.apply(
+            args=['doc-multi', page_info, ocr_config]
+        ).get()
+
+        assert result['pages_processed'] == 3
+        assert mock_update_page.call_count == 3
+        assert mock_provider.extract_page.call_count == 3
