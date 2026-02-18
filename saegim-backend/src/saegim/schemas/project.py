@@ -60,3 +60,10 @@ class OcrConfigResponse(BaseModel):
     provider: OcrProvider
     gemini: GeminiConfig | None = None
     vllm: VllmConfig | None = None
+
+
+class OcrConnectionTestResponse(BaseModel):
+    """Schema for OCR connection test result."""
+
+    success: bool
+    message: str

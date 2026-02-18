@@ -4,8 +4,17 @@
   import Button from '$lib/components/common/Button.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import OcrSettingsPanel from '$lib/components/settings/OcrSettingsPanel.svelte'
-  import { getProject, getOcrConfig, updateOcrConfig } from '$lib/api/projects'
-  import type { ProjectResponse, OcrConfigResponse } from '$lib/api/types'
+  import {
+    getProject,
+    getOcrConfig,
+    updateOcrConfig,
+    testOcrConnection,
+  } from '$lib/api/projects'
+  import type {
+    ProjectResponse,
+    OcrConfigResponse,
+    OcrConnectionTestResponse,
+  } from '$lib/api/types'
   import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
 
@@ -15,6 +24,8 @@
   let ocrConfig = $state<OcrConfigResponse | null>(null)
   let isLoading = $state(true)
   let isSaving = $state(false)
+  let isTesting = $state(false)
+  let testResult = $state<OcrConnectionTestResponse | null>(null)
   let error = $state<string | null>(null)
   let successMessage = $state<string | null>(null)
 
@@ -53,6 +64,19 @@
       error = 'OCR 설정 저장에 실패했습니다.'
     } finally {
       isSaving = false
+    }
+  }
+
+  async function handleTest(config: OcrConfigResponse) {
+    if (!params?.id) return
+    isTesting = true
+    testResult = null
+    try {
+      testResult = await testOcrConnection(params.id, config)
+    } catch {
+      testResult = { success: false, message: '연결 테스트에 실패했습니다.' }
+    } finally {
+      isTesting = false
     }
   }
 
@@ -127,7 +151,10 @@
           <OcrSettingsPanel
             config={ocrConfig}
             saving={isSaving}
+            testing={isTesting}
+            {testResult}
             onsave={handleSave}
+            ontest={handleTest}
           />
         </div>
       {/if}

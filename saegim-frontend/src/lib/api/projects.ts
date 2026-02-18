@@ -8,6 +8,7 @@ import type {
   CreateProjectRequest,
   OcrConfigResponse,
   OcrConfigUpdate,
+  OcrConnectionTestResponse,
 } from './types'
 
 export async function listProjects(): Promise<readonly ProjectResponse[]> {
@@ -35,4 +36,14 @@ export async function updateOcrConfig(
   data: OcrConfigUpdate,
 ): Promise<OcrConfigResponse> {
   return api.put<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config`, data)
+}
+
+export async function testOcrConnection(
+  projectId: string,
+  data: OcrConfigUpdate,
+): Promise<OcrConnectionTestResponse> {
+  return api.post<OcrConnectionTestResponse>(
+    `/api/v1/projects/${projectId}/ocr-config/test`,
+    data,
+  )
 }

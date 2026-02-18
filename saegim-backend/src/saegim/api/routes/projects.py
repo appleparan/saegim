@@ -9,6 +9,7 @@ from saegim.repositories import document_repo, project_repo
 from saegim.schemas.project import (
     OcrConfigResponse,
     OcrConfigUpdate,
+    OcrConnectionTestResponse,
     ProjectCreate,
     ProjectResponse,
 )
@@ -157,3 +158,38 @@ async def update_ocr_config(
             detail='Failed to update OCR config',
         )
     return OcrConfigResponse(**config_dict)
+
+
+@router.post(
+    '/projects/{project_id}/ocr-config/test',
+    response_model=OcrConnectionTestResponse,
+)
+async def test_ocr_config(
+    project_id: uuid.UUID,
+    body: OcrConfigUpdate,
+) -> OcrConnectionTestResponse:
+    """Test OCR provider connection with the given configuration.
+
+    Args:
+        project_id: Project UUID (validates project exists).
+        body: OCR configuration to test.
+
+    Returns:
+        OcrConnectionTestResponse: Test result.
+
+    Raises:
+        HTTPException: If project not found.
+    """
+    pool = get_pool()
+    project = await project_repo.get_by_id(pool, project_id)
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Project not found',
+        )
+
+    from saegim.services.ocr_connection_test import check_ocr_connection
+
+    config_dict = body.model_dump(exclude_none=True)
+    success, message = check_ocr_connection(config_dict)
+    return OcrConnectionTestResponse(success=success, message=message)

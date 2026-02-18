@@ -1,14 +1,28 @@
 <script lang="ts">
   import Button from '$lib/components/common/Button.svelte'
-  import type { OcrConfigResponse, OcrProvider } from '$lib/api/types'
+  import type {
+    OcrConfigResponse,
+    OcrConnectionTestResponse,
+    OcrProvider,
+  } from '$lib/api/types'
 
   interface Props {
     config: OcrConfigResponse
     saving?: boolean
+    testing?: boolean
+    testResult?: OcrConnectionTestResponse | null
     onsave?: (config: OcrConfigResponse) => void
+    ontest?: (config: OcrConfigResponse) => void
   }
 
-  let { config, saving = false, onsave }: Props = $props()
+  let {
+    config,
+    saving = false,
+    testing = false,
+    testResult = null,
+    onsave,
+    ontest,
+  }: Props = $props()
 
   // Local form state — synced from config prop via $effect
   let provider = $state<OcrProvider>('mineru')
@@ -41,8 +55,12 @@
     { value: 'vllm', label: 'vLLM', description: '로컬 vLLM 서버' },
   ]
 
-  function handleSave() {
-    const result: OcrConfigResponse = {
+  let needsConnectionTest = $derived(
+    provider === 'gemini' || provider === 'vllm',
+  )
+
+  function buildConfig(): OcrConfigResponse {
+    return {
       provider,
       ...(provider === 'gemini'
         ? { gemini: { api_key: geminiApiKey.trim(), model: geminiModel.trim() } }
@@ -51,7 +69,14 @@
         ? { vllm: { host: vllmHost.trim(), port: vllmPort, model: vllmModel.trim() } }
         : {}),
     }
-    onsave?.(result)
+  }
+
+  function handleSave() {
+    onsave?.(buildConfig())
+  }
+
+  function handleTest() {
+    ontest?.(buildConfig())
   }
 </script>
 
@@ -159,8 +184,29 @@
     </div>
   {/if}
 
-  <!-- Save Button -->
-  <div class="flex justify-end">
+  <!-- Connection Test Result -->
+  {#if testResult}
+    <div
+      class="p-3 rounded-lg text-sm border
+        {testResult.success
+        ? 'bg-green-50 border-green-200 text-green-700'
+        : 'bg-red-50 border-red-200 text-red-700'}"
+    >
+      {testResult.message}
+    </div>
+  {/if}
+
+  <!-- Action Buttons -->
+  <div class="flex items-center justify-end gap-2">
+    {#if needsConnectionTest}
+      <Button
+        variant="secondary"
+        disabled={!isValid || testing}
+        onclick={handleTest}
+      >
+        {testing ? '테스트 중...' : '연결 테스트'}
+      </Button>
+    {/if}
     <Button variant="primary" disabled={!isValid || saving} onclick={handleSave}>
       {saving ? '저장 중...' : '설정 저장'}
     </Button>

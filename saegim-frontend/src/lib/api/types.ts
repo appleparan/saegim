@@ -45,6 +45,11 @@ export interface OcrConfigUpdate {
   readonly vllm?: VllmConfig
 }
 
+export interface OcrConnectionTestResponse {
+  readonly success: boolean
+  readonly message: string
+}
+
 // --- Documents ---
 
 export type DocumentStatus =
