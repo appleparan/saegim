@@ -18,6 +18,33 @@ export interface CreateProjectRequest {
   readonly description?: string
 }
 
+// --- OCR Config ---
+
+export type OcrProvider = 'gemini' | 'vllm' | 'mineru' | 'pymupdf'
+
+export interface GeminiConfig {
+  readonly api_key: string
+  readonly model: string
+}
+
+export interface VllmConfig {
+  readonly host: string
+  readonly port: number
+  readonly model: string
+}
+
+export interface OcrConfigResponse {
+  readonly provider: OcrProvider
+  readonly gemini?: GeminiConfig
+  readonly vllm?: VllmConfig
+}
+
+export interface OcrConfigUpdate {
+  readonly provider: OcrProvider
+  readonly gemini?: GeminiConfig
+  readonly vllm?: VllmConfig
+}
+
 // --- Documents ---
 
 export type DocumentStatus =

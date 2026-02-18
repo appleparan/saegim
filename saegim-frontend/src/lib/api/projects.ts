@@ -3,7 +3,12 @@
  */
 
 import { api } from './client'
-import type { ProjectResponse, CreateProjectRequest } from './types'
+import type {
+  ProjectResponse,
+  CreateProjectRequest,
+  OcrConfigResponse,
+  OcrConfigUpdate,
+} from './types'
 
 export async function listProjects(): Promise<readonly ProjectResponse[]> {
   return api.get<ProjectResponse[]>('/api/v1/projects')
@@ -19,4 +24,15 @@ export async function createProject(data: CreateProjectRequest): Promise<Project
 
 export async function deleteProject(id: string): Promise<void> {
   await api.delete(`/api/v1/projects/${id}`)
+}
+
+export async function getOcrConfig(projectId: string): Promise<OcrConfigResponse> {
+  return api.get<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config`)
+}
+
+export async function updateOcrConfig(
+  projectId: string,
+  data: OcrConfigUpdate,
+): Promise<OcrConfigResponse> {
+  return api.put<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config`, data)
 }
