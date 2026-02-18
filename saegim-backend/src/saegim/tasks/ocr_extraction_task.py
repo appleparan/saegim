@@ -1,4 +1,4 @@
-"""Celery task for VLM-based OCR extraction (Gemini / vLLM)."""
+"""Celery task for 2-stage OCR extraction (PP-StructureV3 + text OCR)."""
 
 import json
 import logging
@@ -8,7 +8,7 @@ from typing import Any
 import psycopg
 
 from saegim.api.settings import get_settings
-from saegim.services.ocr_provider import get_ocr_provider
+from saegim.services.ocr_pipeline import build_ocr_pipeline
 from saegim.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -73,11 +73,10 @@ def run_ocr_extraction(
     page_info: list[dict[str, Any]],
     ocr_config: dict[str, Any],
 ) -> dict[str, Any]:
-    """Run VLM-based OCR extraction as a Celery task.
+    """Run 2-stage OCR extraction as a Celery task.
 
-    Extracts structured layout elements from each page image using
-    the configured OCR provider (Gemini or vLLM), converts to
-    OmniDocBench format, and stores results in the database.
+    Uses PP-StructureV3 for layout detection and a text OCR provider
+    (Gemini, OlmOCR, or PP-OCR built-in) for text extraction.
 
     Args:
         self: Celery task instance (bound).
@@ -98,17 +97,20 @@ def run_ocr_extraction(
             as extraction_failed.
     """
     dsn = _get_dsn()
-    provider_name = ocr_config.get('ocr_provider', 'unknown')
+    ocr_provider_name = ocr_config.get('ocr_provider', 'unknown')
 
     logger.info(
         'Starting OCR extraction for document %s (%d pages, ocr=%s)',
         document_id,
         len(page_info),
-        provider_name,
+        ocr_provider_name,
     )
 
     try:
-        provider = get_ocr_provider(ocr_config)
+        pipeline = build_ocr_pipeline(ocr_config)
+        if pipeline is None:
+            msg = 'Pipeline build returned None (pymupdf should not reach Celery task)'
+            raise ValueError(msg)
 
         for page in page_info:
             page_id = page['page_id']
@@ -121,10 +123,10 @@ def run_ocr_extraction(
                 'Extracting page %s (idx=%d) with %s',
                 page_id,
                 page_idx,
-                provider_name,
+                ocr_provider_name,
             )
 
-            extracted = provider.extract_page(image_path, width, height)
+            extracted = pipeline.extract_page(image_path, width, height)
             _update_page_extraction(dsn, page_id, extracted)
 
             logger.info(
