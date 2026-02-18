@@ -238,6 +238,7 @@ PDF 등 한국어 문서 데이터셋을 업로드하면 OmniDocBench 포맷의 
 | **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
 | **파일 저장** | 로컬 파일시스템 (→ 추후 MinIO/S3) | PDF 원본, 페이지 이미지 등 바이너리 파일 |
 | **자동 추출** | MinerU (AGPL, 독립 서비스) | 15+ 카테고리 레이아웃 검출. AGPL 라이선스 → `saegim-mineru` 별도 컨테이너로 HTTP API 통신 |
+| **OCR/레이아웃 ML** | Google Gemini API, vLLM | VLM 기반 구조화 OCR. 프로젝트별 설정으로 프로바이더 선택 가능 |
 | **PDF 추출 (폴백)** | PyMuPDF | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
 | **태스크 큐** | Celery + Redis | MinerU 비동기 추출, Celery worker → saegim-mineru HTTP 호출 |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
@@ -623,6 +624,44 @@ PDF 업로드
 - `labeling_service.py`: `accept_auto_extraction()`
 - `ExtractionPreview.svelte`: 추출 진행중 표시 + 수락/무시 UI
 
+#### 5.0.3 Gemini API 백엔드 (`ocr_config.provider=gemini`)
+
+```text
+PDF 업로드
+  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → Celery 태스크 디스패치 (run_ocr_extraction)
+     → 페이지별 이미지를 base64 인코딩
+     → Gemini API (v1beta/models/{model}:generateContent)
+     → structured output 프롬프트로 text + bbox + category 추출
+     → OmniDocBench 변환 (bbox_to_poly, build_omnidocbench_page)
+     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → document status: extracting → ready
+```
+
+#### 5.0.4 vLLM 백엔드 (`ocr_config.provider=vllm`)
+
+```text
+PDF 업로드
+  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → Celery 태스크 디스패치 (run_ocr_extraction)
+     → 페이지별 이미지를 base64 인코딩
+     → vLLM OpenAI-compatible API (/v1/chat/completions, vision)
+     → 동일한 structured output 프롬프트
+     → OmniDocBench 변환
+     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → document status: extracting → ready
+```
+
+구현 파일 (VLM OCR 프로바이더):
+
+- `services/ocr_provider.py`: 팩토리 패턴, OcrProvider Protocol, 공통 프롬프트
+- `services/gemini_ocr_service.py`: Gemini API httpx 클라이언트
+- `services/vllm_ocr_service.py`: vLLM OpenAI-compatible 클라이언트
+- `services/ocr_connection_test.py`: 연결 테스트 (API key 검증, 서버 연결)
+- `tasks/ocr_extraction_task.py`: VLM OCR Celery 태스크
+- `schemas/project.py`: OcrConfigUpdate, OcrConfigResponse, GeminiConfig, VllmConfig
+- `OcrSettingsPanel.svelte`: 프로바이더 선택 + 설정 UI + 연결 테스트
+
 ### 5.1 후보 도구 비교
 
 | 도구 | 특징 | 장점 | 단점 | 상태 |
@@ -631,8 +670,10 @@ PDF 업로드
 | **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 | 미구현 |
 | **DocLayout-YOLO** | 경량 레이아웃 검출 | 빠른 추론 속도 | 텍스트 인식 별도 필요 | 미구현 |
 | **Marker** (VikParuchuri) | PDF → Markdown 변환 | 간단한 파이프라인 | Attribute 정보 없음 | 미구현 |
+| **Google Gemini API** | VLM structured output | 고품질 OCR, 클라우드 API | API 비용, 네트워크 의존 | **구현 완료** (프로젝트별 설정) |
+| **vLLM (로컬)** | OpenAI-compatible VLM 서버 | 로컬 실행, 비용 없음 | GPU 필요, 모델 관리 | **구현 완료** (프로젝트별 설정) |
 
-**현재**: MinerU pipeline 백엔드를 1차 파이프라인으로 사용. 한국어 OCR 부분은 별도 보강 필요(예: PaddleOCR 한국어 모델). 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
+**현재**: MinerU pipeline 백엔드를 1차 파이프라인으로 사용. Gemini API와 vLLM을 프로젝트별 OCR 프로바이더로 선택 가능. 한국어 OCR 부분은 별도 보강 필요(예: PaddleOCR 한국어 모델). 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
 
 ### 5.2 자동 Attribute 분류 전략
 
@@ -662,6 +703,7 @@ projects
 ├── name            VARCHAR
 ├── description     TEXT
 ├── project_type    VARCHAR          # ★ Phase 4a: 'element_annotation' | 'vqa' | 'ocrag' (기본값: 'element_annotation')
+├── ocr_config      JSONB            # OCR 프로바이더 설정 (provider, API key, host/port 등)
 └── created_at      TIMESTAMP
 
 documents
@@ -931,6 +973,11 @@ POST   /api/v1/projects                      ✅ 프로젝트 생성
 GET    /api/v1/projects                      ✅ 프로젝트 목록
 GET    /api/v1/projects/{id}/documents       ✅ 프로젝트 문서 목록
 DELETE /api/v1/projects/{id}                 ✅ 프로젝트 삭제
+
+# OCR 설정
+GET    /api/v1/projects/{id}/ocr-config      ✅ OCR 프로바이더 설정 조회
+PUT    /api/v1/projects/{id}/ocr-config      ✅ OCR 프로바이더 설정 수정
+POST   /api/v1/projects/{id}/ocr-config/test ✅ OCR 프로바이더 연결 테스트
 
 # 문서 업로드 & 처리
 POST   /api/v1/projects/{id}/documents       ✅ PDF 업로드 (→ 변환 + 텍스트/이미지 추출)

@@ -75,6 +75,56 @@
 
 **응답:** `200 OK` | `404 Not Found`
 
+### `GET /api/v1/projects/{project_id}/ocr-config`
+
+프로젝트의 OCR 설정 조회. 미설정 시 기본값 `{"provider": "mineru"}` 반환.
+
+**응답:** `200 OK`
+
+```json
+{
+  "provider": "gemini",
+  "gemini": {
+    "api_key": "...",
+    "model": "gemini-2.0-flash"
+  }
+}
+```
+
+### `PUT /api/v1/projects/{project_id}/ocr-config`
+
+프로젝트 OCR 설정 업데이트. provider가 `gemini`/`vllm`인 경우 해당 설정 필수.
+
+**요청 Body:**
+
+```json
+{
+  "provider": "vllm",
+  "vllm": {
+    "host": "localhost",
+    "port": 8000,
+    "model": "Qwen/Qwen2.5-VL-72B-Instruct"
+  }
+}
+```
+
+**응답:** `200 OK` | `422 Unprocessable Entity`
+
+### `POST /api/v1/projects/{project_id}/ocr-config/test`
+
+OCR 프로바이더 연결 테스트. Gemini는 API key 검증, vLLM은 서버 연결 확인.
+
+**요청 Body:** `PUT /ocr-config`과 동일한 형식.
+
+**응답:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Connected to Gemini (Gemini 2.0 Flash)"
+}
+```
+
 ---
 
 ## Documents

@@ -20,6 +20,7 @@ erDiagram
         varchar name
         text description
         varchar project_type "element_annotation | vqa | ocrag"
+        jsonb ocr_config "OCR 프로바이더 설정"
         timestamptz created_at
     }
 
@@ -79,6 +80,7 @@ erDiagram
 | `name` | VARCHAR(255) | - | 프로젝트 이름 |
 | `description` | TEXT | `''` | 프로젝트 설명 |
 | `project_type` | VARCHAR(30) | `'element_annotation'` | 프로젝트 유형: `element_annotation`, `vqa`, `ocrag` |
+| `ocr_config` | JSONB | `NULL` | OCR 프로바이더 설정 (provider, API key, host/port) |
 | `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
 
 ### documents
@@ -323,7 +325,8 @@ SQL 파일 기반으로 수동 관리합니다:
 
 ```text
 migrations/
-└── 001_init.sql    # 초기 스키마
+├── 001_init.sql        # 초기 스키마
+└── 002_ocr_config.sql  # projects.ocr_config JSONB 컬럼 추가
 ```
 
 실행 방법:
