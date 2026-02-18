@@ -25,7 +25,7 @@
   }: Props = $props()
 
   // Local form state — synced from config prop via $effect
-  let provider = $state<OcrProvider>('mineru')
+  let provider = $state<OcrProvider>('pymupdf')
   let geminiApiKey = $state('')
   let geminiModel = $state('gemini-2.0-flash')
   let vllmHost = $state('localhost')
@@ -42,14 +42,12 @@
   })
 
   let isValid = $derived(
-    provider === 'mineru' ||
-      provider === 'pymupdf' ||
+    provider === 'pymupdf' ||
       (provider === 'gemini' && geminiApiKey.trim().length > 0) ||
       (provider === 'vllm' && vllmHost.trim().length > 0 && vllmPort > 0),
   )
 
   const providers: { value: OcrProvider; label: string; description: string }[] = [
-    { value: 'mineru', label: 'MinerU', description: 'MinerU PDF 추출 파이프라인' },
     { value: 'pymupdf', label: 'PyMuPDF', description: '동기 PyMuPDF 추출 (빠름)' },
     { value: 'gemini', label: 'Google Gemini', description: 'Gemini VLM API' },
     { value: 'vllm', label: 'vLLM', description: '로컬 vLLM 서버' },

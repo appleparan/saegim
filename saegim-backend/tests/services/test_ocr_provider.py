@@ -98,10 +98,6 @@ class TestGetOcrProvider:
         with pytest.raises(ValueError, match='Unknown OCR provider'):
             get_ocr_provider({'provider': 'unknown'})
 
-    def test_mineru_not_handled_by_factory(self):
-        with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'provider': 'mineru'})
-
     def test_pymupdf_not_handled_by_factory(self):
         with pytest.raises(ValueError, match='Unknown OCR provider'):
             get_ocr_provider({'provider': 'pymupdf'})

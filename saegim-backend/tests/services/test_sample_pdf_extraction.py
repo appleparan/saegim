@@ -2,13 +2,11 @@
 
 Uses real PDF files in saegim-backend/sample/ to verify:
 - PyMuPDF extraction produces valid OmniDocBench structure
-- MinerU extraction via HTTP API (marked @slow, requires saegim-mineru service)
 """
 
 from pathlib import Path
 
 import fitz
-import httpx
 import pytest
 
 from saegim.services.extraction_service import extract_page_elements
@@ -173,126 +171,3 @@ class TestPyMuPDFExtractionComparison:
                     f'{pdf_path.name} page {page_no}: unexpected categories {unexpected}'
                 )
             pdf.close()
-
-
-def _mineru_service_available() -> bool:
-    """Check if the saegim-mineru HTTP service is reachable."""
-    from saegim.api.settings import get_settings
-
-    settings = get_settings()
-    try:
-        with httpx.Client(timeout=httpx.Timeout(5.0)) as client:
-            resp = client.get(f'{settings.mineru_api_url}/api/v1/health')
-            return resp.status_code == 200
-    except httpx.RequestError:
-        return False
-
-
-skipif_no_mineru = pytest.mark.skipif(
-    not _mineru_service_available(),
-    reason='saegim-mineru HTTP service not available',
-)
-
-
-@pytest.mark.slow
-class TestMineruExtractionSamplePDFs:
-    """MinerU extraction on sample PDFs via HTTP API.
-
-    Requires saegim-mineru service running (e.g. via docker compose).
-    Run with: uv run pytest -m slow tests/services/test_sample_pdf_extraction.py
-    """
-
-    @skipif_no_samples
-    @skipif_no_mineru
-    def test_english_paper_extraction(self, tmp_path):
-        from saegim.services.mineru_extraction_service import extract_document
-
-        # Get page dimensions from PyMuPDF
-        pdf = fitz.open(str(ENG_PDF))
-        page_dims = {}
-        for i in range(len(pdf)):
-            page = pdf[i]
-            mat = fitz.Matrix(2.0, 2.0)
-            pix = page.get_pixmap(matrix=mat)
-            page_dims[i] = (pix.width, pix.height)
-        pdf.close()
-
-        result = extract_document(
-            pdf_path=ENG_PDF,
-            language='en',
-            backend='pipeline',
-            output_dir=tmp_path / 'eng_output',
-            page_dimensions=page_dims,
-        )
-
-        assert len(result) > 0, 'Should produce results for at least one page'
-
-        # Check first page has elements
-        first_page = result[0]
-        assert len(first_page['layout_dets']) > 0
-        assert 'page_attribute' in first_page
-        assert 'extra' in first_page
-
-        # Verify category diversity (MinerU should detect more than just text_block)
-        categories = {el['category_type'] for el in first_page['layout_dets']}
-        assert 'text_block' in categories or 'title' in categories
-
-    @skipif_no_samples
-    @skipif_no_mineru
-    def test_korean_document_extraction(self, tmp_path):
-        from saegim.services.mineru_extraction_service import extract_document
-
-        pdf = fitz.open(str(KOR_PDF))
-        page_dims = {}
-        for i in range(len(pdf)):
-            page = pdf[i]
-            mat = fitz.Matrix(2.0, 2.0)
-            pix = page.get_pixmap(matrix=mat)
-            page_dims[i] = (pix.width, pix.height)
-        pdf.close()
-
-        result = extract_document(
-            pdf_path=KOR_PDF,
-            language='korean',
-            backend='pipeline',
-            output_dir=tmp_path / 'kor_output',
-            page_dimensions=page_dims,
-        )
-
-        assert len(result) > 0
-        first_page = result[0]
-        assert len(first_page['layout_dets']) > 0
-
-    @skipif_no_samples
-    @skipif_no_mineru
-    def test_mineru_produces_more_categories_than_pymupdf(self, tmp_path):
-        from saegim.services.mineru_extraction_service import extract_document
-
-        pdf = fitz.open(str(ENG_PDF))
-        page_dims = {}
-        for i in range(len(pdf)):
-            page = pdf[i]
-            mat = fitz.Matrix(2.0, 2.0)
-            pix = page.get_pixmap(matrix=mat)
-            page_dims[i] = (pix.width, pix.height)
-
-        # PyMuPDF extraction
-        pymupdf_result = extract_page_elements(pdf[0], scale=2.0)
-        pymupdf_categories = {el['category_type'] for el in pymupdf_result['layout_dets']}
-        pdf.close()
-
-        # MinerU extraction via HTTP API
-        mineru_result = extract_document(
-            pdf_path=ENG_PDF,
-            language='en',
-            backend='pipeline',
-            output_dir=tmp_path / 'compare_output',
-            page_dimensions=page_dims,
-        )
-        mineru_categories = {el['category_type'] for el in mineru_result[0]['layout_dets']}
-
-        # MinerU should detect more diverse categories
-        assert len(mineru_categories) >= len(pymupdf_categories), (
-            f'MinerU ({mineru_categories}) should have >= categories'
-            f' than PyMuPDF ({pymupdf_categories})'
-        )

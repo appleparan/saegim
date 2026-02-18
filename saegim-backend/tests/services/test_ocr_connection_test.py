@@ -12,7 +12,6 @@ from saegim.services.ocr_connection_test import (
 
 
 class TestGeminiConnection:
-
     @patch('saegim.services.ocr_connection_test.httpx.Client')
     def test_successful_connection(self, mock_client_cls):
         mock_response = MagicMock()
@@ -42,7 +41,9 @@ class TestGeminiConnection:
         mock_response.status_code = 403
         mock_response.text = 'Forbidden'
         error = httpx.HTTPStatusError(
-            'Forbidden', request=MagicMock(), response=mock_response,
+            'Forbidden',
+            request=MagicMock(),
+            response=mock_response,
         )
 
         mock_client = MagicMock()
@@ -61,7 +62,9 @@ class TestGeminiConnection:
         mock_response.status_code = 404
         mock_response.text = 'Not found'
         error = httpx.HTTPStatusError(
-            'Not found', request=MagicMock(), response=mock_response,
+            'Not found',
+            request=MagicMock(),
+            response=mock_response,
         )
 
         mock_client = MagicMock()
@@ -90,7 +93,6 @@ class TestGeminiConnection:
 
 
 class TestVllmConnection:
-
     @patch('saegim.services.ocr_connection_test.httpx.Client')
     def test_successful_connection(self, mock_client_cls):
         mock_response = MagicMock()
@@ -145,7 +147,6 @@ class TestVllmConnection:
 
 
 class TestOcrConnection:
-
     @patch('saegim.services.ocr_connection_test.check_gemini_connection')
     def test_dispatches_gemini(self, mock_gemini):
         mock_gemini.return_value = (True, 'ok')
@@ -163,11 +164,6 @@ class TestOcrConnection:
         )
         assert success is True
         mock_vllm.assert_called_once()
-
-    def test_mineru_no_test_needed(self):
-        success, message = check_ocr_connection({'provider': 'mineru'})
-        assert success is True
-        assert 'does not require' in message
 
     def test_pymupdf_no_test_needed(self):
         success, message = check_ocr_connection({'provider': 'pymupdf'})

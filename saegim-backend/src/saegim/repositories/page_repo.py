@@ -297,7 +297,7 @@ async def update_auto_extracted_data(
     Args:
         pool: Database connection pool.
         page_id: Page UUID.
-        auto_extracted_data: OmniDocBench dict from MinerU extraction.
+        auto_extracted_data: OmniDocBench dict from OCR extraction.
 
     Returns:
         asyncpg.Record or None: Updated page record.

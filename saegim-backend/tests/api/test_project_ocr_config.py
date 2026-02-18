@@ -20,7 +20,7 @@ class TestGetOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['provider'] == 'mineru'
+        assert data['provider'] == 'pymupdf'
 
     def test_get_existing_config(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
@@ -116,7 +116,7 @@ class TestUpdateOcrConfig:
         assert data['vllm']['host'] == '192.168.1.10'
         assert data['vllm']['port'] == 8080
 
-    def test_update_mineru_config(self, client: TestClient, sample_project_record):
+    def test_update_pymupdf_config(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -132,11 +132,11 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
-                json={'provider': 'mineru'},
+                json={'provider': 'pymupdf'},
             )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['provider'] == 'mineru'
+        assert response.json()['provider'] == 'pymupdf'
 
     def test_update_gemini_without_config(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']

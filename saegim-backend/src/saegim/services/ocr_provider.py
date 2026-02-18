@@ -1,6 +1,6 @@
 """OCR provider factory and common interfaces.
 
-Provides a unified interface for different OCR providers (Gemini, vLLM, MinerU, PyMuPDF).
+Provides a unified interface for different OCR providers (Gemini, vLLM).
 Each provider extracts structured layout elements from page images and returns
 OmniDocBench-compatible dicts.
 """
@@ -125,7 +125,7 @@ def get_ocr_provider(ocr_config: dict[str, Any]) -> OcrProvider:
     Raises:
         ValueError: If provider is unknown.
     """
-    provider = ocr_config.get('provider', 'mineru')
+    provider = ocr_config.get('provider', '')
 
     if provider == 'gemini':
         from saegim.services.gemini_ocr_service import GeminiOcrProvider

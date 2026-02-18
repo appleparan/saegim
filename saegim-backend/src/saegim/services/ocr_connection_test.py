@@ -94,7 +94,7 @@ def check_ocr_connection(ocr_config: dict[str, Any]) -> tuple[bool, str]:
         vllm_config = ocr_config.get('vllm', {})
         return check_vllm_connection(vllm_config)
 
-    if provider in ('mineru', 'pymupdf'):
+    if provider == 'pymupdf':
         return True, f'{provider} does not require a connection test'
 
     return False, f'Unknown provider: {provider}'

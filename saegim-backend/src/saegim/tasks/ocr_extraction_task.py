@@ -135,9 +135,7 @@ def run_ocr_extraction(
             )
 
         _update_document_status(dsn, document_id, 'ready')
-        logger.info(
-            'OCR extraction completed for document %s', document_id
-        )
+        logger.info('OCR extraction completed for document %s', document_id)
 
         return {
             'document_id': document_id,
@@ -146,19 +144,14 @@ def run_ocr_extraction(
         }
 
     except Exception as exc:
-        logger.exception(
-            'OCR extraction failed for document %s', document_id
-        )
+        logger.exception('OCR extraction failed for document %s', document_id)
 
         if self.request.retries >= self.max_retries:
             try:
-                _update_document_status(
-                    dsn, document_id, 'extraction_failed'
-                )
+                _update_document_status(dsn, document_id, 'extraction_failed')
             except Exception:
                 logger.exception(
-                    'Failed to update document %s status to '
-                    'extraction_failed',
+                    'Failed to update document %s status to extraction_failed',
                     document_id,
                 )
             raise

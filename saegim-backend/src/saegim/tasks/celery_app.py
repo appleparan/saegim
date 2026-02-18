@@ -17,7 +17,7 @@ celery_app.conf.update(
     result_serializer='json',
     accept_content=['json'],
     task_track_started=True,
-    # MinerU is heavy; process one task at a time
+    # OCR extraction is heavy; process one task at a time
     worker_prefetch_multiplier=1,
     worker_concurrency=1,
     # Result expiry: 24 hours

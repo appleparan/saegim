@@ -25,7 +25,7 @@ class ProjectResponse(BaseModel):
 
 # --- OCR Config schemas ---
 
-OcrProvider = Literal['gemini', 'vllm', 'mineru', 'pymupdf']
+OcrProvider = Literal['gemini', 'vllm', 'pymupdf']
 
 
 class GeminiConfig(BaseModel):

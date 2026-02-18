@@ -55,17 +55,13 @@ class TestRunOcrExtraction:
             'gemini': {'api_key': 'test', 'model': 'gemini-2.0-flash'},
         }
 
-        result = run_ocr_extraction.apply(
-            args=['doc-123', page_info, ocr_config]
-        ).get()
+        result = run_ocr_extraction.apply(args=['doc-123', page_info, ocr_config]).get()
 
         assert result['document_id'] == 'doc-123'
         assert result['pages_processed'] == 1
         assert result['status'] == 'ready'
         mock_update_page.assert_called_once()
-        mock_update_doc.assert_called_once_with(
-            'postgresql://test', 'doc-123', 'ready'
-        )
+        mock_update_doc.assert_called_once_with('postgresql://test', 'doc-123', 'ready')
 
     @patch('saegim.tasks.ocr_extraction_task._update_document_status')
     @patch('saegim.tasks.ocr_extraction_task.get_ocr_provider')
@@ -98,13 +94,9 @@ class TestRunOcrExtraction:
         }
 
         with pytest.raises(RuntimeError, match='API failed'):
-            run_ocr_extraction.apply(
-                args=['doc-fail', page_info, ocr_config]
-            ).get()
+            run_ocr_extraction.apply(args=['doc-fail', page_info, ocr_config]).get()
 
-        mock_update_doc.assert_called_with(
-            'postgresql://test', 'doc-fail', 'extraction_failed'
-        )
+        mock_update_doc.assert_called_with('postgresql://test', 'doc-fail', 'extraction_failed')
 
     @patch('saegim.tasks.ocr_extraction_task._update_document_status')
     @patch('saegim.tasks.ocr_extraction_task._update_page_extraction')
@@ -143,9 +135,7 @@ class TestRunOcrExtraction:
             'gemini': {'api_key': 'key', 'model': 'gemini-2.0-flash'},
         }
 
-        result = run_ocr_extraction.apply(
-            args=['doc-multi', page_info, ocr_config]
-        ).get()
+        result = run_ocr_extraction.apply(args=['doc-multi', page_info, ocr_config]).get()
 
         assert result['pages_processed'] == 3
         assert mock_update_page.call_count == 3

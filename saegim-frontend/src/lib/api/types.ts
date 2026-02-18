@@ -20,7 +20,7 @@ export interface CreateProjectRequest {
 
 // --- OCR Config ---
 
-export type OcrProvider = 'gemini' | 'vllm' | 'mineru' | 'pymupdf'
+export type OcrProvider = 'gemini' | 'vllm' | 'pymupdf'
 
 export interface GeminiConfig {
   readonly api_key: string

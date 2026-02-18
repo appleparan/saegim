@@ -9,13 +9,12 @@ describe('OcrSettingsPanel', () => {
   })
 
   const defaultConfig: OcrConfigResponse = {
-    provider: 'mineru',
+    provider: 'pymupdf',
   }
 
-  it('renders all four provider options', () => {
+  it('renders all three provider options', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    expect(screen.getByText('MinerU')).toBeTruthy()
     expect(screen.getByText('PyMuPDF')).toBeTruthy()
     expect(screen.getByText('Google Gemini')).toBeTruthy()
     expect(screen.getByText('vLLM')).toBeTruthy()
@@ -100,7 +99,7 @@ describe('OcrSettingsPanel', () => {
     expect(saveButton.hasAttribute('disabled')).toBe(true)
   })
 
-  it('enables save button for MinerU without extra config', () => {
+  it('enables save button for PyMuPDF without extra config', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     const saveButton = screen.getByText('설정 저장')
