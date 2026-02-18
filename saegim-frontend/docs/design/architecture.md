@@ -26,6 +26,7 @@ src/
 ├── pages/                  # 라우트별 페이지
 │   ├── ProjectList.svelte      # /
 │   ├── DocumentList.svelte     # /projects/:id
+│   ├── ProjectSettings.svelte  # /projects/:id/settings (OCR 설정)
 │   └── LabelingPage.svelte     # /label/:pageId
 ├── lib/
 │   ├── types/              # 타입 정의
@@ -52,7 +53,8 @@ src/
 │       ├── common/         # 재사용 UI 위젯
 │       ├── layout/         # Header, Sidebar
 │       ├── canvas/         # Konva.js 통합 (ImageViewer, BboxLayer, BboxDrawTool, TextOverlay)
-│       └── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview 등)
+│       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview 등)
+│       └── settings/       # 프로젝트 설정 (OcrSettingsPanel)
 └── tests/
     └── lib/utils/bbox.test.ts
 ```
@@ -65,6 +67,7 @@ Hash-based SPA 라우팅 (`svelte-spa-router`):
 | ------ | -------- | ------ |
 | `#/` | ProjectList | 프로젝트 목록 + 생성 |
 | `#/projects/:id` | DocumentList | 문서 목록 + PDF 업로드 |
+| `#/projects/:id/settings` | ProjectSettings | OCR 프로바이더 설정 |
 | `#/label/:pageId` | LabelingPage | 3패널 레이블링 화면 |
 
 ## Data Flow

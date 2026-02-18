@@ -23,11 +23,14 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
+| **OCR/레이아웃** | Google Gemini API, vLLM (VLM), MinerU (Celery) |
+| **비동기 태스크** | Celery + Redis |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
+- **OCR 프로바이더 선택**: 프로젝트별 Gemini API / vLLM / MinerU / PyMuPDF 설정
 - **텍스트/이미지 자동 추출**: PyMuPDF로 텍스트 블록·이미지 위치를 추출, 수락 시 어노테이션에 반영
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
@@ -167,7 +170,8 @@ saegim/
 │   │   ├── app.py                  # FastAPI 앱 팩토리
 │   │   ├── api/routes/             # REST 엔드포인트
 │   │   ├── schemas/                # Pydantic 모델
-│   │   ├── services/               # 비즈니스 로직
+│   │   ├── services/               # 비즈니스 로직 (OCR 프로바이더 등)
+│   │   ├── tasks/                 # Celery 비동기 태스크
 │   │   ├── repositories/           # 데이터 접근 (raw SQL)
 │   │   └── core/                   # DB 커넥션 풀
 │   ├── migrations/                 # SQL 마이그레이션
@@ -199,6 +203,9 @@ saegim/
 | `POST` | `/api/v1/pages/:id/elements` | 레이아웃 요소 추가 |
 | `DELETE` | `/api/v1/pages/:id/elements/:anno_id` | 요소 삭제 |
 | `POST` | `/api/v1/pages/:id/accept-extraction` | 자동 추출 결과 수락 |
+| `GET` | `/api/v1/projects/:id/ocr-config` | OCR 설정 조회 |
+| `PUT` | `/api/v1/projects/:id/ocr-config` | OCR 설정 수정 |
+| `POST` | `/api/v1/projects/:id/ocr-config/test` | OCR 연결 테스트 |
 | `POST` | `/api/v1/projects/:id/export` | OmniDocBench JSON 내보내기 |
 
 ## 개발

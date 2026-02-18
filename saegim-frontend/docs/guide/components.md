@@ -19,6 +19,16 @@
 - 페이지별 상태 뱃지 (대기/진행 중/완료/검토됨)
 - 페이지 클릭 시 `#/label/:pageId`로 이동
 
+### ProjectSettings (`src/pages/ProjectSettings.svelte`)
+
+프로젝트 설정 페이지. Route: `#/projects/:id/settings`
+
+- OCR 프로바이더 선택 (MinerU / PyMuPDF / Gemini / vLLM)
+- Gemini: API Key, 모델명 설정
+- vLLM: 호스트, 포트, 모델명 설정
+- 연결 테스트 버튼 (Gemini/vLLM)
+- 문서 목록에서 톱니바퀴 아이콘으로 진입
+
 ### LabelingPage (`src/pages/LabelingPage.svelte`)
 
 3패널 레이블링 화면. Route: `#/label/:pageId`
@@ -218,3 +228,27 @@ Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), �
 
 - 탭 전환으로 `text`, `latex`, `html` 필드 편집
 - monospace 폰트 textarea
+
+---
+
+## Settings Components (`src/lib/components/settings/`)
+
+### OcrSettingsPanel
+
+OCR 프로바이더 설정 폼 컴포넌트.
+
+| Prop | Type | Default | 설명 |
+| ------ | ------ | --------- | ------ |
+| `config` | `OcrConfigResponse` | - | 현재 OCR 설정 |
+| `saving` | `boolean` | `false` | 저장 중 상태 |
+| `testing` | `boolean` | `false` | 테스트 중 상태 |
+| `testResult` | `OcrConnectionTestResponse \| null` | `null` | 연결 테스트 결과 |
+| `onsave` | `(config: OcrConfigResponse) => void` | - | 저장 핸들러 |
+| `ontest` | `(config: OcrConfigResponse) => void` | - | 연결 테스트 핸들러 |
+
+기능:
+- 4개 프로바이더 선택 (카드 UI): MinerU, PyMuPDF, Gemini, vLLM
+- Gemini 선택 시 API Key (password) + 모델명 입력 표시
+- vLLM 선택 시 호스트 + 포트 + 모델명 입력 표시
+- 연결 테스트 버튼 (Gemini/vLLM만 표시)
+- 유효성 검증 (Gemini: API Key 필수, vLLM: 호스트 필수)

@@ -49,6 +49,10 @@ try {
 | `listProjects()` | GET | `/api/projects` | 프로젝트 목록 |
 | `getProject(id)` | GET | `/api/projects/:id` | 프로젝트 상세 |
 | `createProject(data)` | POST | `/api/projects` | 프로젝트 생성 |
+| `deleteProject(id)` | DELETE | `/api/projects/:id` | 프로젝트 삭제 |
+| `getOcrConfig(projectId)` | GET | `/api/projects/:id/ocr-config` | OCR 설정 조회 |
+| `updateOcrConfig(projectId, data)` | PUT | `/api/projects/:id/ocr-config` | OCR 설정 수정 |
+| `testOcrConnection(projectId, data)` | POST | `/api/projects/:id/ocr-config/test` | OCR 연결 테스트 |
 
 ### Documents (`src/lib/api/documents.ts`)
 

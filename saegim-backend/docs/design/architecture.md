@@ -37,7 +37,7 @@ HTTP 요청을 받아 적절한 서비스를 호출하고 응답을 반환합니
 ```text
 src/saegim/api/routes/
 ├── health.py       # GET /api/v1/health
-├── projects.py     # 프로젝트 CRUD (project_type 포함)
+├── projects.py     # 프로젝트 CRUD (project_type, OCR 설정 포함)
 ├── documents.py    # 문서 업로드/조회
 ├── pages.py        # 페이지 레이블링
 ├── users.py        # 사용자 관리
@@ -57,6 +57,10 @@ src/saegim/api/routes/
 src/saegim/services/
 ├── document_service.py    # PDF 업로드 → 이미지 변환 → 텍스트/이미지 추출 → DB 저장
 ├── extraction_service.py  # PyMuPDF 텍스트/이미지 블록 추출 (auto_extracted_data 생성)
+├── ocr_provider.py        # OCR 프로바이더 팩토리 (get_ocr_provider) + 공통 인터페이스
+├── gemini_ocr_service.py  # Google Gemini API OCR 프로바이더
+├── vllm_ocr_service.py    # vLLM OpenAI-compatible API OCR 프로바이더
+├── ocr_connection_test.py # OCR 프로바이더 연결 테스트 (Gemini API key 검증, vLLM 서버 확인)
 ├── labeling_service.py    # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
 ├── analysis_service.py    # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
 └── export_service.py      # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
