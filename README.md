@@ -2,7 +2,9 @@
 
 한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
 
-PDF 문서를 업로드하면 페이지별 이미지로 변환하고, 웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여 [OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
+PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
+웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
 
 ## 아키텍처
 
@@ -23,14 +25,15 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
-| **OCR/레이아웃** | Google Gemini API, vLLM (VLM), MinerU (Celery) |
+| **레이아웃 감지** | PP-StructureV3 (PaddleX HTTP 서비스) |
+| **텍스트 OCR** | Gemini API, OlmOCR (vLLM), PP-OCRv5 (내장) |
 | **비동기 태스크** | Celery + Redis |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **OCR 프로바이더 선택**: 프로젝트별 Gemini API / vLLM / MinerU / PyMuPDF 설정
+- **2단계 OCR 파이프라인**: PP-StructureV3 (레이아웃) + Gemini/OlmOCR/PP-OCR (텍스트), PyMuPDF 폴백
 - **텍스트/이미지 자동 추출**: PyMuPDF로 텍스트 블록·이미지 위치를 추출, 수락 시 어노테이션에 반영
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
@@ -101,7 +104,7 @@ docker compose down -v
 
 ### 로컬 개발 환경
 
-#### 사전 요구사항
+#### 로컬 사전 요구사항
 
 - Python 3.13+ & [uv](https://docs.astral.sh/uv/)
 - [Bun](https://bun.sh/)
@@ -153,7 +156,7 @@ echo "VITE_API_URL=http://localhost:5000" > .env
 bun run dev
 ```
 
-#### 접속
+#### 로컬 접속
 
 | URL | 설명 |
 | --- | ---- |

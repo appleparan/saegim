@@ -8,6 +8,6 @@
   ],
   "config": {
     // Line length 120 (matches ruff/prettier settings)
-    "MD013": { "line_length": 120 }
+    "MD013": { "line_length": 120, "tables": false }
   }
 }

@@ -23,10 +23,11 @@
 
 프로젝트 설정 페이지. Route: `#/projects/:id/settings`
 
-- OCR 프로바이더 선택 (MinerU / PyMuPDF / Gemini / vLLM)
+- 2단계 OCR 설정: 레이아웃 프로바이더 (PP-StructureV3 / PyMuPDF) + OCR 프로바이더 (Gemini / OlmOCR / PP-OCR)
+- PP-StructureV3: 호스트, 포트 설정
 - Gemini: API Key, 모델명 설정
-- vLLM: 호스트, 포트, 모델명 설정
-- 연결 테스트 버튼 (Gemini/vLLM)
+- OlmOCR (vLLM): 호스트, 포트, 모델명 설정
+- 연결 테스트 버튼 (PP-StructureV3 + OCR 프로바이더)
 - 문서 목록에서 톱니바퀴 아이콘으로 진입
 
 ### LabelingPage (`src/pages/LabelingPage.svelte`)
@@ -247,8 +248,11 @@ OCR 프로바이더 설정 폼 컴포넌트.
 | `ontest` | `(config: OcrConfigResponse) => void` | - | 연결 테스트 핸들러 |
 
 기능:
-- 4개 프로바이더 선택 (카드 UI): MinerU, PyMuPDF, Gemini, vLLM
+
+- 2단계 설정 UI: 레이아웃 프로바이더 (PP-StructureV3 / PyMuPDF) 선택
+- PP-StructureV3 선택 시 OCR 프로바이더 (Gemini / OlmOCR / PP-OCR) 선택
+- PP-StructureV3: 호스트 + 포트 입력
 - Gemini 선택 시 API Key (password) + 모델명 입력 표시
-- vLLM 선택 시 호스트 + 포트 + 모델명 입력 표시
-- 연결 테스트 버튼 (Gemini/vLLM만 표시)
-- 유효성 검증 (Gemini: API Key 필수, vLLM: 호스트 필수)
+- OlmOCR 선택 시 호스트 + 포트 + 모델명 입력 표시
+- 연결 테스트 버튼 (PP-StructureV3 + OCR 프로바이더)
+- 유효성 검증 (PP-StructureV3: 호스트 필수, Gemini: API Key 필수, OlmOCR: 호스트 필수)

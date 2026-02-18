@@ -9,50 +9,75 @@ describe('OcrSettingsPanel', () => {
   })
 
   const defaultConfig: OcrConfigResponse = {
-    provider: 'mineru',
+    layout_provider: 'pymupdf',
   }
 
-  it('renders all four provider options', () => {
+  it('renders both layout provider options', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    expect(screen.getByText('MinerU')).toBeTruthy()
     expect(screen.getByText('PyMuPDF')).toBeTruthy()
-    expect(screen.getByText('Google Gemini')).toBeTruthy()
-    expect(screen.getByText('vLLM')).toBeTruthy()
+    expect(screen.getByText('PP-StructureV3')).toBeTruthy()
   })
 
-  it('does not show Gemini or vLLM config sections by default', () => {
+  it('does not show PP-StructureV3 config when PyMuPDF is selected', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.queryByLabelText('API Key')).toBeNull()
-    expect(screen.queryByLabelText('호스트')).toBeNull()
+    expect(screen.queryByText('OCR 프로바이더')).toBeNull()
   })
 
-  it('shows Gemini config when Gemini provider is selected', async () => {
+  it('shows PP-StructureV3 server config and OCR providers when selected', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
+
+    const ppButton = screen.getByText('PP-StructureV3')
+    await fireEvent.click(ppButton)
+
+    // PP-StructureV3 server config
+    expect(screen.getByLabelText('호스트')).toBeTruthy()
+    expect(screen.getByLabelText('포트')).toBeTruthy()
+
+    // OCR provider options
+    expect(screen.getByText('PP-OCR (내장)')).toBeTruthy()
+    expect(screen.getByText('Google Gemini')).toBeTruthy()
+    expect(screen.getByText('OlmOCR')).toBeTruthy()
+  })
+
+  it('shows Gemini config when Gemini OCR provider is selected', async () => {
+    const ppConfig: OcrConfigResponse = {
+      layout_provider: 'ppstructure',
+      ocr_provider: 'ppocr',
+      ppstructure: { host: 'localhost', port: 18811 },
+    }
+    render(OcrSettingsPanel, { props: { config: ppConfig } })
 
     const geminiButton = screen.getByText('Google Gemini')
     await fireEvent.click(geminiButton)
 
     expect(screen.getByLabelText('API Key')).toBeTruthy()
-    expect(screen.getByLabelText('모델')).toBeTruthy()
   })
 
-  it('shows vLLM config when vLLM provider is selected', async () => {
-    render(OcrSettingsPanel, { props: { config: defaultConfig } })
+  it('shows OlmOCR (vLLM) config when OlmOCR is selected', async () => {
+    const ppConfig: OcrConfigResponse = {
+      layout_provider: 'ppstructure',
+      ocr_provider: 'ppocr',
+      ppstructure: { host: 'localhost', port: 18811 },
+    }
+    render(OcrSettingsPanel, { props: { config: ppConfig } })
 
-    const vllmButton = screen.getByText('vLLM')
-    await fireEvent.click(vllmButton)
+    const olmButton = screen.getByText('OlmOCR')
+    await fireEvent.click(olmButton)
 
-    expect(screen.getByLabelText('호스트')).toBeTruthy()
-    expect(screen.getByLabelText('포트')).toBeTruthy()
-    expect(screen.getByLabelText('모델')).toBeTruthy()
+    // vLLM settings should have multiple host/port fields
+    const hosts = screen.getAllByLabelText('호스트')
+    expect(hosts.length).toBe(2) // PP-StructureV3 + vLLM
   })
 
-  it('calls onsave with correct config for Gemini', async () => {
+  it('calls onsave with correct ppstructure+gemini config', async () => {
     const onsave = vi.fn()
     const geminiConfig: OcrConfigResponse = {
-      provider: 'gemini',
+      layout_provider: 'ppstructure',
+      ocr_provider: 'gemini',
+      ppstructure: { host: 'localhost', port: 18811 },
       gemini: { api_key: 'test-key', model: 'gemini-2.0-flash' },
     }
     render(OcrSettingsPanel, {
@@ -64,19 +89,15 @@ describe('OcrSettingsPanel', () => {
 
     expect(onsave).toHaveBeenCalledOnce()
     const saved = onsave.mock.calls[0][0]
-    expect(saved.provider).toBe('gemini')
+    expect(saved.layout_provider).toBe('ppstructure')
+    expect(saved.ocr_provider).toBe('gemini')
     expect(saved.gemini.api_key).toBe('test-key')
-    expect(saved.gemini.model).toBe('gemini-2.0-flash')
   })
 
-  it('calls onsave with correct config for vLLM', async () => {
+  it('calls onsave with pymupdf config', async () => {
     const onsave = vi.fn()
-    const vllmConfig: OcrConfigResponse = {
-      provider: 'vllm',
-      vllm: { host: 'gpu-server', port: 9000, model: 'test-model' },
-    }
     render(OcrSettingsPanel, {
-      props: { config: vllmConfig, onsave },
+      props: { config: defaultConfig, onsave },
     })
 
     const saveButton = screen.getByText('설정 저장')
@@ -84,14 +105,17 @@ describe('OcrSettingsPanel', () => {
 
     expect(onsave).toHaveBeenCalledOnce()
     const saved = onsave.mock.calls[0][0]
-    expect(saved.provider).toBe('vllm')
-    expect(saved.vllm.host).toBe('gpu-server')
-    expect(saved.vllm.port).toBe(9000)
-    expect(saved.vllm.model).toBe('test-model')
+    expect(saved.layout_provider).toBe('pymupdf')
+    expect(saved.ocr_provider).toBeUndefined()
   })
 
   it('disables save button when Gemini has no API key', async () => {
-    render(OcrSettingsPanel, { props: { config: defaultConfig } })
+    const ppConfig: OcrConfigResponse = {
+      layout_provider: 'ppstructure',
+      ocr_provider: 'ppocr',
+      ppstructure: { host: 'localhost', port: 18811 },
+    }
+    render(OcrSettingsPanel, { props: { config: ppConfig } })
 
     const geminiButton = screen.getByText('Google Gemini')
     await fireEvent.click(geminiButton)
@@ -100,7 +124,7 @@ describe('OcrSettingsPanel', () => {
     expect(saveButton.hasAttribute('disabled')).toBe(true)
   })
 
-  it('enables save button for MinerU without extra config', () => {
+  it('enables save button for PyMuPDF without extra config', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     const saveButton = screen.getByText('설정 저장')

@@ -6,6 +6,8 @@ from saegim.services.ocr_provider import (
     bbox_to_poly,
     build_omnidocbench_page,
     get_ocr_provider,
+    get_text_ocr_provider,
+    get_text_prompt,
 )
 
 
@@ -72,11 +74,11 @@ class TestBuildOmnidocbenchPage:
 
 
 class TestGetOcrProvider:
-    """Test OCR provider factory."""
+    """Test OCR provider factory (uses ocr_provider key)."""
 
     def test_get_gemini_provider(self):
         config = {
-            'provider': 'gemini',
+            'ocr_provider': 'gemini',
             'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
         }
         provider = get_ocr_provider(config)
@@ -84,9 +86,9 @@ class TestGetOcrProvider:
 
         assert isinstance(provider, GeminiOcrProvider)
 
-    def test_get_vllm_provider(self):
+    def test_get_olmocr_provider(self):
         config = {
-            'provider': 'vllm',
+            'ocr_provider': 'olmocr',
             'vllm': {'host': 'localhost', 'port': 8080, 'model': 'test-model'},
         }
         provider = get_ocr_provider(config)
@@ -96,12 +98,52 @@ class TestGetOcrProvider:
 
     def test_get_unknown_provider(self):
         with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'provider': 'unknown'})
+            get_ocr_provider({'ocr_provider': 'unknown'})
 
-    def test_mineru_not_handled_by_factory(self):
-        with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'provider': 'mineru'})
 
-    def test_pymupdf_not_handled_by_factory(self):
-        with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'provider': 'pymupdf'})
+class TestGetTextPrompt:
+    def test_default_prompt(self):
+        prompt = get_text_prompt()
+        assert 'Read all text' in prompt
+
+    def test_table_prompt(self):
+        prompt = get_text_prompt('table')
+        assert 'markdown table' in prompt
+
+    def test_equation_prompt(self):
+        prompt = get_text_prompt('equation_isolated')
+        assert 'LaTeX' in prompt
+
+    def test_code_prompt(self):
+        prompt = get_text_prompt('code_txt')
+        assert 'source code' in prompt
+
+    def test_unknown_category_returns_default(self):
+        prompt = get_text_prompt('figure')
+        assert 'Read all text' in prompt
+
+
+class TestGetTextOcrProvider:
+    def test_get_gemini_text_provider(self):
+        config = {
+            'ocr_provider': 'gemini',
+            'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
+        }
+        provider = get_text_ocr_provider(config)
+        from saegim.services.gemini_ocr_service import GeminiTextOcrProvider
+
+        assert isinstance(provider, GeminiTextOcrProvider)
+
+    def test_get_olmocr_text_provider(self):
+        config = {
+            'ocr_provider': 'olmocr',
+            'vllm': {'host': 'localhost', 'port': 8080, 'model': 'test-model'},
+        }
+        provider = get_text_ocr_provider(config)
+        from saegim.services.vllm_ocr_service import VllmTextOcrProvider
+
+        assert isinstance(provider, VllmTextOcrProvider)
+
+    def test_get_unknown_text_provider(self):
+        with pytest.raises(ValueError, match='Unknown text OCR provider'):
+            get_text_ocr_provider({'ocr_provider': 'unknown'})

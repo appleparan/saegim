@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-labeling}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./saegim-backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
     ports:
       - "${PG_PORT:-15432}:5432"
     healthcheck:
@@ -31,10 +31,6 @@ services:
       STORAGE_PATH: /workspace/storage
       CORS_ORIGINS: '["http://localhost:${FE_PORT:-13000}"]'
       LOG_LEVEL: INFO
-      EXTRACTION_BACKEND: ${EXTRACTION_BACKEND:-mineru}
-      MINERU_API_URL: http://saegim-mineru:8000
-      MINERU_BACKEND: ${MINERU_BACKEND:-pipeline}
-      MINERU_LANGUAGE: ${MINERU_LANGUAGE:-korean}
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
@@ -75,10 +71,6 @@ services:
     environment:
       DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
       STORAGE_PATH: /workspace/storage
-      EXTRACTION_BACKEND: ${EXTRACTION_BACKEND:-mineru}
-      MINERU_API_URL: http://saegim-mineru:8000
-      MINERU_BACKEND: ${MINERU_BACKEND:-pipeline}
-      MINERU_LANGUAGE: ${MINERU_LANGUAGE:-korean}
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
@@ -90,55 +82,6 @@ services:
         condition: service_healthy
     networks:
       - saegim-net
-
-  saegim-mineru:
-    build:
-      context: ./saegim-mineru
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      LOG_LEVEL: INFO
-    volumes:
-      - ./storage:/workspace/storage
-    ports:
-      - "${MINERU_PORT:-18000}:8000"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - saegim-net
-
-  # saegim-mineru-gpu:
-  #   build:
-  #     context: ./saegim-mineru
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   environment:
-  #     LOG_LEVEL: INFO
-  #   volumes:
-  #     - ./storage:/workspace/storage
-  #   ports:
-  #     - "${MINERU_PORT:-18000}:8000"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [gpu]
-  #   profiles:
-  #     - gpu
-  #   networks:
-  #     - saegim-net
 
   frontend:
     build:
@@ -154,8 +97,68 @@ services:
     networks:
       - saegim-net
 
+  # Optional: PP-StructureV3 layout detection server
+  # Enable with: docker compose --profile ppstructure up
+  ppstructure:
+    image: registry.baidubce.com/paddlepaddle/paddlex:3.0.1-paddleocr1.1.0
+    profiles:
+      - ppstructure
+    restart: unless-stopped
+    command: paddlex_serving --model PP-StructureV3 --host 0.0.0.0 --port 18811
+    ports:
+      - "${PPSTRUCTURE_PORT:-18811}:18811"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:18811/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - saegim-net
+
+  # Optional: vLLM server for OlmOCR text recognition
+  # Enable with: docker compose --profile vllm up
+  # vllm:
+  #   image: vllm/vllm-openai:v0.15.1
+  #   profiles:
+  #     - vllm
+  #   restart: unless-stopped
+  #   command: >
+  #     --model allenai/olmOCR-2-7B-1025-FP8
+  #     --host 0.0.0.0
+  #     --port 8000
+  #     --max-model-len 4096
+  #     --gpu-memory-utilization 0.6
+  #   ports:
+  #     - "${VLLM_PORT:-18000}:8000"
+  #   volumes:
+  #     - vllm_cache:/root/.cache/huggingface
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+  #     start_period: 120s
+  #   networks:
+  #     - saegim-net
+
 volumes:
   postgres_data:
+  # vllm_cache:
 
 networks:
   saegim-net:

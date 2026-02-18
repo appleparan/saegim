@@ -25,7 +25,20 @@ class ProjectResponse(BaseModel):
 
 # --- OCR Config schemas ---
 
-OcrProvider = Literal['gemini', 'vllm', 'mineru', 'pymupdf']
+LayoutProvider = Literal['ppstructure', 'pymupdf']
+OcrProvider = Literal['gemini', 'olmocr', 'ppocr']
+
+
+class PpstructureConfig(BaseModel):
+    """PP-StructureV3 server configuration."""
+
+    host: str = Field(default='localhost', description='PP-StructureV3 server host')
+    port: int = Field(
+        default=18811,
+        ge=1,
+        le=65535,
+        description='PP-StructureV3 server port',
+    )
 
 
 class GeminiConfig(BaseModel):
@@ -36,20 +49,27 @@ class GeminiConfig(BaseModel):
 
 
 class VllmConfig(BaseModel):
-    """vLLM server configuration."""
+    """vLLM server configuration (for OlmOCR)."""
 
     host: str = Field(default='localhost', description='vLLM server host')
     port: int = Field(default=8000, ge=1, le=65535, description='vLLM server port')
     model: str = Field(
-        default='Qwen/Qwen2.5-VL-72B-Instruct',
+        default='allenai/olmOCR-2-7B-1025',
         description='vLLM model name',
     )
 
 
 class OcrConfigUpdate(BaseModel):
-    """Schema for updating project OCR configuration."""
+    """Schema for updating project OCR configuration.
 
-    provider: OcrProvider
+    Two-stage pipeline: layout_provider (detection) + ocr_provider (text).
+    - pymupdf layout: no extra config needed (fallback).
+    - ppstructure layout: requires ppstructure config + ocr_provider.
+    """
+
+    layout_provider: LayoutProvider
+    ocr_provider: OcrProvider | None = None
+    ppstructure: PpstructureConfig | None = None
     gemini: GeminiConfig | None = None
     vllm: VllmConfig | None = None
 
@@ -57,7 +77,9 @@ class OcrConfigUpdate(BaseModel):
 class OcrConfigResponse(BaseModel):
     """Schema for OCR configuration response."""
 
-    provider: OcrProvider
+    layout_provider: LayoutProvider
+    ocr_provider: OcrProvider | None = None
+    ppstructure: PpstructureConfig | None = None
     gemini: GeminiConfig | None = None
     vllm: VllmConfig | None = None
 

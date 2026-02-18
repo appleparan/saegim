@@ -77,34 +77,36 @@
 
 ### `GET /api/v1/projects/{project_id}/ocr-config`
 
-프로젝트의 OCR 설정 조회. 미설정 시 기본값 `{"provider": "mineru"}` 반환.
+프로젝트의 OCR 설정 조회. 미설정 시 기본값 `{"layout_provider": "pymupdf"}` 반환.
 
 **응답:** `200 OK`
 
 ```json
 {
-  "provider": "gemini",
-  "gemini": {
-    "api_key": "...",
-    "model": "gemini-2.0-flash"
-  }
+  "layout_provider": "ppstructure",
+  "ocr_provider": "gemini",
+  "ppstructure": { "host": "localhost", "port": 18811 },
+  "gemini": { "api_key": "...", "model": "gemini-2.0-flash" }
 }
 ```
 
 ### `PUT /api/v1/projects/{project_id}/ocr-config`
 
-프로젝트 OCR 설정 업데이트. provider가 `gemini`/`vllm`인 경우 해당 설정 필수.
+프로젝트 OCR 설정 업데이트 (2단계 파이프라인).
+
+- `layout_provider: ppstructure` → `ocr_provider` + `ppstructure` config 필수
+- `ocr_provider: gemini` → `gemini` config 필수
+- `ocr_provider: olmocr` → `vllm` config 필수
+- `layout_provider: pymupdf` → 추가 설정 불필요
 
 **요청 Body:**
 
 ```json
 {
-  "provider": "vllm",
-  "vllm": {
-    "host": "localhost",
-    "port": 8000,
-    "model": "Qwen/Qwen2.5-VL-72B-Instruct"
-  }
+  "layout_provider": "ppstructure",
+  "ocr_provider": "olmocr",
+  "ppstructure": { "host": "gpu-server", "port": 18811 },
+  "vllm": { "host": "gpu-server", "port": 8000, "model": "allenai/olmOCR-2-7B-1025" }
 }
 ```
 
@@ -112,7 +114,7 @@
 
 ### `POST /api/v1/projects/{project_id}/ocr-config/test`
 
-OCR 프로바이더 연결 테스트. Gemini는 API key 검증, vLLM은 서버 연결 확인.
+OCR 파이프라인 연결 테스트. PP-StructureV3 서버 + OCR 프로바이더 연결 확인.
 
 **요청 Body:** `PUT /ocr-config`과 동일한 형식.
 
@@ -121,7 +123,7 @@ OCR 프로바이더 연결 테스트. Gemini는 API key 검증, vLLM은 서버 �
 ```json
 {
   "success": true,
-  "message": "Connected to Gemini (Gemini 2.0 Flash)"
+  "message": "Connected to PP-StructureV3 at localhost:18811 | Connected to Gemini (Gemini 2.0 Flash)"
 }
 ```
 

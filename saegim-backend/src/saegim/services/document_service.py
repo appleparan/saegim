@@ -8,7 +8,6 @@ from typing import Any
 import asyncpg
 import fitz
 
-from saegim.api.settings import Settings, get_settings
 from saegim.repositories import document_repo, page_repo, project_repo
 from saegim.services import extraction_service
 
@@ -25,14 +24,11 @@ async def upload_and_convert(
     """Upload a PDF and convert each page to an image.
 
     Renders page images at 2x scale. Extraction backend is determined
-    by the project's ocr_config (if set), falling back to the
-    EXTRACTION_BACKEND environment variable.
+    by the project's ocr_config (2-stage pipeline).
 
-    Supported providers:
-    - 'pymupdf': Synchronous extraction via PyMuPDF (fallback for CI)
-    - 'mineru': Dispatches async Celery task for MinerU extraction
-    - 'gemini': Dispatches async Celery task for Gemini API OCR
-    - 'vllm': Dispatches async Celery task for local vLLM OCR
+    Layout providers:
+    - 'pymupdf': Synchronous extraction via PyMuPDF (default fallback)
+    - 'ppstructure': Dispatches async Celery task for PP-StructureV3 + OCR
 
     Args:
         pool: Database connection pool.
@@ -44,16 +40,15 @@ async def upload_and_convert(
     Returns:
         dict: Document info with id, filename, total_pages, status.
     """
-    settings = get_settings()
     storage = Path(storage_path)
     pdfs_dir = storage / 'pdfs'
     images_dir = storage / 'images'
     pdfs_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
 
-    # Resolve extraction provider from project config or env
-    ocr_config = await _resolve_ocr_config(pool, project_id, settings)
-    provider = ocr_config.get('provider', 'mineru')
+    # Resolve extraction provider from project config
+    ocr_config = await _resolve_ocr_config(pool, project_id)
+    layout_provider = ocr_config.get('layout_provider', 'pymupdf')
 
     doc_id = uuid.uuid4()
     safe_name = f'{doc_id}_{filename}'
@@ -73,7 +68,7 @@ async def upload_and_convert(
         pdf_doc = fitz.open(str(pdf_path))
         total_pages = len(pdf_doc)
 
-        use_pymupdf = provider == 'pymupdf'
+        use_pymupdf = layout_provider == 'pymupdf'
         page_info_list: list[dict] = []
 
         for page_no in range(total_pages):
@@ -88,9 +83,7 @@ async def upload_and_convert(
             # PyMuPDF fallback: synchronous extraction
             extracted = None
             if use_pymupdf:
-                extracted = extraction_service.extract_page_elements(
-                    page, scale=2.0
-                )
+                extracted = extraction_service.extract_page_elements(page, scale=2.0)
 
             page_record = await page_repo.create(
                 pool,
@@ -139,19 +132,11 @@ async def upload_and_convert(
             total_pages=total_pages,
         )
 
-        if provider == 'mineru':
-            _dispatch_mineru_extraction(
-                document_id=document_id,
-                pdf_path=pdf_path,
-                page_info_list=page_info_list,
-                settings=settings,
-            )
-        elif provider in ('gemini', 'vllm'):
-            _dispatch_ocr_extraction(
-                document_id=document_id,
-                page_info_list=page_info_list,
-                ocr_config=ocr_config,
-            )
+        _dispatch_ocr_extraction(
+            document_id=document_id,
+            page_info_list=page_info_list,
+            ocr_config=ocr_config,
+        )
 
         return {
             'id': document_id,
@@ -162,62 +147,30 @@ async def upload_and_convert(
 
     except Exception:
         logger.exception('Failed to process PDF: %s', filename)
-        await document_repo.update_status(
-            pool, document_id=document_id, status='error'
-        )
+        await document_repo.update_status(pool, document_id=document_id, status='error')
         raise
 
 
 async def _resolve_ocr_config(
     pool: asyncpg.Pool,
     project_id: uuid.UUID,
-    settings: Settings,
 ) -> dict[str, Any]:
-    """Resolve OCR configuration from project settings or env.
+    """Resolve OCR configuration from project settings.
+
+    Handles backward compatibility: if stored config uses the old
+    single 'provider' key (pre-2-stage), falls back to pymupdf.
 
     Args:
         pool: Database connection pool.
         project_id: Project UUID.
-        settings: Application settings (env fallback).
 
     Returns:
-        OCR config dict with at least a 'provider' key.
+        OCR config dict with at least a 'layout_provider' key.
     """
     config = await project_repo.get_ocr_config(pool, project_id)
-    if config and config.get('provider'):
+    if config and config.get('layout_provider'):
         return config
-    # Fallback to environment variable
-    return {'provider': settings.extraction_backend}
-
-
-def _dispatch_mineru_extraction(
-    document_id: uuid.UUID,
-    pdf_path: Path,
-    page_info_list: list[dict],
-    settings: Settings,
-) -> None:
-    """Dispatch MinerU extraction as a Celery task.
-
-    Args:
-        document_id: Document UUID.
-        pdf_path: Path to the PDF file.
-        page_info_list: List of page info dicts for the Celery task.
-        settings: Application settings with mineru_language and mineru_backend.
-    """
-    from saegim.tasks.extraction_task import run_mineru_extraction
-
-    run_mineru_extraction.delay(
-        document_id=str(document_id),
-        pdf_path=str(pdf_path),
-        page_info=page_info_list,
-        language=settings.mineru_language,
-        backend=settings.mineru_backend,
-    )
-    logger.info(
-        'Dispatched MinerU extraction task for document %s (%d pages)',
-        document_id,
-        len(page_info_list),
-    )
+    return {'layout_provider': 'pymupdf'}
 
 
 def _dispatch_ocr_extraction(
@@ -240,11 +193,10 @@ def _dispatch_ocr_extraction(
         ocr_config=ocr_config,
     )
     logger.info(
-        'Dispatched OCR extraction task for document %s '
-        '(%d pages, provider=%s)',
+        'Dispatched OCR extraction task for document %s (%d pages, ocr=%s)',
         document_id,
         len(page_info_list),
-        ocr_config.get('provider'),
+        ocr_config.get('ocr_provider'),
     )
 
 

@@ -18,9 +18,15 @@ export interface CreateProjectRequest {
   readonly description?: string
 }
 
-// --- OCR Config ---
+// --- OCR Config (2-stage pipeline) ---
 
-export type OcrProvider = 'gemini' | 'vllm' | 'mineru' | 'pymupdf'
+export type LayoutProvider = 'ppstructure' | 'pymupdf'
+export type OcrProvider = 'gemini' | 'olmocr' | 'ppocr'
+
+export interface PpstructureConfig {
+  readonly host: string
+  readonly port: number
+}
 
 export interface GeminiConfig {
   readonly api_key: string
@@ -34,13 +40,17 @@ export interface VllmConfig {
 }
 
 export interface OcrConfigResponse {
-  readonly provider: OcrProvider
+  readonly layout_provider: LayoutProvider
+  readonly ocr_provider?: OcrProvider
+  readonly ppstructure?: PpstructureConfig
   readonly gemini?: GeminiConfig
   readonly vllm?: VllmConfig
 }
 
 export interface OcrConfigUpdate {
-  readonly provider: OcrProvider
+  readonly layout_provider: LayoutProvider
+  readonly ocr_provider?: OcrProvider
+  readonly ppstructure?: PpstructureConfig
   readonly gemini?: GeminiConfig
   readonly vllm?: VllmConfig
 }

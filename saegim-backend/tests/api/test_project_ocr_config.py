@@ -1,4 +1,4 @@
-"""Tests for project OCR config endpoints."""
+"""Tests for project OCR config endpoints (2-stage pipeline)."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -20,12 +20,35 @@ class TestGetOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['provider'] == 'mineru'
+        assert data['layout_provider'] == 'pymupdf'
 
-    def test_get_existing_config(self, client: TestClient, sample_project_record):
+    def test_get_legacy_config_falls_back_to_pymupdf(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
+        project_id = sample_project_record['id']
+        legacy_config = {'provider': 'gemini', 'gemini': {'api_key': 'k'}}
+        with patch(
+            'saegim.repositories.project_repo.get_ocr_config',
+            new_callable=AsyncMock,
+            return_value=legacy_config,
+        ):
+            response = client.get(f'/api/v1/projects/{project_id}/ocr-config')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['layout_provider'] == 'pymupdf'
+
+    def test_get_existing_ppstructure_config(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
         project_id = sample_project_record['id']
         config = {
-            'provider': 'gemini',
+            'layout_provider': 'ppstructure',
+            'ocr_provider': 'gemini',
+            'ppstructure': {'host': 'localhost', 'port': 18811},
             'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
         }
         with patch(
@@ -37,9 +60,9 @@ class TestGetOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['provider'] == 'gemini'
+        assert data['layout_provider'] == 'ppstructure'
+        assert data['ocr_provider'] == 'gemini'
         assert data['gemini']['api_key'] == 'test-key'
-        assert data['gemini']['model'] == 'gemini-2.0-flash'
 
     def test_get_config_project_not_found(self, client: TestClient):
         with patch(
@@ -57,7 +80,29 @@ class TestGetOcrConfig:
 class TestUpdateOcrConfig:
     """Test PUT /projects/{id}/ocr-config."""
 
-    def test_update_gemini_config(self, client: TestClient, sample_project_record):
+    def test_update_pymupdf_config(self, client: TestClient, sample_project_record):
+        project_id = sample_project_record['id']
+        with (
+            patch(
+                'saegim.repositories.project_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_project_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.update_ocr_config',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.put(
+                f'/api/v1/projects/{project_id}/ocr-config',
+                json={'layout_provider': 'pymupdf'},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['layout_provider'] == 'pymupdf'
+
+    def test_update_ppstructure_gemini(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -74,17 +119,20 @@ class TestUpdateOcrConfig:
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
                 json={
-                    'provider': 'gemini',
+                    'layout_provider': 'ppstructure',
+                    'ocr_provider': 'gemini',
+                    'ppstructure': {'host': 'localhost', 'port': 18811},
                     'gemini': {'api_key': 'my-key', 'model': 'gemini-2.0-flash'},
                 },
             )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['provider'] == 'gemini'
+        assert data['layout_provider'] == 'ppstructure'
+        assert data['ocr_provider'] == 'gemini'
         assert data['gemini']['api_key'] == 'my-key'
 
-    def test_update_vllm_config(self, client: TestClient, sample_project_record):
+    def test_update_ppstructure_olmocr(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -101,22 +149,24 @@ class TestUpdateOcrConfig:
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
                 json={
-                    'provider': 'vllm',
+                    'layout_provider': 'ppstructure',
+                    'ocr_provider': 'olmocr',
+                    'ppstructure': {'host': 'localhost', 'port': 18811},
                     'vllm': {
                         'host': '192.168.1.10',
                         'port': 8080,
-                        'model': 'Qwen/Qwen2.5-VL-72B-Instruct',
+                        'model': 'allenai/olmOCR-2-7B-1025',
                     },
                 },
             )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['provider'] == 'vllm'
+        assert data['layout_provider'] == 'ppstructure'
+        assert data['ocr_provider'] == 'olmocr'
         assert data['vllm']['host'] == '192.168.1.10'
-        assert data['vllm']['port'] == 8080
 
-    def test_update_mineru_config(self, client: TestClient, sample_project_record):
+    def test_update_ppstructure_ppocr(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -132,26 +182,80 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
-                json={'provider': 'mineru'},
+                json={
+                    'layout_provider': 'ppstructure',
+                    'ocr_provider': 'ppocr',
+                    'ppstructure': {'host': 'localhost', 'port': 18811},
+                },
             )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['provider'] == 'mineru'
+        data = response.json()
+        assert data['layout_provider'] == 'ppstructure'
+        assert data['ocr_provider'] == 'ppocr'
 
-    def test_update_gemini_without_config(self, client: TestClient, sample_project_record):
+    def test_update_ppstructure_without_ppstructure_config(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={'provider': 'gemini'},
+            json={
+                'layout_provider': 'ppstructure',
+                'ocr_provider': 'ppocr',
+            },
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_vllm_without_config(self, client: TestClient, sample_project_record):
+    def test_update_ppstructure_without_ocr_provider(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={'provider': 'vllm'},
+            json={
+                'layout_provider': 'ppstructure',
+                'ppstructure': {'host': 'localhost', 'port': 18811},
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_update_gemini_without_gemini_config(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
+        project_id = sample_project_record['id']
+        response = client.put(
+            f'/api/v1/projects/{project_id}/ocr-config',
+            json={
+                'layout_provider': 'ppstructure',
+                'ocr_provider': 'gemini',
+                'ppstructure': {'host': 'localhost', 'port': 18811},
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_update_olmocr_without_vllm_config(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
+        project_id = sample_project_record['id']
+        response = client.put(
+            f'/api/v1/projects/{project_id}/ocr-config',
+            json={
+                'layout_provider': 'ppstructure',
+                'ocr_provider': 'olmocr',
+                'ppstructure': {'host': 'localhost', 'port': 18811},
+            },
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -164,39 +268,54 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 '/api/v1/projects/00000000-0000-0000-0000-000000000000/ocr-config',
-                json={'provider': 'pymupdf'},
+                json={'layout_provider': 'pymupdf'},
             )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_update_invalid_provider(self, client: TestClient, sample_project_record):
+    def test_update_invalid_layout_provider(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={'provider': 'invalid_provider'},
+            json={'layout_provider': 'invalid_provider'},
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_gemini_empty_api_key(self, client: TestClient, sample_project_record):
+    def test_update_gemini_empty_api_key(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
             json={
-                'provider': 'gemini',
+                'layout_provider': 'ppstructure',
+                'ocr_provider': 'gemini',
+                'ppstructure': {'host': 'localhost', 'port': 18811},
                 'gemini': {'api_key': '', 'model': 'gemini-2.0-flash'},
             },
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_vllm_invalid_port(self, client: TestClient, sample_project_record):
+    def test_update_ppstructure_invalid_port(
+        self,
+        client: TestClient,
+        sample_project_record,
+    ):
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
             json={
-                'provider': 'vllm',
-                'vllm': {'host': 'localhost', 'port': 99999, 'model': 'test'},
+                'layout_provider': 'ppstructure',
+                'ocr_provider': 'ppocr',
+                'ppstructure': {'host': 'localhost', 'port': 99999},
             },
         )
 
