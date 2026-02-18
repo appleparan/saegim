@@ -615,12 +615,10 @@ PDF 업로드
 
 구현 파일:
 
-- `saegim-mineru/src/saegim_mineru/app.py`: MinerU AGPL HTTP 서비스 (FastAPI)
-- `mineru_extraction_service.py`: HTTP 클라이언트 + OmniDocBench 변환 (Apache 2.0)
 - `extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
 - `document_service.py`: 업로드 시 백엔드 분기 + Celery 디스패치
 - `tasks/celery_app.py`: Celery 앱 설정 (Redis broker)
-- `tasks/extraction_task.py`: MinerU 추출 Celery 태스크
+- `tasks/ocr_extraction_task.py`: OCR 파이프라인 Celery 태스크
 - `page_repo.py`: `create()`, `accept_auto_extracted()`, `update_auto_extracted_data()`
 - `labeling_service.py`: `accept_auto_extraction()`
 - `ExtractionPreview.svelte`: 추출 진행중 표시 + 수락/무시 UI
@@ -908,7 +906,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 ```text
 PDF 업로드
   → 이미지 변환 (PyMuPDF)
-  → 레이아웃 자동 추출 (MinerU)          ← Phase 2에서 구현
+  → 레이아웃 자동 추출 (PP-StructureV3)   ← Phase 2에서 구현
   → AI 의미 추출 (VLM API 호출)          ← Phase 4a에서 추가
       ├── Overview 추출
       ├── Core Idea 추출
