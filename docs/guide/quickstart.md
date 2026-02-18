@@ -43,7 +43,9 @@ docker compose --profile gpu up -d
 
 !!! note
     GPU 모드에서는 `backend` 대신 `backend-gpu` 서비스가 실행됩니다.
-    [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)이 설치되어 있어야 합니다.
+    [NVIDIA Container Toolkit][nvidia-toolkit]이 설치되어 있어야 합니다.
+
+[nvidia-toolkit]: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
 
 ## 접속 확인
 

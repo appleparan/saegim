@@ -2,7 +2,9 @@
 
 한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
 
-PDF 문서를 업로드하면 페이지별 이미지로 변환하고, 웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여 [OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
+PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
+웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
 
 ## 아키텍처
 
@@ -102,7 +104,7 @@ docker compose down -v
 
 ### 로컬 개발 환경
 
-#### 사전 요구사항
+#### 로컬 사전 요구사항
 
 - Python 3.13+ & [uv](https://docs.astral.sh/uv/)
 - [Bun](https://bun.sh/)
@@ -154,7 +156,7 @@ echo "VITE_API_URL=http://localhost:5000" > .env
 bun run dev
 ```
 
-#### 접속
+#### 로컬 접속
 
 | URL | 설명 |
 | --- | ---- |

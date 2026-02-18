@@ -247,6 +247,7 @@ OCR 프로바이더 설정 폼 컴포넌트.
 | `ontest` | `(config: OcrConfigResponse) => void` | - | 연결 테스트 핸들러 |
 
 기능:
+
 - 4개 프로바이더 선택 (카드 UI): MinerU, PyMuPDF, Gemini, vLLM
 - Gemini 선택 시 API Key (password) + 모델명 입력 표시
 - vLLM 선택 시 호스트 + 포트 + 모델명 입력 표시
