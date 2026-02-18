@@ -12,7 +12,11 @@ from typing import Any
 
 import httpx
 
-from saegim.services.ocr_provider import STRUCTURED_OCR_PROMPT, build_omnidocbench_page
+from saegim.services.ocr_provider import (
+    STRUCTURED_OCR_PROMPT,
+    build_omnidocbench_page,
+    get_text_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,3 +143,94 @@ def _parse_gemini_response(result: dict[str, Any]) -> list[dict[str, Any]]:
     except (json.JSONDecodeError, KeyError, IndexError) as exc:
         logger.exception('Failed to parse Gemini response: %s', exc)
         return []
+
+
+class GeminiTextOcrProvider:
+    """Text-only OCR provider using Google Gemini API.
+
+    Used in the 2-stage pipeline: receives a cropped region image
+    and returns extracted text.
+    """
+
+    def __init__(self, api_key: str, model: str = 'gemini-2.0-flash') -> None:
+        """Initialize Gemini text OCR provider.
+
+        Args:
+            api_key: Google Gemini API key.
+            model: Gemini model name.
+        """
+        self._api_key = api_key
+        self._model = model
+
+    def extract_text(self, image_bytes: bytes, category_hint: str = '') -> str:
+        """Extract text from a cropped region image via Gemini API.
+
+        Args:
+            image_bytes: Raw image bytes of the cropped region.
+            category_hint: OmniDocBench category hint for prompt selection.
+
+        Returns:
+            Extracted text string.
+
+        Raises:
+            RuntimeError: If Gemini API call fails.
+        """
+        prompt = get_text_prompt(category_hint)
+        image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+
+        url = f'{_GEMINI_API_BASE}/models/{self._model}:generateContent?key={self._api_key}'
+        payload = {
+            'contents': [
+                {
+                    'parts': [
+                        {'text': prompt},
+                        {
+                            'inline_data': {
+                                'mime_type': 'image/png',
+                                'data': image_b64,
+                            },
+                        },
+                    ],
+                },
+            ],
+            'generationConfig': {
+                'temperature': 0.1,
+            },
+        }
+
+        try:
+            with httpx.Client(timeout=httpx.Timeout(120.0)) as client:
+                response = client.post(url, json=payload)
+                response.raise_for_status()
+                result = response.json()
+        except httpx.HTTPStatusError as exc:
+            msg = f'Gemini API returned {exc.response.status_code}: {exc.response.text}'
+            raise RuntimeError(msg) from exc
+        except httpx.RequestError as exc:
+            msg = f'Gemini API request failed: {exc}'
+            raise RuntimeError(msg) from exc
+
+        return _extract_text_from_gemini(result)
+
+
+def _extract_text_from_gemini(result: dict[str, Any]) -> str:
+    """Extract plain text from Gemini API response.
+
+    Args:
+        result: Raw Gemini API JSON response.
+
+    Returns:
+        Extracted text string, empty if parsing fails.
+    """
+    try:
+        candidates = result.get('candidates', [])
+        if not candidates:
+            return ''
+        content = candidates[0].get('content', {})
+        parts = content.get('parts', [])
+        if not parts:
+            return ''
+        return parts[0].get('text', '').strip()
+    except (KeyError, IndexError) as exc:
+        logger.exception('Failed to extract text from Gemini response: %s', exc)
+        return ''

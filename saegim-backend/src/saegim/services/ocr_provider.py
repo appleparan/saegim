@@ -39,7 +39,7 @@ STRUCTURED_OCR_PROMPT = (
 
 
 class OcrProvider(Protocol):
-    """Protocol for OCR providers."""
+    """Protocol for OCR providers (full-page layout + text)."""
 
     def extract_page(
         self,
@@ -56,6 +56,26 @@ class OcrProvider(Protocol):
 
         Returns:
             OmniDocBench-compatible dict with layout_dets, page_attribute, extra.
+        """
+        ...
+
+
+class TextOcrProvider(Protocol):
+    """Protocol for text-only OCR providers (2-stage pipeline).
+
+    Used with PP-StructureV3 layout detection: receives a cropped region
+    image and returns extracted text.
+    """
+
+    def extract_text(self, image_bytes: bytes, category_hint: str = '') -> str:
+        """Extract text from a cropped region image.
+
+        Args:
+            image_bytes: Raw image bytes of the cropped region.
+            category_hint: OmniDocBench category hint (e.g. 'table', 'equation_isolated').
+
+        Returns:
+            Extracted text string.
         """
         ...
 
@@ -147,4 +167,88 @@ def get_ocr_provider(ocr_config: dict[str, Any]) -> OcrProvider:
         )
 
     msg = f"Unknown OCR provider: '{provider}'. Use 'gemini' or 'olmocr'."
+    raise ValueError(msg)
+
+
+# --- Text-only OCR for 2-stage pipeline ---
+
+# Category-specific prompts for text-only extraction
+_TEXT_PROMPT_DEFAULT = (
+    'Read all text in this image and return it exactly as written. '
+    'Preserve line breaks and paragraph structure. '
+    'Return only the extracted text, nothing else.'
+)
+
+_TEXT_PROMPT_TABLE = (
+    'This image contains a table. '
+    'Extract the table content as a markdown table. '
+    'Use | for column separators and --- for header rows. '
+    'Return only the markdown table, nothing else.'
+)
+
+_TEXT_PROMPT_EQUATION = (
+    'This image contains a mathematical equation. '
+    'Convert it to LaTeX notation. '
+    'Return only the LaTeX expression (no $$ delimiters), nothing else.'
+)
+
+_TEXT_PROMPT_CODE = (
+    'This image contains source code. '
+    'Extract the code exactly as written, preserving indentation. '
+    'Return only the code, nothing else.'
+)
+
+_CATEGORY_PROMPT_MAP: dict[str, str] = {
+    'table': _TEXT_PROMPT_TABLE,
+    'equation_isolated': _TEXT_PROMPT_EQUATION,
+    'code_txt': _TEXT_PROMPT_CODE,
+}
+
+
+def get_text_prompt(category_hint: str = '') -> str:
+    """Get the appropriate text extraction prompt for a category.
+
+    Args:
+        category_hint: OmniDocBench category type.
+
+    Returns:
+        Prompt string for text extraction.
+    """
+    return _CATEGORY_PROMPT_MAP.get(category_hint, _TEXT_PROMPT_DEFAULT)
+
+
+def get_text_ocr_provider(ocr_config: dict[str, Any]) -> TextOcrProvider:
+    """Get a text-only OCR provider instance for the 2-stage pipeline.
+
+    Args:
+        ocr_config: OCR configuration dict with 'ocr_provider' key.
+
+    Returns:
+        TextOcrProvider instance.
+
+    Raises:
+        ValueError: If provider is unknown or unsupported for text extraction.
+    """
+    provider = ocr_config.get('ocr_provider', '')
+
+    if provider == 'gemini':
+        from saegim.services.gemini_ocr_service import GeminiTextOcrProvider
+
+        gemini_config = ocr_config.get('gemini', {})
+        return GeminiTextOcrProvider(
+            api_key=gemini_config['api_key'],
+            model=gemini_config.get('model', 'gemini-2.0-flash'),
+        )
+
+    if provider == 'olmocr':
+        from saegim.services.vllm_ocr_service import VllmTextOcrProvider
+
+        vllm_config = ocr_config.get('vllm', {})
+        return VllmTextOcrProvider(
+            host=vllm_config.get('host', 'localhost'),
+            port=vllm_config.get('port', 8000),
+            model=vllm_config.get('model', 'allenai/olmOCR-2-7B-1025'),
+        )
+
+    msg = f"Unknown text OCR provider: '{provider}'. Use 'gemini' or 'olmocr'."
     raise ValueError(msg)

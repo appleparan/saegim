@@ -5,7 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from saegim.services.vllm_ocr_service import VllmOcrProvider, _parse_vllm_response
+from saegim.services.vllm_ocr_service import (
+    VllmOcrProvider,
+    VllmTextOcrProvider,
+    _extract_text_from_vllm,
+    _parse_vllm_response,
+)
 
 
 class TestParseVllmResponse:
@@ -128,3 +133,105 @@ class TestVllmOcrProvider:
             provider = VllmOcrProvider()
             with pytest.raises(RuntimeError, match='vLLM API request failed'):
                 provider.extract_page(image_path, 800, 1200)
+
+
+class TestExtractTextFromVllm:
+    def test_extract_text_success(self):
+        result = {
+            'choices': [{'message': {'content': 'Hello World'}}],
+        }
+        assert _extract_text_from_vllm(result) == 'Hello World'
+
+    def test_extract_text_empty_choices(self):
+        assert _extract_text_from_vllm({'choices': []}) == ''
+
+    def test_extract_text_strips_whitespace(self):
+        result = {
+            'choices': [{'message': {'content': '  trimmed  '}}],
+        }
+        assert _extract_text_from_vllm(result) == 'trimmed'
+
+
+class TestVllmTextOcrProvider:
+    def test_base_url(self):
+        provider = VllmTextOcrProvider(host='10.0.0.1', port=9090)
+        assert provider.base_url == 'http://10.0.0.1:9090'
+
+    @patch('saegim.services.vllm_ocr_service.httpx.Client')
+    def test_extract_text_success(self, mock_client_cls):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'choices': [{'message': {'content': 'Extracted text'}}],
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        provider = VllmTextOcrProvider(
+            host='localhost',
+            port=8000,
+            model='test-model',
+        )
+        result = provider.extract_text(b'fake-png-bytes', 'text_block')
+
+        assert result == 'Extracted text'
+        mock_client.post.assert_called_once()
+
+    @patch('saegim.services.vllm_ocr_service.httpx.Client')
+    def test_extract_text_api_error(self, mock_client_cls):
+        import httpx
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = 'Internal Server Error'
+        error = httpx.HTTPStatusError(
+            'error',
+            request=MagicMock(),
+            response=mock_response,
+        )
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = MagicMock()
+        mock_client.post.return_value.raise_for_status.side_effect = error
+        mock_client_cls.return_value = mock_client
+
+        provider = VllmTextOcrProvider()
+        with pytest.raises(RuntimeError, match='vLLM API returned 500'):
+            provider.extract_text(b'fake-png-bytes')
+
+    @patch('saegim.services.vllm_ocr_service.httpx.Client')
+    def test_extract_text_connection_error(self, mock_client_cls):
+        import httpx
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.side_effect = httpx.ConnectError('Connection refused')
+        mock_client_cls.return_value = mock_client
+
+        provider = VllmTextOcrProvider()
+        with pytest.raises(RuntimeError, match='vLLM API request failed'):
+            provider.extract_text(b'fake-png-bytes')
+
+    @patch('saegim.services.vllm_ocr_service.httpx.Client')
+    def test_extract_text_empty_response(self, mock_client_cls):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {'choices': []}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        provider = VllmTextOcrProvider()
+        result = provider.extract_text(b'fake-png-bytes')
+
+        assert result == ''
