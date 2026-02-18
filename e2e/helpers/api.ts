@@ -59,6 +59,19 @@ interface ExportResponse {
   data: Record<string, unknown>[]
 }
 
+interface OcrConfigResponse {
+  layout_provider: 'ppstructure' | 'pymupdf'
+  ocr_provider?: 'gemini' | 'olmocr' | 'ppocr' | null
+  ppstructure?: { host: string; port: number } | null
+  gemini?: { api_key: string; model: string } | null
+  vllm?: { host: string; port: number; model: string } | null
+}
+
+interface OcrConnectionTestResponse {
+  success: boolean
+  message: string
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -245,6 +258,30 @@ export async function exportProject(
     `/projects/${projectId}/export`,
   )
   return { data, duration }
+}
+
+export async function getOcrConfig(
+  projectId: string,
+): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {
+  return request<OcrConfigResponse>('GET', `/projects/${projectId}/ocr-config`)
+}
+
+export async function updateOcrConfig(
+  projectId: string,
+  config: Record<string, unknown>,
+): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {
+  return request<OcrConfigResponse>('PUT', `/projects/${projectId}/ocr-config`, {
+    body: config,
+  })
+}
+
+export async function testOcrConnection(
+  projectId: string,
+  config: Record<string, unknown>,
+): Promise<{ data: OcrConnectionTestResponse; status: number; duration: number }> {
+  return request<OcrConnectionTestResponse>('POST', `/projects/${projectId}/ocr-config/test`, {
+    body: config,
+  })
 }
 
 export async function waitForBackendReady(

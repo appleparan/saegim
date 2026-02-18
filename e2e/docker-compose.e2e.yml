@@ -31,7 +31,6 @@ services:
       STORAGE_PATH: /workspace/storage
       CORS_ORIGINS: '["http://localhost:23000"]'
       LOG_LEVEL: INFO
-      EXTRACTION_BACKEND: pymupdf
     volumes:
       - e2e_storage:/workspace/storage
     ports:
