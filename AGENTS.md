@@ -237,10 +237,10 @@ PDF 등 한국어 문서 데이터셋을 업로드하면 OmniDocBench 포맷의 
 | **DB 드라이버** | asyncpg (raw SQL) | 비동기 PostgreSQL 드라이버. ORM 없이 raw SQL + Repository 패턴으로 JSONB 직접 제어 |
 | **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
 | **파일 저장** | 로컬 파일시스템 (→ 추후 MinIO/S3) | PDF 원본, 페이지 이미지 등 바이너리 파일 |
-| **자동 추출** | MinerU (AGPL, 독립 서비스) | 15+ 카테고리 레이아웃 검출. AGPL 라이선스 → `saegim-mineru` 별도 컨테이너로 HTTP API 통신 |
-| **OCR/레이아웃 ML** | Google Gemini API, vLLM | VLM 기반 구조화 OCR. 프로젝트별 설정으로 프로바이더 선택 가능 |
+| **레이아웃 감지** | PP-StructureV3 (PaddleX HTTP 서비스) | 2단계 파이프라인 1단계: bbox + category 감지. Docker profile로 선택적 실행 |
+| **텍스트 OCR** | Gemini API, OlmOCR (vLLM), PP-OCRv5 (내장) | 2단계 파이프라인 2단계: 크롭 영역 텍스트 추출. 프로젝트별 설정 |
 | **PDF 추출 (폴백)** | PyMuPDF | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
-| **태스크 큐** | Celery + Redis | MinerU 비동기 추출, Celery worker → saegim-mineru HTTP 호출 |
+| **태스크 큐** | Celery + Redis | PP-StructureV3 + OCR 비동기 추출, Celery worker |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
 
 #### 프론트엔드 ↔ 백엔드 연결 구조
@@ -337,8 +337,8 @@ ORM 없이 asyncpg raw SQL을 사용하며, Repository가 SQL 쿼리를 캡슐�
 | backend | ./saegim-backend | 5000 | |
 | frontend | ./saegim-frontend | 80 (→ 5173) | |
 | redis | redis:7-alpine | 6379 | |
-| celery-worker | ./saegim-backend | - | Celery 워커, saegim-mineru HTTP 호출 |
-| saegim-mineru | ./saegim-mineru | 8000 | MinerU AGPL 독립 서비스 |
+| celery-worker | ./saegim-backend | - | Celery 워커, PP-StructureV3 + OCR 파이프라인 실행 |
+| ppstructure | paddlex:3.0.1-paddleocr1.1.0 | 18811 | PP-StructureV3 레이아웃 감지 (profile: ppstructure, GPU 필요) |
 
 `docker compose up` 한 줄이면 로컬/서버 동일 환경.
 E2E 테스트용 격리 환경: [e2e/docker-compose.e2e.yml](e2e/docker-compose.e2e.yml) (Section 3.8).
@@ -369,12 +369,6 @@ saegim/
 │   │   ├── tasks/                # Celery 비동기 태스크 (Redis broker)
 │   │   └── schemas/              # Pydantic 요청/응답 스키마
 │   └── tests/                    # pytest (api/, services/, tasks/)
-│
-├── saegim-mineru/                # MinerU PDF 추출 HTTP 서비스 (AGPL, 독립 컨테이너)
-│   ├── Dockerfile
-│   ├── pyproject.toml            # uv 패키지 관리 (mineru[pipeline] 의존)
-│   └── src/saegim_mineru/
-│       └── app.py                # FastAPI: POST /api/v1/extract → content_list JSON
 │
 ├── saegim-frontend/              # Svelte 5 (Runes) SPA
 │   ├── Dockerfile
@@ -494,6 +488,7 @@ bun run docker:down
 | `benchmark.spec.ts` | OmniDocBench Export JSON 스키마 검증 |
 | `hybrid-labeling.spec.ts` | 3-layer 하이브리드 뷰어 (배경+Konva+TextOverlay) |
 | `extraction.spec.ts` | PDF 텍스트/이미지 추출 → 수락 → 어노테이션 반영 |
+| `ocr-config.spec.ts` | 2단계 OCR 설정 CRUD, 검증, 연결 테스트 |
 
 #### 헬퍼 모듈
 
@@ -571,33 +566,30 @@ Step 7: 완료 & 제출
 
 ## 5. 자동 추출 파이프라인 상세
 
-### 5.0 현재 구현: 이중 백엔드 추출 (구현 완료)
+### 5.0 현재 구현: 2단계 OCR 파이프라인 (구현 완료)
 
-`EXTRACTION_BACKEND` 환경변수로 추출 백엔드를 선택한다:
-
-#### 5.0.1 MinerU 백엔드 (기본값, `EXTRACTION_BACKEND=mineru`)
-
-**AGPL 라이선스 분리**: MinerU는 AGPL 라이선스이므로 saegim-backend (Apache 2.0)에서 직접 import하지 않고,
-별도 Docker 컨테이너(`saegim-mineru`)로 분리하여 HTTP API로 통신한다.
+프로젝트별 `ocr_config` JSONB로 추출 파이프라인을 설정한다:
 
 ```text
-PDF 업로드
-  → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → Celery 태스크 디스패치 (비동기)
-     → HTTP POST → saegim-mineru:8000/api/v1/extract (공유 볼륨으로 PDF 접근)
-     → saegim-mineru 컨테이너에서 MinerU pipeline 실행
-     → content_list JSON 응답
-     → content_list → OmniDocBench 변환 (saegim-backend 자체 코드)
-        ├── 15+ 카테고리 매핑 (title, text_block, figure, table, equation_isolated, ...)
-        ├── bbox 0-1000 정규화 → 픽셀 좌표 변환
-        ├── 수식 → latex 필드, 테이블 → html 필드
-        └── 캡션/각주 → 별도 element 생성
-     → psycopg (동기)로 각 페이지 auto_extracted_data 업데이트
-     → document status: extracting → ready (또는 extraction_failed)
-  → 프론트엔드에서 "수락" → annotation_data로 복사
+PDF → 페이지 이미지 → PP-StructureV3 (bbox + category)
+                          ↓
+                  ┌───────┼───────┐
+                  │       │       │
+              Gemini   OlmOCR   PP-OCRv5
+              (API)   (vLLM)   (내장)
+                  └───────┼───────┘
+                          ↓
+                  OmniDocBench JSON
 ```
 
-#### 5.0.2 PyMuPDF 백엔드 (CI 폴백, `EXTRACTION_BACKEND=pymupdf`)
+| # | 레이아웃 감지 | 텍스트 OCR | 설명 |
+|---|---|---|---|
+| 1 | PP-StructureV3 | Gemini API | 클라우드 OCR |
+| 2 | PP-StructureV3 | OlmOCR (vLLM) | 로컬 OCR |
+| 3 | PP-StructureV3 | PP-OCRv5 (내장) | PP-StructureV3 단독 |
+| fallback | — | PyMuPDF | 기본 추출 (GPU 없을 때) |
+
+#### 5.0.1 PyMuPDF 폴백 (`layout_provider: pymupdf`)
 
 ```text
 PDF 업로드
@@ -624,56 +616,66 @@ PDF 업로드
 - `labeling_service.py`: `accept_auto_extraction()`
 - `ExtractionPreview.svelte`: 추출 진행중 표시 + 수락/무시 UI
 
-#### 5.0.3 Gemini API 백엔드 (`ocr_config.provider=gemini`)
+#### 5.0.2 PP-StructureV3 + OCR 파이프라인 (`layout_provider: ppstructure`)
 
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
   → Celery 태스크 디스패치 (run_ocr_extraction)
-     → 페이지별 이미지를 base64 인코딩
-     → Gemini API (v1beta/models/{model}:generateContent)
-     → structured output 프롬프트로 text + bbox + category 추출
-     → OmniDocBench 변환 (bbox_to_poly, build_omnidocbench_page)
+     → 페이지별:
+        1. PpstructureClient.detect_layout(image_path)
+           → PP-StructureV3 HTTP POST /api/v1/predict
+           → list[LayoutRegion(bbox, category, score, text?)]
+        2. 텍스트 영역 크롭 (PIL/Pillow)
+        3. OCR 프로바이더별 텍스트 추출:
+           - gemini: Gemini API (category_hint별 프롬프트)
+           - olmocr: vLLM API (allenai/olmOCR-2-7B-1025)
+           - ppocr: PP-StructureV3 반환 text 직접 사용
+        4. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
      → psycopg로 각 페이지 auto_extracted_data 업데이트
-     → document status: extracting → ready
+     → document status: extracting → ready (또는 extraction_failed)
+  → 프론트엔드에서 "수락" → annotation_data로 복사
 ```
 
-#### 5.0.4 vLLM 백엔드 (`ocr_config.provider=vllm`)
+#### `ocr_config` JSONB 구조
 
-```text
-PDF 업로드
-  → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → Celery 태스크 디스패치 (run_ocr_extraction)
-     → 페이지별 이미지를 base64 인코딩
-     → vLLM OpenAI-compatible API (/v1/chat/completions, vision)
-     → 동일한 structured output 프롬프트
-     → OmniDocBench 변환
-     → psycopg로 각 페이지 auto_extracted_data 업데이트
-     → document status: extracting → ready
+```json
+{
+  "layout_provider": "ppstructure",
+  "ocr_provider": "gemini",
+  "ppstructure": { "host": "localhost", "port": 18811 },
+  "gemini": { "api_key": "...", "model": "gemini-2.0-flash" },
+  "vllm": { "host": "...", "port": 8000, "model": "allenai/olmOCR-2-7B-1025" }
+}
 ```
 
-구현 파일 (VLM OCR 프로바이더):
+PyMuPDF 폴백: `{ "layout_provider": "pymupdf" }`
 
-- `services/ocr_provider.py`: 팩토리 패턴, OcrProvider Protocol, 공통 프롬프트
-- `services/gemini_ocr_service.py`: Gemini API httpx 클라이언트
-- `services/vllm_ocr_service.py`: vLLM OpenAI-compatible 클라이언트
-- `services/ocr_connection_test.py`: 연결 테스트 (API key 검증, 서버 연결)
-- `tasks/ocr_extraction_task.py`: VLM OCR Celery 태스크
-- `schemas/project.py`: OcrConfigUpdate, OcrConfigResponse, GeminiConfig, VllmConfig
-- `OcrSettingsPanel.svelte`: 프로바이더 선택 + 설정 UI + 연결 테스트
+#### 구현 파일
+
+- `services/ppstructure_service.py`: PP-StructureV3 HTTP 클라이언트 (`PpstructureClient`, `LayoutRegion`)
+- `services/ocr_pipeline.py`: 2단계 파이프라인 오케스트레이터 (`OcrPipeline`, `build_ocr_pipeline`)
+- `services/ocr_provider.py`: `TextOcrProvider` Protocol, 팩토리 (`get_text_ocr_provider`)
+- `services/gemini_ocr_service.py`: `GeminiTextOcrProvider` (크롭 이미지 → 텍스트)
+- `services/vllm_ocr_service.py`: `VllmTextOcrProvider` (OlmOCR via vLLM)
+- `services/ocr_connection_test.py`: PP-StructureV3 + OCR 프로바이더 연결 테스트
+- `services/extraction_service.py`: PyMuPDF 폴백 추출
+- `tasks/ocr_extraction_task.py`: Celery 태스크 (`build_ocr_pipeline` → `extract_page`)
+- `schemas/project.py`: `OcrConfigUpdate`, `PpstructureConfig`, `GeminiConfig`, `VllmConfig`
+- `OcrSettingsPanel.svelte`: 2단계 설정 UI + 연결 테스트
 
 ### 5.1 후보 도구 비교
 
 | 도구 | 특징 | 장점 | 단점 | 상태 |
 | ------ | ------ | ------ | ------ | ------ |
-| **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 (AGPL) | OmniDocBench 포맷과 직접 호환, 15+ 카테고리 | AGPL 라이선스 → 독립 서비스 분리 필요 | **구현 완료** (saegim-mineru 독립 서비스) |
-| **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 | 미구현 |
+| **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 (AGPL) | OmniDocBench 포맷과 직접 호환, 15+ 카테고리 | AGPL 라이선스 | **제거됨** (라이선스 이슈) |
+| **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 (Docker 서비스) | **구현 완료** (2단계 파이프라인 1단계) |
 | **DocLayout-YOLO** | 경량 레이아웃 검출 | 빠른 추론 속도 | 텍스트 인식 별도 필요 | 미구현 |
 | **Marker** (VikParuchuri) | PDF → Markdown 변환 | 간단한 파이프라인 | Attribute 정보 없음 | 미구현 |
 | **Google Gemini API** | VLM structured output | 고품질 OCR, 클라우드 API | API 비용, 네트워크 의존 | **구현 완료** (프로젝트별 설정) |
 | **vLLM (로컬)** | OpenAI-compatible VLM 서버 | 로컬 실행, 비용 없음 | GPU 필요, 모델 관리 | **구현 완료** (프로젝트별 설정) |
 
-**현재**: MinerU pipeline 백엔드를 1차 파이프라인으로 사용. Gemini API와 vLLM을 프로젝트별 OCR 프로바이더로 선택 가능. 한국어 OCR 부분은 별도 보강 필요(예: PaddleOCR 한국어 모델). 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
+**현재**: PP-StructureV3를 레이아웃 감지 1단계로, Gemini/OlmOCR/PP-OCR를 텍스트 OCR 2단계로 사용하는 2단계 파이프라인 구현 완료. MinerU는 AGPL 라이선스 이슈로 제거됨. PyMuPDF는 GPU 없는 환경의 폴백으로 유지. 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
 
 ### 5.2 자동 Attribute 분류 전략
 
@@ -826,15 +828,17 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 - **ExtractionPreview UI**: 자동 추출 결과 프리뷰 배너 + 수락/무시 버튼
 - **TextOverlay 연동**: 수락 후 텍스트 블록의 text가 투명 오버레이로 렌더링 → 드래그 선택 가능
 
-#### 구현 완료 (Stage 4~6, PR #5)
+#### 구현 완료 (Stage 4~6, PR #5 → PR #9에서 2단계 파이프라인으로 전환)
 
-- **MinerU 구조 추출 통합**: MinerU pipeline 백엔드를 통한 15+ 카테고리 레이아웃 검출, 수식 LaTeX 변환, 테이블 HTML 변환
-- **content_list → OmniDocBench 변환**: MinerU의 `content_list.json` 출력을 OmniDocBench 형식으로 변환 (좌표 0-1000 정규화 → 픽셀 좌표)
-- **Celery + Redis 비동기 처리**: MinerU 추출을 Celery 태스크로 비동기 실행, Redis를 broker/backend로 사용
-- **추출 백엔드 분기**: `EXTRACTION_BACKEND` 환경변수로 `pymupdf`(동기 폴백) / `mineru`(비동기) 선택
-- **문서 상태 확장**: `extracting`, `extraction_failed` 상태 추가
-- **프론트엔드 UI**: 추출 진행중 배지 + 자동 폴링, ExtractionPreview 컴포넌트에 MinerU 추출 중 표시
-- **Docker Compose**: Redis 서비스 + Celery 워커 + GPU 워커(주석) 추가
+- **2단계 OCR 파이프라인**: PP-StructureV3 (레이아웃) + Gemini/OlmOCR/PP-OCR (텍스트)
+- **PP-StructureV3 HTTP 클라이언트**: `PpstructureClient` — bbox + category 감지
+- **텍스트 OCR 프로바이더**: `TextOcrProvider` Protocol — 크롭 이미지에서 텍스트 추출
+- **파이프라인 오케스트레이터**: `OcrPipeline` — layout → crop → OCR → OmniDocBench 조합
+- **Celery + Redis 비동기 처리**: 2단계 파이프라인을 Celery 태스크로 비동기 실행
+- **프로젝트별 OCR 설정**: `ocr_config` JSONB (`layout_provider` + `ocr_provider`)
+- **문서 상태 확장**: `extracting`, `extraction_failed` 상태
+- **프론트엔드 UI**: 2단계 OCR 설정 패널 + 연결 테스트 + 추출 진행중 표시
+- **Docker Compose**: Redis + Celery 워커 + PP-StructureV3 서비스 (profile: ppstructure)
 
 #### 미구현 (후속 PR)
 

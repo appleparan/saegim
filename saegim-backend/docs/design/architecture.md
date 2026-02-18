@@ -55,15 +55,17 @@ src/saegim/api/routes/
 
 ```text
 src/saegim/services/
-├── document_service.py    # PDF 업로드 → 이미지 변환 → 텍스트/이미지 추출 → DB 저장
-├── extraction_service.py  # PyMuPDF 텍스트/이미지 블록 추출 (auto_extracted_data 생성)
-├── ocr_provider.py        # OCR 프로바이더 팩토리 (get_ocr_provider) + 공통 인터페이스
-├── gemini_ocr_service.py  # Google Gemini API OCR 프로바이더
-├── vllm_ocr_service.py    # vLLM OpenAI-compatible API OCR 프로바이더
-├── ocr_connection_test.py # OCR 프로바이더 연결 테스트 (Gemini API key 검증, vLLM 서버 확인)
-├── labeling_service.py    # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
-├── analysis_service.py    # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
-└── export_service.py      # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
+├── document_service.py       # PDF 업로드 → 이미지 변환 → 추출 분기 (PyMuPDF/Celery)
+├── extraction_service.py     # PyMuPDF 폴백 추출 (text_block + figure)
+├── ppstructure_service.py    # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
+├── ocr_pipeline.py           # 2단계 파이프라인 오케스트레이터 (OcrPipeline, build_ocr_pipeline)
+├── ocr_provider.py           # TextOcrProvider Protocol + 팩토리 (get_text_ocr_provider)
+├── gemini_ocr_service.py     # GeminiTextOcrProvider (크롭 이미지 → 텍스트)
+├── vllm_ocr_service.py       # VllmTextOcrProvider (OlmOCR via vLLM)
+├── ocr_connection_test.py    # PP-StructureV3 + OCR 프로바이더 연결 테스트
+├── labeling_service.py       # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
+├── analysis_service.py       # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
+└── export_service.py         # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
 ```
 
 - Repository를 호출하여 데이터 접근
