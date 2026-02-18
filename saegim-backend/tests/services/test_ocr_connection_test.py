@@ -149,7 +149,7 @@ class TestOcrConnection:
     @patch('saegim.services.ocr_connection_test.check_gemini_connection')
     def test_dispatches_gemini(self, mock_gemini):
         mock_gemini.return_value = (True, 'ok')
-        success, message = check_ocr_connection(
+        success, _message = check_ocr_connection(
             {'provider': 'gemini', 'gemini': {'api_key': 'k'}},
         )
         assert success is True
@@ -158,7 +158,7 @@ class TestOcrConnection:
     @patch('saegim.services.ocr_connection_test.check_vllm_connection')
     def test_dispatches_vllm(self, mock_vllm):
         mock_vllm.return_value = (True, 'ok')
-        success, message = check_ocr_connection(
+        success, _message = check_ocr_connection(
             {'provider': 'vllm', 'vllm': {'host': 'h', 'port': 8000}},
         )
         assert success is True

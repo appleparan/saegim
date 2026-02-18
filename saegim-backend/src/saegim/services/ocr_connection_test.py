@@ -37,9 +37,9 @@ def check_gemini_connection(config: dict[str, Any]) -> tuple[bool, str]:
             model_name = data.get('displayName', model)
             return True, f'Connected to Gemini ({model_name})'
     except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 403:  # noqa: PLR2004
+        if exc.response.status_code == 403:
             return False, 'Invalid API key or insufficient permissions'
-        if exc.response.status_code == 404:  # noqa: PLR2004
+        if exc.response.status_code == 404:
             return False, f'Model not found: {model}'
         return False, f'Gemini API error: {exc.response.status_code}'
     except httpx.RequestError as exc:
