@@ -6,7 +6,12 @@ from fastapi import APIRouter, HTTPException, status
 
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_repo
-from saegim.schemas.project import ProjectCreate, ProjectResponse
+from saegim.schemas.project import (
+    OcrConfigResponse,
+    OcrConfigUpdate,
+    ProjectCreate,
+    ProjectResponse,
+)
 
 router = APIRouter()
 
@@ -85,3 +90,70 @@ async def delete_project(project_id: uuid.UUID) -> None:
 
     # Delete project (cascades remaining DB records)
     await project_repo.delete(pool, project_id)
+
+
+@router.get('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
+async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
+    """Get a project's OCR configuration.
+
+    Args:
+        project_id: Project UUID.
+
+    Returns:
+        OcrConfigResponse: Current OCR config.
+
+    Raises:
+        HTTPException: If project not found.
+    """
+    pool = get_pool()
+    config = await project_repo.get_ocr_config(pool, project_id)
+    if config is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+    if not config:
+        # No OCR config set yet — return default (mineru)
+        return OcrConfigResponse(provider='mineru')
+    return OcrConfigResponse(**config)
+
+
+@router.put('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
+async def update_ocr_config(
+    project_id: uuid.UUID,
+    body: OcrConfigUpdate,
+) -> OcrConfigResponse:
+    """Update a project's OCR configuration.
+
+    Args:
+        project_id: Project UUID.
+        body: New OCR configuration.
+
+    Returns:
+        OcrConfigResponse: Updated OCR config.
+
+    Raises:
+        HTTPException: If project not found or validation fails.
+    """
+    # Validate provider-specific config is provided
+    if body.provider == 'gemini' and body.gemini is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='gemini config is required when provider is gemini',
+        )
+    if body.provider == 'vllm' and body.vllm is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='vllm config is required when provider is vllm',
+        )
+
+    pool = get_pool()
+    project = await project_repo.get_by_id(pool, project_id)
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+
+    config_dict = body.model_dump(exclude_none=True)
+    updated = await project_repo.update_ocr_config(pool, project_id, config_dict)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Failed to update OCR config',
+        )
+    return OcrConfigResponse(**config_dict)
