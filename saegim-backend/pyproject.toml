@@ -27,6 +27,7 @@ dependencies = [
     "tqdm~=4.67.1",
     "transformers>=4.57.3",
     "typer>=0.21.1",
+    "pillow~=11.2.1",
 ]
 requires-python = ">=3.12, <4.0"
 keywords = [

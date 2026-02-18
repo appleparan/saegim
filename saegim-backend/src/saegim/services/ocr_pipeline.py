@@ -1,0 +1,209 @@
+"""2-stage OCR pipeline orchestrator.
+
+Combines PP-StructureV3 layout detection with text-only OCR providers
+(Gemini, OlmOCR, or PP-OCR built-in) to produce OmniDocBench pages.
+"""
+
+import io
+import logging
+from pathlib import Path
+from typing import Any
+
+from PIL import Image
+
+from saegim.services.ocr_provider import (
+    TextOcrProvider,
+    bbox_to_poly,
+    get_text_ocr_provider,
+)
+from saegim.services.ppstructure_service import LayoutRegion, PpstructureClient
+
+logger = logging.getLogger(__name__)
+
+
+class OcrPipeline:
+    """2-stage OCR pipeline: layout detection + text extraction.
+
+    Stage 1: PP-StructureV3 detects layout regions (bounding boxes + categories).
+    Stage 2: Text OCR provider extracts text from each cropped region.
+    """
+
+    def __init__(
+        self,
+        layout_client: PpstructureClient,
+        text_provider: TextOcrProvider | None = None,
+        *,
+        use_builtin_ocr: bool = False,
+    ) -> None:
+        """Initialize the 2-stage OCR pipeline.
+
+        Args:
+            layout_client: PP-StructureV3 client for layout detection.
+            text_provider: Text-only OCR provider (Gemini or OlmOCR).
+            use_builtin_ocr: If True, use PP-OCR built-in text from layout results.
+        """
+        self._layout_client = layout_client
+        self._text_provider = text_provider
+        self._use_builtin_ocr = use_builtin_ocr
+
+    def extract_page(
+        self,
+        image_path: Path,
+        _page_width: int,
+        _page_height: int,
+    ) -> dict[str, Any]:
+        """Run the 2-stage pipeline on a page image.
+
+        Args:
+            image_path: Path to the page image file.
+            _page_width: Image width in pixels (unused, kept for interface compat).
+            _page_height: Image height in pixels (unused, kept for interface compat).
+
+        Returns:
+            OmniDocBench-compatible dict with layout_dets, page_attribute, extra.
+        """
+        regions = self._layout_client.detect_layout(image_path)
+        logger.info('Detected %d layout regions in %s', len(regions), image_path.name)
+
+        if not regions:
+            return {
+                'layout_dets': [],
+                'page_attribute': {},
+                'extra': {'relation': []},
+            }
+
+        image = Image.open(image_path)
+
+        layout_dets = []
+        for i, region in enumerate(regions):
+            text = self._extract_region_text(image, region)
+            det = _build_layout_det(region, text, order=i)
+            layout_dets.append(det)
+
+        image.close()
+
+        return {
+            'layout_dets': layout_dets,
+            'page_attribute': {},
+            'extra': {'relation': []},
+        }
+
+    def _extract_region_text(
+        self,
+        image: Image.Image,
+        region: LayoutRegion,
+    ) -> str:
+        """Extract text from a single layout region.
+
+        Args:
+            image: Full page PIL Image.
+            region: Layout region with bounding box and category.
+
+        Returns:
+            Extracted text string.
+        """
+        if self._use_builtin_ocr:
+            return region.text or ''
+
+        if self._text_provider is None:
+            return ''
+
+        # Skip non-text regions (figures)
+        if region.category == 'figure':
+            return ''
+
+        cropped_bytes = _crop_region(image, region.bbox)
+        return self._text_provider.extract_text(cropped_bytes, region.category)
+
+
+def _crop_region(
+    image: Image.Image,
+    bbox: tuple[float, float, float, float],
+) -> bytes:
+    """Crop a region from an image and return as PNG bytes.
+
+    Args:
+        image: Full page PIL Image.
+        bbox: Bounding box as (x1, y1, x2, y2) in pixels.
+
+    Returns:
+        Cropped image as PNG bytes, empty bytes if region has zero area.
+    """
+    x1, y1, x2, y2 = bbox
+    # Clamp to image bounds
+    x1 = max(0, min(x1, image.width))
+    y1 = max(0, min(y1, image.height))
+    x2 = max(0, min(x2, image.width))
+    y2 = max(0, min(y2, image.height))
+
+    ix1, iy1, ix2, iy2 = int(x1), int(y1), int(x2), int(y2)
+    if ix2 <= ix1 or iy2 <= iy1:
+        return b''
+
+    cropped = image.crop((ix1, iy1, ix2, iy2))
+    buf = io.BytesIO()
+    cropped.save(buf, format='PNG')
+    return buf.getvalue()
+
+
+def _build_layout_det(
+    region: LayoutRegion,
+    text: str,
+    *,
+    order: int,
+) -> dict[str, Any]:
+    """Build an OmniDocBench layout_det from a LayoutRegion.
+
+    Args:
+        region: Layout region from PP-StructureV3.
+        text: Extracted text for this region.
+        order: Reading order index.
+
+    Returns:
+        OmniDocBench-compatible layout_det dict.
+    """
+    poly = bbox_to_poly(list(region.bbox))
+    det: dict[str, Any] = {
+        'category_type': region.category,
+        'poly': poly,
+        'ignore': False,
+        'order': order,
+        'anno_id': order,
+    }
+    if text:
+        if region.category == 'equation_isolated':
+            det['latex'] = text
+        elif region.category == 'table':
+            det['html'] = text
+        else:
+            det['text'] = text
+    return det
+
+
+def build_ocr_pipeline(ocr_config: dict[str, Any]) -> OcrPipeline | None:
+    """Build an OCR pipeline from configuration.
+
+    Args:
+        ocr_config: OCR configuration dict.
+
+    Returns:
+        OcrPipeline instance, or None for pymupdf layout provider.
+    """
+    layout_provider = ocr_config.get('layout_provider', 'pymupdf')
+
+    if layout_provider == 'pymupdf':
+        return None
+
+    pp_config = ocr_config.get('ppstructure', {})
+    layout_client = PpstructureClient(
+        host=pp_config.get('host', 'localhost'),
+        port=pp_config.get('port', 18811),
+    )
+
+    ocr_provider = ocr_config.get('ocr_provider', 'ppocr')
+
+    if ocr_provider == 'ppocr':
+        return OcrPipeline(layout_client, use_builtin_ocr=True)
+
+    text_provider = get_text_ocr_provider(ocr_config)
+    return OcrPipeline(layout_client, text_provider)
