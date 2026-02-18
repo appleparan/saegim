@@ -1,4 +1,4 @@
-name: CI
+name: CI Backend
 
 on:
   push:
@@ -6,13 +6,13 @@ on:
       - main
     paths:
       - 'saegim-backend/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/ci-backend.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'saegim-backend/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/ci-backend.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
