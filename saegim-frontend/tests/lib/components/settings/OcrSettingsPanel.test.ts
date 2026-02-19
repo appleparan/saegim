@@ -9,89 +9,77 @@ describe('OcrSettingsPanel', () => {
   })
 
   const defaultConfig: OcrConfigResponse = {
-    layout_provider: 'pymupdf',
+    engine_type: 'pymupdf',
   }
 
-  it('renders both layout provider options', () => {
+  it('renders all four engine type options', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.getByText('PyMuPDF')).toBeTruthy()
-    expect(screen.getByText('PP-StructureV3')).toBeTruthy()
+    expect(screen.getByText('상업용 VLM API')).toBeTruthy()
+    expect(screen.getByText('통합 파이프라인 서버')).toBeTruthy()
+    expect(screen.getByText('분리 파이프라인')).toBeTruthy()
   })
 
-  it('does not show PP-StructureV3 config when PyMuPDF is selected', () => {
+  it('does not show sub-config when PyMuPDF is selected', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.queryByLabelText('API Key')).toBeNull()
+    expect(screen.queryByText('VLM 프로바이더')).toBeNull()
     expect(screen.queryByText('OCR 프로바이더')).toBeNull()
   })
 
-  it('shows PP-StructureV3 server config and OCR providers when selected', async () => {
+  it('shows commercial API config when selected', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const ppButton = screen.getByText('PP-StructureV3')
-    await fireEvent.click(ppButton)
+    const caButton = screen.getByText('상업용 VLM API')
+    await fireEvent.click(caButton)
 
-    // PP-StructureV3 server config
-    expect(screen.getByLabelText('호스트')).toBeTruthy()
-    expect(screen.getByLabelText('포트')).toBeTruthy()
-
-    // OCR provider options
-    expect(screen.getByText('PP-OCR (내장)')).toBeTruthy()
+    expect(screen.getByText('VLM 프로바이더')).toBeTruthy()
     expect(screen.getByText('Google Gemini')).toBeTruthy()
-    expect(screen.getByText('OlmOCR')).toBeTruthy()
+    expect(screen.getByText('vLLM')).toBeTruthy()
   })
 
-  it('shows Gemini config when Gemini OCR provider is selected', async () => {
-    const ppConfig: OcrConfigResponse = {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'ppocr',
-      ppstructure: { host: 'localhost', port: 18811 },
+  it('shows Gemini API key field when Gemini provider is selected', async () => {
+    const caConfig: OcrConfigResponse = {
+      engine_type: 'commercial_api',
+      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-2.0-flash' },
     }
-    render(OcrSettingsPanel, { props: { config: ppConfig } })
-
-    const geminiButton = screen.getByText('Google Gemini')
-    await fireEvent.click(geminiButton)
+    render(OcrSettingsPanel, { props: { config: caConfig } })
 
     expect(screen.getByLabelText('API Key')).toBeTruthy()
   })
 
-  it('shows OlmOCR (vLLM) config when OlmOCR is selected', async () => {
-    const ppConfig: OcrConfigResponse = {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'ppocr',
-      ppstructure: { host: 'localhost', port: 18811 },
-    }
-    render(OcrSettingsPanel, { props: { config: ppConfig } })
+  it('shows vLLM host/port fields when vLLM provider is selected', async () => {
+    render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const olmButton = screen.getByText('OlmOCR')
-    await fireEvent.click(olmButton)
+    const caButton = screen.getByText('상업용 VLM API')
+    await fireEvent.click(caButton)
 
-    // vLLM settings should have multiple host/port fields
-    const hosts = screen.getAllByLabelText('호스트')
-    expect(hosts.length).toBe(2) // PP-StructureV3 + vLLM
+    const vllmButton = screen.getByText('vLLM')
+    await fireEvent.click(vllmButton)
+
+    expect(screen.getByLabelText('호스트')).toBeTruthy()
+    expect(screen.getByLabelText('포트')).toBeTruthy()
   })
 
-  it('calls onsave with correct ppstructure+gemini config', async () => {
-    const onsave = vi.fn()
-    const geminiConfig: OcrConfigResponse = {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'gemini',
-      ppstructure: { host: 'localhost', port: 18811 },
-      gemini: { api_key: 'test-key', model: 'gemini-2.0-flash' },
-    }
-    render(OcrSettingsPanel, {
-      props: { config: geminiConfig, onsave },
-    })
+  it('shows integrated server config when selected', async () => {
+    render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const saveButton = screen.getByText('설정 저장')
-    await fireEvent.click(saveButton)
+    const isButton = screen.getByText('통합 파이프라인 서버')
+    await fireEvent.click(isButton)
 
-    expect(onsave).toHaveBeenCalledOnce()
-    const saved = onsave.mock.calls[0][0]
-    expect(saved.layout_provider).toBe('ppstructure')
-    expect(saved.ocr_provider).toBe('gemini')
-    expect(saved.gemini.api_key).toBe('test-key')
+    expect(screen.getByLabelText('서버 URL')).toBeTruthy()
+  })
+
+  it('shows split pipeline config when selected', async () => {
+    render(OcrSettingsPanel, { props: { config: defaultConfig } })
+
+    const spButton = screen.getByText('분리 파이프라인')
+    await fireEvent.click(spButton)
+
+    expect(screen.getByLabelText('레이아웃 서버 URL')).toBeTruthy()
+    expect(screen.getByText('OCR 프로바이더')).toBeTruthy()
   })
 
   it('calls onsave with pymupdf config', async () => {
@@ -105,20 +93,54 @@ describe('OcrSettingsPanel', () => {
 
     expect(onsave).toHaveBeenCalledOnce()
     const saved = onsave.mock.calls[0][0]
-    expect(saved.layout_provider).toBe('pymupdf')
-    expect(saved.ocr_provider).toBeUndefined()
+    expect(saved.engine_type).toBe('pymupdf')
+    expect(saved.commercial_api).toBeUndefined()
   })
 
-  it('disables save button when Gemini has no API key', async () => {
-    const ppConfig: OcrConfigResponse = {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'ppocr',
-      ppstructure: { host: 'localhost', port: 18811 },
+  it('calls onsave with correct commercial_api gemini config', async () => {
+    const onsave = vi.fn()
+    const caConfig: OcrConfigResponse = {
+      engine_type: 'commercial_api',
+      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-2.0-flash' },
     }
-    render(OcrSettingsPanel, { props: { config: ppConfig } })
+    render(OcrSettingsPanel, {
+      props: { config: caConfig, onsave },
+    })
 
-    const geminiButton = screen.getByText('Google Gemini')
-    await fireEvent.click(geminiButton)
+    const saveButton = screen.getByText('설정 저장')
+    await fireEvent.click(saveButton)
+
+    expect(onsave).toHaveBeenCalledOnce()
+    const saved = onsave.mock.calls[0][0]
+    expect(saved.engine_type).toBe('commercial_api')
+    expect(saved.commercial_api.provider).toBe('gemini')
+    expect(saved.commercial_api.api_key).toBe('test-key')
+  })
+
+  it('calls onsave with correct integrated_server config', async () => {
+    const onsave = vi.fn()
+    const isConfig: OcrConfigResponse = {
+      engine_type: 'integrated_server',
+      integrated_server: { url: 'http://myhost:9999' },
+    }
+    render(OcrSettingsPanel, {
+      props: { config: isConfig, onsave },
+    })
+
+    const saveButton = screen.getByText('설정 저장')
+    await fireEvent.click(saveButton)
+
+    expect(onsave).toHaveBeenCalledOnce()
+    const saved = onsave.mock.calls[0][0]
+    expect(saved.engine_type).toBe('integrated_server')
+    expect(saved.integrated_server.url).toBe('http://myhost:9999')
+  })
+
+  it('disables save button when commercial_api Gemini has no API key', async () => {
+    render(OcrSettingsPanel, { props: { config: defaultConfig } })
+
+    const caButton = screen.getByText('상업용 VLM API')
+    await fireEvent.click(caButton)
 
     const saveButton = screen.getByText('설정 저장')
     expect(saveButton.hasAttribute('disabled')).toBe(true)
@@ -129,5 +151,20 @@ describe('OcrSettingsPanel', () => {
 
     const saveButton = screen.getByText('설정 저장')
     expect(saveButton.hasAttribute('disabled')).toBe(false)
+  })
+
+  it('does not show connection test button for PyMuPDF', () => {
+    render(OcrSettingsPanel, { props: { config: defaultConfig } })
+
+    expect(screen.queryByText('연결 테스트')).toBeNull()
+  })
+
+  it('shows connection test button for non-pymupdf engines', async () => {
+    render(OcrSettingsPanel, { props: { config: defaultConfig } })
+
+    const caButton = screen.getByText('상업용 VLM API')
+    await fireEvent.click(caButton)
+
+    expect(screen.getByText('연결 테스트')).toBeTruthy()
   })
 })

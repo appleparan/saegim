@@ -18,41 +18,45 @@ export interface CreateProjectRequest {
   readonly description?: string
 }
 
-// --- OCR Config (2-stage pipeline) ---
+// --- OCR Config (engine_type based) ---
 
-export type LayoutProvider = 'ppstructure' | 'pymupdf'
-export type OcrProvider = 'gemini' | 'olmocr' | 'ppocr'
+export type EngineType = 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pymupdf'
+export type CommercialApiProvider = 'gemini' | 'vllm'
+export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 
-export interface PpstructureConfig {
-  readonly host: string
-  readonly port: number
-}
-
-export interface GeminiConfig {
-  readonly api_key: string
+export interface CommercialApiConfig {
+  readonly provider: CommercialApiProvider
+  readonly api_key?: string
+  readonly host?: string
+  readonly port?: number
   readonly model: string
 }
 
-export interface VllmConfig {
-  readonly host: string
-  readonly port: number
-  readonly model: string
+export interface IntegratedServerConfig {
+  readonly url: string
+}
+
+export interface SplitPipelineConfig {
+  readonly layout_server_url: string
+  readonly ocr_provider: SplitPipelineOcrProvider
+  readonly ocr_api_key?: string
+  readonly ocr_host?: string
+  readonly ocr_port?: number
+  readonly ocr_model?: string
 }
 
 export interface OcrConfigResponse {
-  readonly layout_provider: LayoutProvider
-  readonly ocr_provider?: OcrProvider
-  readonly ppstructure?: PpstructureConfig
-  readonly gemini?: GeminiConfig
-  readonly vllm?: VllmConfig
+  readonly engine_type: EngineType
+  readonly commercial_api?: CommercialApiConfig
+  readonly integrated_server?: IntegratedServerConfig
+  readonly split_pipeline?: SplitPipelineConfig
 }
 
 export interface OcrConfigUpdate {
-  readonly layout_provider: LayoutProvider
-  readonly ocr_provider?: OcrProvider
-  readonly ppstructure?: PpstructureConfig
-  readonly gemini?: GeminiConfig
-  readonly vllm?: VllmConfig
+  readonly engine_type: EngineType
+  readonly commercial_api?: CommercialApiConfig
+  readonly integrated_server?: IntegratedServerConfig
+  readonly split_pipeline?: SplitPipelineConfig
 }
 
 export interface OcrConnectionTestResponse {
