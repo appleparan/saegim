@@ -50,7 +50,7 @@ services:
       - saegim-net
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-16379}:6379"
