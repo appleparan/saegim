@@ -575,30 +575,27 @@ Step 7: 완료 & 제출
 
 ## 5. 자동 추출 파이프라인 상세
 
-### 5.0 현재 구현: 2단계 OCR 파이프라인 (구현 완료)
+### 5.0 현재 구현: Engine Type 기반 OCR 아키텍처 (구현 완료)
 
-프로젝트별 `ocr_config` JSONB로 추출 파이프라인을 설정한다:
+프로젝트별 `ocr_config` JSONB의 `engine_type` 키로 추출 엔진을 선택한다.
+`BaseOCREngine` ABC를 통한 Strategy 패턴으로, 4가지 엔진 타입을 지원한다:
 
 ```text
-PDF → 페이지 이미지 → PP-StructureV3 (bbox + category)
-                          ↓
-                  ┌───────┼───────┐
-                  │       │       │
-              Gemini   OlmOCR   PP-OCRv5
-              (API)   (vLLM)   (내장)
-                  └───────┼───────┘
-                          ↓
-                  OmniDocBench JSON
+ocr_config.engine_type
+  ├── commercial_api     → VLM API (Gemini/vLLM) full-page 분석
+  ├── integrated_server  → PP-StructureV3 + PP-OCR 내장 파이프라인
+  ├── split_pipeline     → PP-StructureV3 레이아웃 + 외부 OCR (Gemini/vLLM)
+  └── pymupdf            → PyMuPDF 폴백 (GPU 불필요)
 ```
 
-| # | 레이아웃 감지 | 텍스트 OCR | 설명 |
+| Engine Type | 설명 | 외부 서비스 | 사용 시나리오 |
 | --- | --- | --- | --- |
-| 1 | PP-StructureV3 | Gemini API | 클라우드 OCR |
-| 2 | PP-StructureV3 | OlmOCR (vLLM) | 로컬 OCR |
-| 3 | PP-StructureV3 | PP-OCRv5 (내장) | PP-StructureV3 단독 |
-| fallback | — | PyMuPDF | 기본 추출 (GPU 없을 때) |
+| `commercial_api` | 상업용 VLM API (Gemini, vLLM) | Gemini API 또는 vLLM 서버 | 고품질 full-page OCR |
+| `integrated_server` | PP-StructureV3 통합 서버 | PP-StructureV3 Docker | 레이아웃+OCR 일체형 |
+| `split_pipeline` | 분리 파이프라인 (Layout + OCR) | PP-StructureV3 + Gemini/vLLM | 레이아웃은 PP, OCR은 VLM |
+| `pymupdf` | PyMuPDF 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
 
-#### 5.0.1 PyMuPDF 폴백 (`layout_provider: pymupdf`)
+#### 5.0.1 PyMuPDF 폴백 (`engine_type: pymupdf`)
 
 ```text
 PDF 업로드
@@ -615,15 +612,31 @@ PDF 업로드
 
 구현 파일:
 
-- `extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
-- `document_service.py`: 업로드 시 백엔드 분기 + Celery 디스패치
+- `services/engines/pymupdf_engine.py`: `PyMuPDFEngine` (`BaseOCREngine` 구현)
+- `services/extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
+- `services/document_service.py`: 업로드 시 `engine_type` 분기 + Celery 디스패치
 - `tasks/celery_app.py`: Celery 앱 설정 (Redis broker)
-- `tasks/ocr_extraction_task.py`: OCR 파이프라인 Celery 태스크
+- `tasks/ocr_extraction_task.py`: `build_engine()` → `engine.extract_page()` Celery 태스크
 - `page_repo.py`: `create()`, `accept_auto_extracted()`, `update_auto_extracted_data()`
 - `labeling_service.py`: `accept_auto_extraction()`
 - `ExtractionPreview.svelte`: 추출 진행중 표시 + 수락/무시 UI
 
-#### 5.0.2 PP-StructureV3 + OCR 파이프라인 (`layout_provider: ppstructure`)
+#### 5.0.2 Commercial API Engine (`engine_type: commercial_api`)
+
+```text
+PDF 업로드
+  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → Celery 태스크 디스패치 (run_ocr_extraction)
+     → 페이지별:
+        1. VLM API에 full-page 이미지 전송
+           - gemini: Google Gemini API (structured output 프롬프트)
+           - vllm: vLLM OpenAI-compatible API
+        2. JSON 응답 파싱 → OmniDocBench layout_dets 변환
+     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → document status: extracting → ready (또는 extraction_failed)
+```
+
+#### 5.0.3 Integrated Server Engine (`engine_type: integrated_server`)
 
 ```text
 PDF 업로드
@@ -632,12 +645,26 @@ PDF 업로드
      → 페이지별:
         1. PpstructureClient.detect_layout(image_path)
            → PP-StructureV3 HTTP POST /api/v1/predict
-           → list[LayoutRegion(bbox, category, score, text?)]
+           → list[LayoutRegion(bbox, category, score, text)]
+        2. PP-OCR 내장 텍스트 직접 사용 (use_builtin_ocr=True)
+        3. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
+     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → document status: extracting → ready (또는 extraction_failed)
+```
+
+#### 5.0.4 Split Pipeline Engine (`engine_type: split_pipeline`)
+
+```text
+PDF 업로드
+  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → Celery 태스크 디스패치 (run_ocr_extraction)
+     → 페이지별:
+        1. PpstructureClient.detect_layout(image_path)
+           → PP-StructureV3 레이아웃 감지 (bbox + category)
         2. 텍스트 영역 크롭 (PIL/Pillow)
-        3. OCR 프로바이더별 텍스트 추출:
+        3. 외부 OCR 프로바이더로 텍스트 추출:
            - gemini: Gemini API (category_hint별 프롬프트)
-           - olmocr: vLLM API (allenai/olmOCR-2-7B-1025)
-           - ppocr: PP-StructureV3 반환 text 직접 사용
+           - vllm: vLLM API (OlmOCR 등)
         4. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
      → psycopg로 각 페이지 auto_extracted_data 업데이트
      → document status: extracting → ready (또는 extraction_failed)
@@ -647,29 +674,63 @@ PDF 업로드
 #### `ocr_config` JSONB 구조
 
 ```json
+// commercial_api
 {
-  "layout_provider": "ppstructure",
-  "ocr_provider": "gemini",
-  "ppstructure": { "host": "localhost", "port": 18811 },
-  "gemini": { "api_key": "...", "model": "gemini-2.0-flash" },
-  "vllm": { "host": "...", "port": 8000, "model": "allenai/olmOCR-2-7B-1025" }
+  "engine_type": "commercial_api",
+  "commercial_api": {
+    "provider": "gemini",
+    "api_key": "...",
+    "model": "gemini-2.0-flash"
+  }
 }
+
+// integrated_server
+{
+  "engine_type": "integrated_server",
+  "integrated_server": { "url": "http://localhost:18811" }
+}
+
+// split_pipeline
+{
+  "engine_type": "split_pipeline",
+  "split_pipeline": {
+    "layout_server_url": "http://localhost:18811",
+    "ocr_provider": "gemini",
+    "ocr_api_key": "...",
+    "ocr_model": "gemini-2.0-flash"
+  }
+}
+
+// pymupdf (fallback)
+{ "engine_type": "pymupdf" }
 ```
 
-PyMuPDF 폴백: `{ "layout_provider": "pymupdf" }`
+#### Engine 아키텍처 구현 파일
 
-#### 구현 파일
+엔진 추상화 (`services/engines/`):
+
+- `services/engines/base.py`: `BaseOCREngine` ABC (`extract_page()`, `test_connection()`)
+- `services/engines/factory.py`: `build_engine(ocr_config)` 팩토리 (`engine_type` 분기)
+- `services/engines/pymupdf_engine.py`: `PyMuPDFEngine`
+- `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
+- `services/engines/integrated_server_engine.py`: `IntegratedServerEngine` (PP-StructureV3 + PP-OCR)
+- `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (Layout + 외부 OCR)
+
+하위 서비스 (엔진이 위임하는 구현):
 
 - `services/ppstructure_service.py`: PP-StructureV3 HTTP 클라이언트 (`PpstructureClient`, `LayoutRegion`)
-- `services/ocr_pipeline.py`: 2단계 파이프라인 오케스트레이터 (`OcrPipeline`, `build_ocr_pipeline`)
-- `services/ocr_provider.py`: `TextOcrProvider` Protocol, 팩토리 (`get_text_ocr_provider`)
-- `services/gemini_ocr_service.py`: `GeminiTextOcrProvider` (크롭 이미지 → 텍스트)
-- `services/vllm_ocr_service.py`: `VllmTextOcrProvider` (OlmOCR via vLLM)
-- `services/ocr_connection_test.py`: PP-StructureV3 + OCR 프로바이더 연결 테스트
+- `services/ocr_pipeline.py`: 2단계 파이프라인 오케스트레이터 (`OcrPipeline`, `TextOcrProvider` Protocol)
+- `services/ocr_provider.py`: 프롬프트 상수, `bbox_to_poly()`, `build_omnidocbench_page()`
+- `services/gemini_ocr_service.py`: `GeminiOcrProvider`, `GeminiTextOcrProvider`
+- `services/vllm_ocr_service.py`: `VllmOcrProvider`, `VllmTextOcrProvider`
+- `services/ocr_connection_test.py`: 개별 연결 테스트 (`check_ppstructure_connection`, `check_gemini_connection`, `check_vllm_connection`)
 - `services/extraction_service.py`: PyMuPDF 폴백 추출
-- `tasks/ocr_extraction_task.py`: Celery 태스크 (`build_ocr_pipeline` → `extract_page`)
-- `schemas/project.py`: `OcrConfigUpdate`, `PpstructureConfig`, `GeminiConfig`, `VllmConfig`
-- `OcrSettingsPanel.svelte`: 2단계 설정 UI + 연결 테스트
+
+통합:
+
+- `tasks/ocr_extraction_task.py`: Celery 태스크 (`build_engine()` → `engine.extract_page()`)
+- `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `IntegratedServerConfig`, `SplitPipelineConfig`
+- `OcrSettingsPanel.svelte`: 엔진 타입 선택 카드 UI + 연결 테스트
 
 ### 5.1 후보 도구 비교
 
@@ -682,8 +743,10 @@ PyMuPDF 폴백: `{ "layout_provider": "pymupdf" }`
 | **Google Gemini API** | VLM structured output | 고품질 OCR, 클라우드 API | API 비용, 네트워크 의존 | **구현 완료** (프로젝트별 설정) |
 | **vLLM (로컬)** | OpenAI-compatible VLM 서버 | 로컬 실행, 비용 없음 | GPU 필요, 모델 관리 | **구현 완료** (프로젝트별 설정) |
 
-**현재**: PP-StructureV3를 레이아웃 감지 1단계로,
-Gemini/OlmOCR/PP-OCR를 텍스트 OCR 2단계로 사용하는 2단계 파이프라인 구현 완료.
+**현재**: `engine_type` 기반 단일 선택 아키텍처로 리팩토링 완료.
+`BaseOCREngine` ABC + Strategy 패턴으로 4가지 엔진 타입 지원:
+commercial_api (Gemini/vLLM full-page), integrated_server (PP-StructureV3+PP-OCR),
+split_pipeline (PP-StructureV3+외부 OCR), pymupdf (폴백).
 MinerU는 AGPL 라이선스 이슈로 제거됨. PyMuPDF는 GPU 없는 환경의 폴백으로 유지.
 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
 
@@ -715,7 +778,7 @@ projects
 ├── name            VARCHAR
 ├── description     TEXT
 ├── project_type    VARCHAR          # ★ Phase 4a: 'element_annotation' | 'vqa' | 'ocrag' (기본값: 'element_annotation')
-├── ocr_config      JSONB            # OCR 프로바이더 설정 (provider, API key, host/port 등)
+├── ocr_config      JSONB            # OCR 엔진 설정 (engine_type + 타입별 세부 설정)
 └── created_at      TIMESTAMP
 
 documents
@@ -845,7 +908,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 - **텍스트 OCR 프로바이더**: `TextOcrProvider` Protocol — 크롭 이미지에서 텍스트 추출
 - **파이프라인 오케스트레이터**: `OcrPipeline` — layout → crop → OCR → OmniDocBench 조합
 - **Celery + Redis 비동기 처리**: 2단계 파이프라인을 Celery 태스크로 비동기 실행
-- **프로젝트별 OCR 설정**: `ocr_config` JSONB (`layout_provider` + `ocr_provider`)
+- **프로젝트별 OCR 설정**: `ocr_config` JSONB (`engine_type` + 타입별 세부 설정)
 - **문서 상태 확장**: `extracting`, `extraction_failed` 상태
 - **프론트엔드 UI**: 2단계 OCR 설정 패널 + 연결 테스트 + 추출 진행중 표시
 - **Docker Compose**: Redis + Celery 워커 + PP-StructureV3 서비스 (profile: ppstructure)
@@ -989,9 +1052,9 @@ GET    /api/v1/projects/{id}/documents       ✅ 프로젝트 문서 목록
 DELETE /api/v1/projects/{id}                 ✅ 프로젝트 삭제
 
 # OCR 설정
-GET    /api/v1/projects/{id}/ocr-config      ✅ OCR 프로바이더 설정 조회
-PUT    /api/v1/projects/{id}/ocr-config      ✅ OCR 프로바이더 설정 수정
-POST   /api/v1/projects/{id}/ocr-config/test ✅ OCR 프로바이더 연결 테스트
+GET    /api/v1/projects/{id}/ocr-config      ✅ OCR 엔진 설정 조회 (engine_type 기반)
+PUT    /api/v1/projects/{id}/ocr-config      ✅ OCR 엔진 설정 수정 (engine_type 기반)
+POST   /api/v1/projects/{id}/ocr-config/test ✅ OCR 엔진 연결 테스트 (build_engine → test_connection)
 
 # 문서 업로드 & 처리
 POST   /api/v1/projects/{id}/documents       ✅ PDF 업로드 (→ 변환 + 텍스트/이미지 추출)
