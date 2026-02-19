@@ -5,7 +5,7 @@
   "description": "E2E tests for saegim labeling platform",
   "scripts": {
     "setup": "bunx playwright install chromium && bunx tsx helpers/pdf.ts",
-    "test": "bunx playwright test",
+    "test": "bunx playwright test --project=chromium",
     "test:ui": "bunx playwright test --ui",
     "test:health": "bunx playwright test health",
     "test:workflow": "bunx playwright test workflow",
