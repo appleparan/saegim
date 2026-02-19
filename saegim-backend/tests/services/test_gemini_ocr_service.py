@@ -95,7 +95,7 @@ class TestGeminiOcrProvider:
             mock_client.post.return_value = mock_response
             mock_client_cls.return_value = mock_client
 
-            provider = GeminiOcrProvider(api_key='test-key', model='gemini-2.0-flash')
+            provider = GeminiOcrProvider(api_key='test-key', model='gemini-3-flash-preview')
             result = provider.extract_page(image_path, page_width=800, page_height=1200)
 
         assert 'layout_dets' in result

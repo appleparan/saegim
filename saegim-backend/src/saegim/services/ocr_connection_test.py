@@ -51,7 +51,7 @@ def check_gemini_connection(config: dict[str, Any]) -> tuple[bool, str]:
     if not api_key:
         return False, 'API key is required'
 
-    model = config.get('model', 'gemini-2.0-flash')
+    model = config.get('model', 'gemini-3-flash-preview')
     url = f'{_GEMINI_API_BASE}/models/{model}?key={api_key}'
 
     try:

@@ -86,7 +86,7 @@
   "layout_provider": "ppstructure",
   "ocr_provider": "gemini",
   "ppstructure": { "host": "localhost", "port": 18811 },
-  "gemini": { "api_key": "...", "model": "gemini-2.0-flash" }
+  "gemini": { "api_key": "...", "model": "gemini-3-flash-preview" }
 }
 ```
 

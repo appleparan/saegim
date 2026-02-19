@@ -48,7 +48,7 @@ class TestGeminiConnection:
     @patch('saegim.services.ocr_connection_test.httpx.Client')
     def test_successful_connection(self, mock_client_cls):
         mock_response = MagicMock()
-        mock_response.json.return_value = {'displayName': 'Gemini 2.0 Flash'}
+        mock_response.json.return_value = {'displayName': 'Gemini 3 Flash Preview'}
         mock_response.raise_for_status = MagicMock()
 
         mock_client = MagicMock()
@@ -58,10 +58,10 @@ class TestGeminiConnection:
         mock_client_cls.return_value = mock_client
 
         success, message = check_gemini_connection(
-            {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
+            {'api_key': 'test-key', 'model': 'gemini-3-flash-preview'},
         )
         assert success is True
-        assert 'Gemini 2.0 Flash' in message
+        assert 'Gemini 3 Flash Preview' in message
 
     def test_missing_api_key(self):
         success, message = check_gemini_connection({})

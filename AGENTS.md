@@ -680,14 +680,14 @@ PDF 업로드
   "commercial_api": {
     "provider": "gemini",
     "api_key": "...",
-    "model": "gemini-2.0-flash"
+    "model": "gemini-3-flash-preview"
   }
 }
 
 // integrated_server
 {
   "engine_type": "integrated_server",
-  "integrated_server": { "url": "http://localhost:18811" }
+  "integrated_server": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
 }
 
 // split_pipeline
@@ -697,7 +697,7 @@ PDF 업로드
     "layout_server_url": "http://localhost:18811",
     "ocr_provider": "gemini",
     "ocr_api_key": "...",
-    "ocr_model": "gemini-2.0-flash"
+    "ocr_model": "gemini-3-flash-preview"
   }
 }
 

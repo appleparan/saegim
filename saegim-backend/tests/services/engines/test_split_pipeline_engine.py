@@ -18,7 +18,7 @@ class TestSplitPipelineEngineInit:
     @patch(f'{_MODULE}._create_text_provider')
     def test_gemini_creates_engine(self, mock_text, _mock_client, _mock_pipeline):
         mock_text.return_value = MagicMock()
-        config = {'api_key': 'test-key', 'model': 'gemini-2.0-flash'}
+        config = {'api_key': 'test-key', 'model': 'gemini-3-flash-preview'}
         engine = SplitPipelineEngine(
             layout_server_url='http://localhost:18811',
             ocr_provider='gemini',
