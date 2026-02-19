@@ -50,7 +50,7 @@ class TestGetOcrConfig:
             'commercial_api': {
                 'provider': 'gemini',
                 'api_key': 'test-key',
-                'model': 'gemini-2.0-flash',
+                'model': 'gemini-3-flash-preview',
             },
         }
         with patch(
@@ -125,7 +125,7 @@ class TestUpdateOcrConfig:
                     'commercial_api': {
                         'provider': 'gemini',
                         'api_key': 'my-key',
-                        'model': 'gemini-2.0-flash',
+                        'model': 'gemini-3-flash-preview',
                     },
                 },
             )
@@ -155,7 +155,9 @@ class TestUpdateOcrConfig:
                 json={
                     'engine_type': 'integrated_server',
                     'integrated_server': {
-                        'url': 'http://localhost:18811',
+                        'host': 'localhost',
+                        'port': 8000,
+                        'model': 'datalab-to/chandra',
                     },
                 },
             )
@@ -163,7 +165,9 @@ class TestUpdateOcrConfig:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data['engine_type'] == 'integrated_server'
-        assert data['integrated_server']['url'] == 'http://localhost:18811'
+        assert data['integrated_server']['host'] == 'localhost'
+        assert data['integrated_server']['port'] == 8000
+        assert data['integrated_server']['model'] == 'datalab-to/chandra'
 
     def test_update_split_pipeline_gemini(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
@@ -187,7 +191,7 @@ class TestUpdateOcrConfig:
                         'layout_server_url': 'http://localhost:18811',
                         'ocr_provider': 'gemini',
                         'ocr_api_key': 'my-key',
-                        'ocr_model': 'gemini-2.0-flash',
+                        'ocr_model': 'gemini-3-flash-preview',
                     },
                 },
             )

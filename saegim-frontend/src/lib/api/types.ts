@@ -27,13 +27,13 @@ export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 export interface CommercialApiConfig {
   readonly provider: CommercialApiProvider
   readonly api_key?: string
-  readonly host?: string
-  readonly port?: number
   readonly model: string
 }
 
 export interface IntegratedServerConfig {
-  readonly url: string
+  readonly host: string
+  readonly port: number
+  readonly model?: string
 }
 
 export interface SplitPipelineConfig {

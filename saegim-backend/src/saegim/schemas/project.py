@@ -27,6 +27,11 @@ class ProjectResponse(BaseModel):
 
 EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pymupdf']
 CommercialApiProvider = Literal['gemini', 'vllm']
+GeminiModel = Literal[
+    'gemini-3.1-pro-preview',
+    'gemini-3-pro-preview',
+    'gemini-3-flash-preview',
+]
 SplitPipelineOcrProvider = Literal['gemini', 'vllm']
 
 
@@ -34,18 +39,20 @@ class CommercialApiConfig(BaseModel):
     """Commercial VLM API configuration (Type 1)."""
 
     provider: CommercialApiProvider = Field(description='VLM provider type')
-    api_key: str = Field(default='', description='API key (for Gemini)')
-    host: str = Field(default='localhost', description='Server host (for vLLM)')
-    port: int = Field(default=8000, ge=1, le=65535, description='Server port (for vLLM)')
-    model: str = Field(default='gemini-2.0-flash', description='Model name')
+    api_key: str = Field(default='', description='API key')
+    model: str = Field(default='gemini-3-flash-preview', description='Model name')
 
 
 class IntegratedServerConfig(BaseModel):
     """Integrated pipeline server configuration (Type 2)."""
 
-    url: str = Field(
-        default='http://localhost:18811',
-        description='Server URL (e.g., http://localhost:18811)',
+    host: str = Field(default='localhost', description='Server host')
+    port: int = Field(
+        default=8000, ge=1, le=65535, description='Server port',
+    )
+    model: str = Field(
+        default='datalab-to/chandra',
+        description='Model running on the server',
     )
 
 
@@ -60,9 +67,12 @@ class SplitPipelineConfig(BaseModel):
     ocr_api_key: str = Field(default='', description='OCR API key (for Gemini)')
     ocr_host: str = Field(default='localhost', description='OCR server host (for vLLM)')
     ocr_port: int = Field(
-        default=8000, ge=1, le=65535, description='OCR server port (for vLLM)'
+        default=8000, ge=1, le=65535, description='OCR server port (for vLLM)',
     )
-    ocr_model: str = Field(default='gemini-2.0-flash', description='OCR model name')
+    ocr_model: str = Field(
+        default='allenai/olmOCR-2-7B-1025-FP8',
+        description='OCR model name',
+    )
 
 
 class OcrConfigUpdate(BaseModel):

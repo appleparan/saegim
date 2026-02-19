@@ -72,15 +72,17 @@ def _build_integrated_server(config: dict[str, Any]) -> BaseOCREngine:
     """Build an integrated server engine.
 
     Args:
-        config: Integrated server config with 'url'.
+        config: Integrated server config with 'host', 'port', 'model'.
 
     Returns:
         IntegratedServerEngine instance.
     """
     from saegim.services.engines.integrated_server_engine import IntegratedServerEngine
 
-    url = config.get('url', 'http://localhost:18811')
-    return IntegratedServerEngine(url=url)
+    host = config.get('host', 'localhost')
+    port = config.get('port', 8000)
+    model = config.get('model', 'datalab-to/chandra')
+    return IntegratedServerEngine(host=host, port=port, model=model)
 
 
 def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:

@@ -23,22 +23,7 @@ class TestBuildEngine:
             'commercial_api': {
                 'provider': 'gemini',
                 'api_key': 'test-key',
-                'model': 'gemini-2.0-flash',
-            },
-        }
-        engine = build_engine(config)
-        from saegim.services.engines.commercial_api_engine import CommercialApiEngine
-
-        assert isinstance(engine, CommercialApiEngine)
-
-    def test_commercial_api_vllm(self):
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'vllm',
-                'host': 'localhost',
-                'port': 8000,
-                'model': 'test-model',
+                'model': 'gemini-3-flash-preview',
             },
         }
         engine = build_engine(config)
@@ -51,11 +36,13 @@ class TestBuildEngine:
         mock_build.return_value = 'mock_engine'
         config = {
             'engine_type': 'integrated_server',
-            'integrated_server': {'url': 'http://localhost:18811'},
+            'integrated_server': {'host': 'localhost', 'port': 8000, 'model': 'datalab-to/chandra'},
         }
         result = build_engine(config)
         assert result == 'mock_engine'
-        mock_build.assert_called_once_with({'url': 'http://localhost:18811'})
+        mock_build.assert_called_once_with(
+            {'host': 'localhost', 'port': 8000, 'model': 'datalab-to/chandra'}
+        )
 
     @patch(f'{_MODULE}._build_split_pipeline')
     def test_split_pipeline(self, mock_build):
@@ -94,7 +81,7 @@ class TestSplitPipelineOcrConfigExtraction:
                 'layout_server_url': 'http://localhost:18811',
                 'ocr_provider': 'gemini',
                 'ocr_api_key': 'the-key',
-                'ocr_model': 'gemini-2.0-flash',
+                'ocr_model': 'gemini-3-flash-preview',
             },
         }
         build_engine(config)
@@ -103,5 +90,5 @@ class TestSplitPipelineOcrConfigExtraction:
             'layout_server_url': 'http://localhost:18811',
             'ocr_provider': 'gemini',
             'ocr_api_key': 'the-key',
-            'ocr_model': 'gemini-2.0-flash',
+            'ocr_model': 'gemini-3-flash-preview',
         }

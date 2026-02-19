@@ -140,14 +140,14 @@ def _create_text_provider(
     if provider == 'gemini':
         return GeminiTextOcrProvider(
             api_key=config['api_key'],
-            model=config.get('model', 'gemini-2.0-flash'),
+            model=config.get('model', 'gemini-3-flash-preview'),
         )
 
     if provider == 'vllm':
         return VllmTextOcrProvider(
             host=config.get('host', 'localhost'),
             port=config.get('port', 8000),
-            model=config.get('model', 'allenai/olmOCR-2-7B-1025'),
+            model=config.get('model', 'allenai/olmOCR-2-7B-1025-FP8'),
         )
 
     msg = f"Unknown split pipeline OCR provider: '{provider}'. Use 'gemini' or 'vllm'."

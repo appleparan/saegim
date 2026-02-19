@@ -55,7 +55,7 @@ class TestRunOcrExtraction:
             'commercial_api': {
                 'provider': 'gemini',
                 'api_key': 'test',
-                'model': 'gemini-2.0-flash',
+                'model': 'gemini-3-flash-preview',
             },
         }
 
@@ -145,7 +145,7 @@ class TestRunOcrExtraction:
             'commercial_api': {
                 'provider': 'gemini',
                 'api_key': 'key',
-                'model': 'gemini-2.0-flash',
+                'model': 'gemini-3-flash-preview',
             },
         }
 

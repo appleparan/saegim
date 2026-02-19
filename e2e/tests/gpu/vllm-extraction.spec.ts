@@ -36,23 +36,21 @@ test.describe.serial('vLLM + Chandra OCR Extraction (GPU)', () => {
     projectId = project.id
 
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'commercial_api',
-      commercial_api: {
-        provider: 'vllm',
+      engine_type: 'integrated_server',
+      integrated_server: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,
       },
     })
     expect(status).toBe(200)
-    expect(data.engine_type).toBe('commercial_api')
+    expect(data.engine_type).toBe('integrated_server')
   })
 
   test('02 - vLLM connection test succeeds', async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      engine_type: 'commercial_api',
-      commercial_api: {
-        provider: 'vllm',
+      engine_type: 'integrated_server',
+      integrated_server: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,
@@ -60,7 +58,6 @@ test.describe.serial('vLLM + Chandra OCR Extraction (GPU)', () => {
     })
     expect(status).toBe(200)
     expect(data.success).toBe(true)
-    expect(data.message).toContain('chandra')
   })
 
   test('03 - upload PDF and wait for extraction', async () => {

@@ -1,7 +1,7 @@
 """Commercial VLM API engine (Type 1).
 
-Uses an external VLM API (Gemini, vLLM) that performs both layout analysis
-and text recognition in a single request.
+Uses an external VLM cloud API (currently Gemini) that performs both layout
+analysis and text recognition in a single request.
 """
 
 import logging
@@ -10,11 +10,7 @@ from typing import Any, Literal
 
 from saegim.services.engines.base import BaseOCREngine
 from saegim.services.gemini_ocr_service import GeminiOcrProvider
-from saegim.services.ocr_connection_test import (
-    check_gemini_connection,
-    check_vllm_connection,
-)
-from saegim.services.vllm_ocr_service import VllmOcrProvider
+from saegim.services.ocr_connection_test import check_gemini_connection
 
 logger = logging.getLogger(__name__)
 
@@ -22,16 +18,15 @@ CommercialProvider = Literal['gemini', 'vllm']
 
 
 class CommercialApiEngine(BaseOCREngine):
-    """OCR engine using a commercial or self-hosted VLM API.
+    """OCR engine using a commercial VLM cloud API.
 
     The VLM receives a full page image and returns structured layout
     elements with text content in a single API call.
 
     Args:
-        provider: VLM provider type ('gemini' or 'vllm').
+        provider: VLM provider type ('gemini'; 'vllm' reserved for future).
         config: Provider-specific configuration dict.
             For gemini: {'api_key': str, 'model': str}
-            For vllm: {'host': str, 'port': int, 'model': str}
     """
 
     def __init__(self, provider: CommercialProvider, config: dict[str, Any]) -> None:
@@ -75,16 +70,13 @@ class CommercialApiEngine(BaseOCREngine):
         if self._provider_name == 'gemini':
             return check_gemini_connection(self._config)
 
-        if self._provider_name == 'vllm':
-            return check_vllm_connection(self._config)
-
         return (False, f'Unknown provider: {self._provider_name}')
 
 
 def _create_provider(
     provider: str,
     config: dict[str, Any],
-) -> GeminiOcrProvider | VllmOcrProvider:
+) -> GeminiOcrProvider:
     """Create the underlying OCR provider instance.
 
     Args:
@@ -100,15 +92,8 @@ def _create_provider(
     if provider == 'gemini':
         return GeminiOcrProvider(
             api_key=config['api_key'],
-            model=config.get('model', 'gemini-2.0-flash'),
+            model=config.get('model', 'gemini-3-flash-preview'),
         )
 
-    if provider == 'vllm':
-        return VllmOcrProvider(
-            host=config.get('host', 'localhost'),
-            port=config.get('port', 8000),
-            model=config.get('model', 'allenai/olmOCR-2-7B-1025'),
-        )
-
-    msg = f"Unknown commercial API provider: '{provider}'. Use 'gemini' or 'vllm'."
+    msg = f"Unknown commercial API provider: '{provider}'. Currently only 'gemini' is supported."
     raise ValueError(msg)

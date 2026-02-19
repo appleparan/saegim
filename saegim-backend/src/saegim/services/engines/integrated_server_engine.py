@@ -7,7 +7,6 @@ performs both layout detection and text recognition in a single server.
 import logging
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 from saegim.services.engines.base import BaseOCREngine
 from saegim.services.ocr_connection_test import check_ppstructure_connection
@@ -24,19 +23,27 @@ class IntegratedServerEngine(BaseOCREngine):
     with built-in OCR text in a single response.
 
     Args:
-        url: Server URL (e.g., 'http://localhost:18811').
+        host: Server hostname.
+        port: Server port.
+        model: Model name running on the server.
     """
 
-    def __init__(self, url: str) -> None:
+    def __init__(
+        self,
+        host: str = 'localhost',
+        port: int = 8000,
+        model: str = 'datalab-to/chandra',
+    ) -> None:
         """Initialize the integrated server engine.
 
         Args:
-            url: Server URL string.
+            host: Server hostname.
+            port: Server port number.
+            model: Model name running on the server.
         """
-        self._url = url
-        host, port = _parse_url(url)
         self._host = host
         self._port = port
+        self._model = model
         self._layout_client = PpstructureClient(host=host, port=port)
         self._pipeline = OcrPipeline(self._layout_client, use_builtin_ocr=True)
 
@@ -65,18 +72,3 @@ class IntegratedServerEngine(BaseOCREngine):
             Tuple of (success, message).
         """
         return check_ppstructure_connection({'host': self._host, 'port': self._port})
-
-
-def _parse_url(url: str) -> tuple[str, int]:
-    """Parse host and port from a URL string.
-
-    Args:
-        url: URL string (e.g., 'http://localhost:18811').
-
-    Returns:
-        Tuple of (host, port).
-    """
-    parsed = urlparse(url)
-    host = parsed.hostname or 'localhost'
-    port = parsed.port or 18811
-    return (host, port)

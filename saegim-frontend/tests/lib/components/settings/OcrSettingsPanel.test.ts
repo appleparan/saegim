@@ -25,7 +25,7 @@ describe('OcrSettingsPanel', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.queryByLabelText('API Key')).toBeNull()
-    expect(screen.queryByText('VLM 프로바이더')).toBeNull()
+    expect(screen.queryByText('Google Gemini')).toBeNull()
     expect(screen.queryByText('OCR 프로바이더')).toBeNull()
   })
 
@@ -35,32 +35,19 @@ describe('OcrSettingsPanel', () => {
     const caButton = screen.getByText('상업용 VLM API')
     await fireEvent.click(caButton)
 
-    expect(screen.getByText('VLM 프로바이더')).toBeTruthy()
     expect(screen.getByText('Google Gemini')).toBeTruthy()
-    expect(screen.getByText('vLLM')).toBeTruthy()
+    expect(screen.getByLabelText('API Key')).toBeTruthy()
+    expect(screen.getByLabelText('모델')).toBeTruthy()
   })
 
   it('shows Gemini API key field when Gemini provider is selected', async () => {
     const caConfig: OcrConfigResponse = {
       engine_type: 'commercial_api',
-      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-2.0-flash' },
+      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-3-flash-preview' },
     }
     render(OcrSettingsPanel, { props: { config: caConfig } })
 
     expect(screen.getByLabelText('API Key')).toBeTruthy()
-  })
-
-  it('shows vLLM host/port fields when vLLM provider is selected', async () => {
-    render(OcrSettingsPanel, { props: { config: defaultConfig } })
-
-    const caButton = screen.getByText('상업용 VLM API')
-    await fireEvent.click(caButton)
-
-    const vllmButton = screen.getByText('vLLM')
-    await fireEvent.click(vllmButton)
-
-    expect(screen.getByLabelText('호스트')).toBeTruthy()
-    expect(screen.getByLabelText('포트')).toBeTruthy()
   })
 
   it('shows integrated server config when selected', async () => {
@@ -69,7 +56,9 @@ describe('OcrSettingsPanel', () => {
     const isButton = screen.getByText('통합 파이프라인 서버')
     await fireEvent.click(isButton)
 
-    expect(screen.getByLabelText('서버 URL')).toBeTruthy()
+    expect(screen.getByLabelText('호스트')).toBeTruthy()
+    expect(screen.getByLabelText('포트')).toBeTruthy()
+    expect(screen.getByLabelText('모델')).toBeTruthy()
   })
 
   it('shows split pipeline config when selected', async () => {
@@ -101,7 +90,7 @@ describe('OcrSettingsPanel', () => {
     const onsave = vi.fn()
     const caConfig: OcrConfigResponse = {
       engine_type: 'commercial_api',
-      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-2.0-flash' },
+      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-3-flash-preview' },
     }
     render(OcrSettingsPanel, {
       props: { config: caConfig, onsave },
@@ -121,7 +110,7 @@ describe('OcrSettingsPanel', () => {
     const onsave = vi.fn()
     const isConfig: OcrConfigResponse = {
       engine_type: 'integrated_server',
-      integrated_server: { url: 'http://myhost:9999' },
+      integrated_server: { host: 'myhost', port: 9999, model: 'datalab-to/chandra' },
     }
     render(OcrSettingsPanel, {
       props: { config: isConfig, onsave },
@@ -133,7 +122,9 @@ describe('OcrSettingsPanel', () => {
     expect(onsave).toHaveBeenCalledOnce()
     const saved = onsave.mock.calls[0][0]
     expect(saved.engine_type).toBe('integrated_server')
-    expect(saved.integrated_server.url).toBe('http://myhost:9999')
+    expect(saved.integrated_server.host).toBe('myhost')
+    expect(saved.integrated_server.port).toBe(9999)
+    expect(saved.integrated_server.model).toBe('datalab-to/chandra')
   })
 
   it('disables save button when commercial_api Gemini has no API key', async () => {

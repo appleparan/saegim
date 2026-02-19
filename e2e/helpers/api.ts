@@ -62,7 +62,7 @@ interface ExportResponse {
 interface OcrConfigResponse {
   engine_type: 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pymupdf'
   commercial_api?: { provider: string; api_key?: string; model: string } | null
-  integrated_server?: { url: string } | null
+  integrated_server?: { host: string; port: number; model?: string } | null
   split_pipeline?: {
     layout_server_url: string
     ocr_provider: string

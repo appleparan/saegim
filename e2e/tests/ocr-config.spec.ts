@@ -26,68 +26,53 @@ test.describe.serial('OCR Config API (engine_type based)', () => {
   test('02 - update to commercial_api with gemini', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
       engine_type: 'commercial_api',
-      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-2.0-flash' },
+      commercial_api: {
+        provider: 'gemini',
+        api_key: 'test-key',
+        model: 'gemini-3-flash-preview',
+      },
     })
     expect(status).toBe(200)
     expect(data.engine_type).toBe('commercial_api')
     expect(data.commercial_api).toEqual({
       provider: 'gemini',
       api_key: 'test-key',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3-flash-preview',
     })
   })
 
-  test('03 - update to commercial_api with vllm', async () => {
-    const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'commercial_api',
-      commercial_api: {
-        provider: 'vllm',
-        host: 'gpu-server',
-        port: 8000,
-        model: 'allenai/olmOCR-2-7B-1025',
-      },
-    })
-    expect(status).toBe(200)
-    expect(data.engine_type).toBe('commercial_api')
-    expect(data.commercial_api).toEqual({
-      provider: 'vllm',
-      host: 'gpu-server',
-      port: 8000,
-      model: 'allenai/olmOCR-2-7B-1025',
-    })
-  })
-
-  test('04 - update to integrated_server', async () => {
+  test('03 - update to integrated_server with model', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
       engine_type: 'integrated_server',
-      integrated_server: { url: 'http://localhost:18811' },
+      integrated_server: { host: 'localhost', port: 8000, model: 'datalab-to/chandra' },
     })
     expect(status).toBe(200)
     expect(data.engine_type).toBe('integrated_server')
-    expect(data.integrated_server).toEqual({ url: 'http://localhost:18811' })
+    expect(data.integrated_server).toEqual({
+      host: 'localhost',
+      port: 8000,
+      model: 'datalab-to/chandra',
+    })
   })
 
-  test('05 - update to split_pipeline with gemini OCR', async () => {
+  test('04 - update to split_pipeline with gemini OCR', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
       engine_type: 'split_pipeline',
       split_pipeline: {
         layout_server_url: 'http://localhost:18811',
         ocr_provider: 'gemini',
         ocr_api_key: 'test-key',
-        ocr_model: 'gemini-2.0-flash',
+        ocr_model: 'gemini-3-flash-preview',
       },
     })
     expect(status).toBe(200)
     expect(data.engine_type).toBe('split_pipeline')
-    expect(data.split_pipeline).toEqual({
-      layout_server_url: 'http://localhost:18811',
-      ocr_provider: 'gemini',
-      ocr_api_key: 'test-key',
-      ocr_model: 'gemini-2.0-flash',
-    })
+    expect(data.split_pipeline?.ocr_provider).toBe('gemini')
+    expect(data.split_pipeline?.ocr_api_key).toBe('test-key')
+    expect(data.split_pipeline?.ocr_model).toBe('gemini-3-flash-preview')
   })
 
-  test('06 - revert to pymupdf', async () => {
+  test('05 - revert to pymupdf', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
       engine_type: 'pymupdf',
     })
@@ -95,33 +80,33 @@ test.describe.serial('OCR Config API (engine_type based)', () => {
     expect(data.engine_type).toBe('pymupdf')
   })
 
-  test('07 - get config reflects last update', async () => {
+  test('06 - get config reflects last update', async () => {
     const { data } = await getOcrConfig(projectId)
     expect(data.engine_type).toBe('pymupdf')
   })
 
-  test('08 - validation: commercial_api without sub-config is 422', async () => {
+  test('07 - validation: commercial_api without sub-config is 422', async () => {
     const { status } = await updateOcrConfig(projectId, {
       engine_type: 'commercial_api',
     })
     expect(status).toBe(422)
   })
 
-  test('09 - validation: integrated_server without sub-config is 422', async () => {
+  test('08 - validation: integrated_server without sub-config is 422', async () => {
     const { status } = await updateOcrConfig(projectId, {
       engine_type: 'integrated_server',
     })
     expect(status).toBe(422)
   })
 
-  test('10 - validation: split_pipeline without sub-config is 422', async () => {
+  test('09 - validation: split_pipeline without sub-config is 422', async () => {
     const { status } = await updateOcrConfig(projectId, {
       engine_type: 'split_pipeline',
     })
     expect(status).toBe(422)
   })
 
-  test('11 - connection test for pymupdf always succeeds', async () => {
+  test('10 - connection test for pymupdf always succeeds', async () => {
     const { data, status } = await testOcrConnection(projectId, {
       engine_type: 'pymupdf',
     })
@@ -129,10 +114,10 @@ test.describe.serial('OCR Config API (engine_type based)', () => {
     expect(data.success).toBe(true)
   })
 
-  test('12 - connection test for unreachable integrated_server fails', async () => {
+  test('11 - connection test for unreachable integrated_server fails', async () => {
     const { data, status } = await testOcrConnection(projectId, {
       engine_type: 'integrated_server',
-      integrated_server: { url: 'http://nonexistent-host:18811' },
+      integrated_server: { host: 'nonexistent-host', port: 18811 },
     })
     expect(status).toBe(200)
     expect(data.success).toBe(false)

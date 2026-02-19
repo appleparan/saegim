@@ -33,12 +33,12 @@
   // Commercial API state
   let caProvider = $state<CommercialApiProvider>('gemini')
   let caApiKey = $state('')
-  let caHost = $state('localhost')
-  let caPort = $state(8000)
-  let caModel = $state('gemini-2.0-flash')
+  let caModel = $state('gemini-3-flash-preview')
 
   // Integrated server state
-  let isUrl = $state('http://localhost:18811')
+  let isHost = $state('localhost')
+  let isPort = $state(8000)
+  let isModel = $state('datalab-to/chandra')
 
   // Split pipeline state
   let spLayoutUrl = $state('http://localhost:18811')
@@ -46,36 +46,35 @@
   let spOcrApiKey = $state('')
   let spOcrHost = $state('localhost')
   let spOcrPort = $state(8000)
-  let spOcrModel = $state('gemini-2.0-flash')
+  let spOcrModel = $state('gemini-3-flash-preview')
 
   $effect(() => {
     engineType = config.engine_type
     // Commercial API
     caProvider = config.commercial_api?.provider ?? 'gemini'
     caApiKey = config.commercial_api?.api_key ?? ''
-    caHost = config.commercial_api?.host ?? 'localhost'
-    caPort = config.commercial_api?.port ?? 8000
-    caModel = config.commercial_api?.model ?? 'gemini-2.0-flash'
+    caModel = config.commercial_api?.model ?? 'gemini-3-flash-preview'
     // Integrated server
-    isUrl = config.integrated_server?.url ?? 'http://localhost:18811'
+    isHost = config.integrated_server?.host ?? 'localhost'
+    isPort = config.integrated_server?.port ?? 8000
+    isModel = config.integrated_server?.model ?? 'datalab-to/chandra'
     // Split pipeline
     spLayoutUrl = config.split_pipeline?.layout_server_url ?? 'http://localhost:18811'
     spOcrProvider = config.split_pipeline?.ocr_provider ?? 'gemini'
     spOcrApiKey = config.split_pipeline?.ocr_api_key ?? ''
     spOcrHost = config.split_pipeline?.ocr_host ?? 'localhost'
     spOcrPort = config.split_pipeline?.ocr_port ?? 8000
-    spOcrModel = config.split_pipeline?.ocr_model ?? 'gemini-2.0-flash'
+    spOcrModel = config.split_pipeline?.ocr_model ?? 'gemini-3-flash-preview'
   })
 
   let isValid = $derived.by(() => {
     if (engineType === 'pymupdf') return true
     if (engineType === 'commercial_api') {
       if (caProvider === 'gemini') return caApiKey.trim().length > 0
-      if (caProvider === 'vllm') return caHost.trim().length > 0 && caPort > 0
       return false
     }
     if (engineType === 'integrated_server') {
-      return isUrl.trim().length > 0
+      return isHost.trim().length > 0 && isPort > 0
     }
     if (engineType === 'split_pipeline') {
       if (spLayoutUrl.trim().length === 0) return false
@@ -91,7 +90,7 @@
     {
       value: 'commercial_api',
       label: '상업용 VLM API',
-      description: 'Gemini, vLLM 등 Full-page OCR',
+      description: 'Gemini 등 Full-page OCR',
     },
     {
       value: 'integrated_server',
@@ -116,9 +115,7 @@
         engine_type: 'commercial_api',
         commercial_api: {
           provider: caProvider,
-          api_key: caProvider === 'gemini' ? caApiKey.trim() : undefined,
-          host: caProvider === 'vllm' ? caHost.trim() : undefined,
-          port: caProvider === 'vllm' ? caPort : undefined,
+          api_key: caApiKey.trim(),
           model: caModel.trim(),
         },
       }
@@ -126,7 +123,7 @@
     if (engineType === 'integrated_server') {
       return {
         engine_type: 'integrated_server',
-        integrated_server: { url: isUrl.trim() },
+        integrated_server: { host: isHost.trim(), port: isPort, model: isModel.trim() },
       }
     }
     // split_pipeline
@@ -176,89 +173,34 @@
   <!-- Commercial API Config -->
   {#if engineType === 'commercial_api'}
     <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h4 class="text-sm font-medium text-gray-700">VLM 프로바이더</h4>
-      <div class="grid grid-cols-2 gap-3 mb-3">
-        <button
-          type="button"
-          class="text-left p-2 rounded-lg border-2 transition-all
-            {caProvider === 'gemini'
-            ? 'border-primary-500 bg-primary-50/50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'}"
-          onclick={() => (caProvider = 'gemini')}
-        >
-          <div class="font-medium text-sm text-gray-900">Google Gemini</div>
-        </button>
-        <button
-          type="button"
-          class="text-left p-2 rounded-lg border-2 transition-all
-            {caProvider === 'vllm'
-            ? 'border-primary-500 bg-primary-50/50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'}"
-          onclick={() => (caProvider = 'vllm')}
-        >
-          <div class="font-medium text-sm text-gray-900">vLLM</div>
-        </button>
+      <h4 class="text-sm font-medium text-gray-700">Google Gemini</h4>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-api-key">
+          API Key
+        </label>
+        <input
+          id="ca-api-key"
+          type="password"
+          class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
+            focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          placeholder="Google Gemini API Key"
+          bind:value={caApiKey}
+        />
       </div>
-
-      {#if caProvider === 'gemini'}
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-api-key">
-            API Key
-          </label>
-          <input
-            id="ca-api-key"
-            type="password"
-            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-              focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-            placeholder="Google Gemini API Key"
-            bind:value={caApiKey}
-          />
-        </div>
-      {/if}
-
-      {#if caProvider === 'vllm'}
-        <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-2">
-            <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-host">
-              호스트
-            </label>
-            <input
-              id="ca-host"
-              type="text"
-              class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-                focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-              placeholder="localhost"
-              bind:value={caHost}
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-port">
-              포트
-            </label>
-            <input
-              id="ca-port"
-              type="number"
-              class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-                focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-              placeholder="8000"
-              min="1"
-              max="65535"
-              bind:value={caPort}
-            />
-          </div>
-        </div>
-      {/if}
 
       <div>
         <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-model">모델</label>
-        <input
+        <select
           id="ca-model"
-          type="text"
           class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
             focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          placeholder="gemini-2.0-flash"
           bind:value={caModel}
-        />
+        >
+          <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+          <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+          <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+        </select>
       </div>
     </div>
   {/if}
@@ -267,15 +209,41 @@
   {#if engineType === 'integrated_server'}
     <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
       <h4 class="text-sm font-medium text-gray-700">통합 파이프라인 서버</h4>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-gray-600 mb-1" for="is-host">호스트</label>
+          <input
+            id="is-host"
+            type="text"
+            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
+              focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            placeholder="localhost"
+            bind:value={isHost}
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1" for="is-port">포트</label>
+          <input
+            id="is-port"
+            type="number"
+            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
+              focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            placeholder="8000"
+            min="1"
+            max="65535"
+            bind:value={isPort}
+          />
+        </div>
+      </div>
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1" for="is-url">서버 URL</label>
+        <label class="block text-xs font-medium text-gray-600 mb-1" for="is-model">모델</label>
         <input
-          id="is-url"
+          id="is-model"
           type="text"
           class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
             focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          placeholder="http://localhost:18811"
-          bind:value={isUrl}
+          placeholder="datalab-to/chandra"
+          bind:value={isModel}
         />
       </div>
     </div>
@@ -383,7 +351,7 @@
           type="text"
           class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
             focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          placeholder="gemini-2.0-flash"
+          placeholder="gemini-3-flash-preview"
           bind:value={spOcrModel}
         />
       </div>
