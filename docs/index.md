@@ -82,4 +82,4 @@ uv run uvicorn saegim.app:app --reload
 uv run pytest --cov
 ```
 
-자세한 내용은 [시작하기](guide/getting-started.md) 문서를 참조하세요.
+자세한 내용은 [시작하기](backend/guide/getting-started.md) 문서를 참조하세요.

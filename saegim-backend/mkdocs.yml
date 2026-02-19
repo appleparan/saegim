@@ -1,5 +1,5 @@
 site_name: saegim
-site_description: (Backend) human-in-the-loop labeling platform for Korean document benchmarks
+site_description: human-in-the-loop labeling platform for Korean document benchmarks
 site_author: Jongsu Kim
 #site_url: 'SOME_URL' # Uncomment to set a canonical URL
 
@@ -7,7 +7,7 @@ copyright: |
   &copy; Jongsu Kim
 
 site_dir: site/
-docs_dir: docs/
+docs_dir: ../docs/
 
 theme:
   name: 'material'
@@ -192,15 +192,28 @@ markdown_extensions:
 # Assume REF_DOCS_DIR_NAME = 'reference' in scripts/gen_ref_pages.py
 nav:
   - Home: index.md
-  - Guide:
-    - 개요: guide/overview.md
-    - 시작하기: guide/getting-started.md
-    - API 엔드포인트: guide/api.md
-  - Design:
-    - 아키텍처: design/architecture.md
-    - 데이터베이스: design/database.md
-  - Dev:
-    - 개발 가이드: dev/development.md
+  - Backend:
+    - Guide:
+      - 시작하기: backend/guide/getting-started.md
+      - API 엔드포인트: backend/guide/api.md
+    - Design:
+      - 아키텍처: backend/design/architecture.md
+      - 데이터베이스: backend/design/database.md
+    - Dev:
+      - 개발 가이드: backend/dev/development.md
+  - Frontend:
+    - Guide:
+      - 컴포넌트: frontend/guide/components.md
+      - 단축키: frontend/guide/shortcuts.md
+    - Design:
+      - 아키텍처: frontend/design/architecture.md
+      - 스토어: frontend/design/stores.md
+    - Dev:
+      - API 클라이언트: frontend/dev/api-client.md
+  - Deployment:
+    - 빠른 시작: deployment/quickstart.md
+    - Docker: deployment/docker.md
+    - Kubernetes: deployment/kubernetes.md
   - API Reference: reference/
 
 plugins:

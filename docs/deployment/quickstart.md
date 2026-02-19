@@ -108,5 +108,5 @@ docker compose up -d --build
 
 ## 다음 단계
 
-- [Docker 개발 가이드](../dev/docker.md) - 이미지 빌드, GPU 프로파일 상세
-- [Kubernetes 배포 가이드](../dev/kubernetes.md) - 클러스터 배포
+- [Docker 개발 가이드](docker.md) - 이미지 빌드, GPU 프로파일 상세
+- [Kubernetes 배포 가이드](kubernetes.md) - 클러스터 배포
