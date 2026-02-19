@@ -10,7 +10,7 @@ import {
 
 let projectId: string
 
-test.describe.serial('OCR Config API (2-stage pipeline)', () => {
+test.describe.serial('OCR Config API (engine_type based)', () => {
   test.beforeAll(async () => {
     await waitForBackendReady()
     const { data } = await createProject(`OCR Config E2E ${Date.now()}`, 'OCR config test')
@@ -20,112 +20,119 @@ test.describe.serial('OCR Config API (2-stage pipeline)', () => {
   test('01 - default OCR config is pymupdf', async () => {
     const { data, status } = await getOcrConfig(projectId)
     expect(status).toBe(200)
-    expect(data.layout_provider).toBe('pymupdf')
-    expect(data.ocr_provider).toBeNull()
+    expect(data.engine_type).toBe('pymupdf')
   })
 
-  test('02 - update to ppstructure + ppocr', async () => {
+  test('02 - update to commercial_api with gemini', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'ppocr',
-      ppstructure: { host: 'localhost', port: 18811 },
+      engine_type: 'commercial_api',
+      commercial_api: { provider: 'gemini', api_key: 'test-key', model: 'gemini-2.0-flash' },
     })
     expect(status).toBe(200)
-    expect(data.layout_provider).toBe('ppstructure')
-    expect(data.ocr_provider).toBe('ppocr')
-    expect(data.ppstructure).toEqual({ host: 'localhost', port: 18811 })
+    expect(data.engine_type).toBe('commercial_api')
+    expect(data.commercial_api).toEqual({
+      provider: 'gemini',
+      api_key: 'test-key',
+      model: 'gemini-2.0-flash',
+    })
   })
 
-  test('03 - update to ppstructure + gemini', async () => {
+  test('03 - update to commercial_api with vllm', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'gemini',
-      ppstructure: { host: 'localhost', port: 18811 },
-      gemini: { api_key: 'test-key', model: 'gemini-2.0-flash' },
+      engine_type: 'commercial_api',
+      commercial_api: {
+        provider: 'vllm',
+        host: 'gpu-server',
+        port: 8000,
+        model: 'allenai/olmOCR-2-7B-1025',
+      },
     })
     expect(status).toBe(200)
-    expect(data.layout_provider).toBe('ppstructure')
-    expect(data.ocr_provider).toBe('gemini')
-    expect(data.gemini).toEqual({ api_key: 'test-key', model: 'gemini-2.0-flash' })
-  })
-
-  test('04 - update to ppstructure + olmocr', async () => {
-    const { data, status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'olmocr',
-      ppstructure: { host: 'gpu-server', port: 18811 },
-      vllm: { host: 'gpu-server', port: 8000, model: 'allenai/olmOCR-2-7B-1025' },
-    })
-    expect(status).toBe(200)
-    expect(data.ocr_provider).toBe('olmocr')
-    expect(data.vllm).toEqual({
+    expect(data.engine_type).toBe('commercial_api')
+    expect(data.commercial_api).toEqual({
+      provider: 'vllm',
       host: 'gpu-server',
       port: 8000,
       model: 'allenai/olmOCR-2-7B-1025',
     })
   })
 
-  test('05 - revert to pymupdf', async () => {
+  test('04 - update to integrated_server', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      layout_provider: 'pymupdf',
+      engine_type: 'integrated_server',
+      integrated_server: { url: 'http://localhost:18811' },
     })
     expect(status).toBe(200)
-    expect(data.layout_provider).toBe('pymupdf')
-    expect(data.ocr_provider).toBeUndefined()
+    expect(data.engine_type).toBe('integrated_server')
+    expect(data.integrated_server).toEqual({ url: 'http://localhost:18811' })
   })
 
-  test('06 - get config reflects last update', async () => {
-    const { data } = await getOcrConfig(projectId)
-    expect(data.layout_provider).toBe('pymupdf')
-  })
-
-  test('07 - validation: ppstructure without ocr_provider is 422', async () => {
-    const { status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
-      ppstructure: { host: 'localhost', port: 18811 },
+  test('05 - update to split_pipeline with gemini OCR', async () => {
+    const { data, status } = await updateOcrConfig(projectId, {
+      engine_type: 'split_pipeline',
+      split_pipeline: {
+        layout_server_url: 'http://localhost:18811',
+        ocr_provider: 'gemini',
+        ocr_api_key: 'test-key',
+        ocr_model: 'gemini-2.0-flash',
+      },
     })
-    expect(status).toBe(422)
-  })
-
-  test('08 - validation: ppstructure without ppstructure config is 422', async () => {
-    const { status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'ppocr',
-    })
-    expect(status).toBe(422)
-  })
-
-  test('09 - validation: gemini without gemini config is 422', async () => {
-    const { status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
+    expect(status).toBe(200)
+    expect(data.engine_type).toBe('split_pipeline')
+    expect(data.split_pipeline).toEqual({
+      layout_server_url: 'http://localhost:18811',
       ocr_provider: 'gemini',
-      ppstructure: { host: 'localhost', port: 18811 },
+      ocr_api_key: 'test-key',
+      ocr_model: 'gemini-2.0-flash',
+    })
+  })
+
+  test('06 - revert to pymupdf', async () => {
+    const { data, status } = await updateOcrConfig(projectId, {
+      engine_type: 'pymupdf',
+    })
+    expect(status).toBe(200)
+    expect(data.engine_type).toBe('pymupdf')
+  })
+
+  test('07 - get config reflects last update', async () => {
+    const { data } = await getOcrConfig(projectId)
+    expect(data.engine_type).toBe('pymupdf')
+  })
+
+  test('08 - validation: commercial_api without sub-config is 422', async () => {
+    const { status } = await updateOcrConfig(projectId, {
+      engine_type: 'commercial_api',
     })
     expect(status).toBe(422)
   })
 
-  test('10 - validation: olmocr without vllm config is 422', async () => {
+  test('09 - validation: integrated_server without sub-config is 422', async () => {
     const { status } = await updateOcrConfig(projectId, {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'olmocr',
-      ppstructure: { host: 'localhost', port: 18811 },
+      engine_type: 'integrated_server',
+    })
+    expect(status).toBe(422)
+  })
+
+  test('10 - validation: split_pipeline without sub-config is 422', async () => {
+    const { status } = await updateOcrConfig(projectId, {
+      engine_type: 'split_pipeline',
     })
     expect(status).toBe(422)
   })
 
   test('11 - connection test for pymupdf always succeeds', async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      layout_provider: 'pymupdf',
+      engine_type: 'pymupdf',
     })
     expect(status).toBe(200)
     expect(data.success).toBe(true)
   })
 
-  test('12 - connection test for unreachable ppstructure fails', async () => {
+  test('12 - connection test for unreachable integrated_server fails', async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      layout_provider: 'ppstructure',
-      ocr_provider: 'ppocr',
-      ppstructure: { host: 'nonexistent-host', port: 18811 },
+      engine_type: 'integrated_server',
+      integrated_server: { url: 'http://nonexistent-host:18811' },
     })
     expect(status).toBe(200)
     expect(data.success).toBe(false)

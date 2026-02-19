@@ -60,11 +60,15 @@ interface ExportResponse {
 }
 
 interface OcrConfigResponse {
-  layout_provider: 'ppstructure' | 'pymupdf'
-  ocr_provider?: 'gemini' | 'olmocr' | 'ppocr' | null
-  ppstructure?: { host: string; port: number } | null
-  gemini?: { api_key: string; model: string } | null
-  vllm?: { host: string; port: number; model: string } | null
+  engine_type: 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pymupdf'
+  commercial_api?: { provider: string; api_key?: string; model: string } | null
+  integrated_server?: { url: string } | null
+  split_pipeline?: {
+    layout_server_url: string
+    ocr_provider: string
+    ocr_api_key?: string
+    ocr_model?: string
+  } | null
 }
 
 interface OcrConnectionTestResponse {
