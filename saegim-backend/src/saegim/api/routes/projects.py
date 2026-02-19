@@ -110,9 +110,8 @@ async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
     config = await project_repo.get_ocr_config(pool, project_id)
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
-    if not config or 'layout_provider' not in config:
-        # No config or legacy format — return default (pymupdf)
-        return OcrConfigResponse(layout_provider='pymupdf')
+    if not config or 'engine_type' not in config:
+        return OcrConfigResponse(engine_type='pymupdf')
     return OcrConfigResponse(**config)
 
 
@@ -151,35 +150,29 @@ async def update_ocr_config(
 
 
 def _validate_ocr_config(body: OcrConfigUpdate) -> None:
-    """Validate 2-stage OCR configuration consistency.
+    """Validate engine_type-based OCR configuration.
 
     Args:
         body: OCR config to validate.
 
     Raises:
-        HTTPException: If validation fails.
+        HTTPException: If required sub-config is missing.
     """
-    if body.layout_provider == 'ppstructure':
-        if body.ppstructure is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail='ppstructure config is required when layout_provider is ppstructure',
-            )
-        if body.ocr_provider is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail='ocr_provider is required when layout_provider is ppstructure',
-            )
-        if body.ocr_provider == 'gemini' and body.gemini is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail='gemini config is required when ocr_provider is gemini',
-            )
-        if body.ocr_provider == 'olmocr' and body.vllm is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail='vllm config is required when ocr_provider is olmocr',
-            )
+    if body.engine_type == 'commercial_api' and body.commercial_api is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='commercial_api config is required when engine_type is commercial_api',
+        )
+    if body.engine_type == 'integrated_server' and body.integrated_server is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='integrated_server config is required when engine_type is integrated_server',
+        )
+    if body.engine_type == 'split_pipeline' and body.split_pipeline is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='split_pipeline config is required when engine_type is split_pipeline',
+        )
 
 
 @router.post(
@@ -210,8 +203,12 @@ async def test_ocr_config(
             detail='Project not found',
         )
 
-    from saegim.services.ocr_connection_test import check_ocr_connection
+    from saegim.services.engines.factory import build_engine
 
     config_dict = body.model_dump(exclude_none=True)
-    success, message = check_ocr_connection(config_dict)
+    try:
+        engine = build_engine(config_dict)
+        success, message = engine.test_connection()
+    except ValueError as exc:
+        success, message = False, str(exc)
     return OcrConnectionTestResponse(success=success, message=message)

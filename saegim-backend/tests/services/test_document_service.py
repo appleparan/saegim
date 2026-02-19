@@ -29,7 +29,7 @@ def document_id():
 
 @pytest.fixture
 def mock_pymupdf_config():
-    return {'layout_provider': 'pymupdf'}
+    return {'engine_type': 'pymupdf'}
 
 
 @pytest.fixture
@@ -393,10 +393,12 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'layout_provider': 'ppstructure',
-                    'ocr_provider': 'gemini',
-                    'ppstructure': {'host': 'localhost', 'port': 18811},
-                    'gemini': {'api_key': 'k', 'model': 'm'},
+                    'engine_type': 'commercial_api',
+                    'commercial_api': {
+                        'provider': 'gemini',
+                        'api_key': 'k',
+                        'model': 'm',
+                    },
                 },
             ),
             patch.object(document_service, '_dispatch_ocr_extraction') as mock_dispatch,
@@ -429,7 +431,7 @@ class TestUploadAndConvertOcr:
         )
 
     @pytest.mark.asyncio
-    async def test_does_not_call_pymupdf_extraction_for_ocr_provider(
+    async def test_does_not_call_pymupdf_extraction_for_ocr_engine(
         self, mock_pool, project_id, tmp_path, mock_ocr_settings
     ):
         doc_id = uuid.uuid4()
@@ -446,10 +448,14 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'layout_provider': 'ppstructure',
-                    'ocr_provider': 'olmocr',
-                    'ppstructure': {'host': 'localhost', 'port': 18811},
-                    'vllm': {'host': 'h', 'port': 8000, 'model': 'm'},
+                    'engine_type': 'split_pipeline',
+                    'split_pipeline': {
+                        'layout_server_url': 'http://localhost:18811',
+                        'ocr_provider': 'vllm',
+                        'ocr_host': 'h',
+                        'ocr_port': 8000,
+                        'ocr_model': 'm',
+                    },
                 },
             ),
             patch.object(document_service, '_dispatch_ocr_extraction'),
@@ -496,10 +502,12 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'layout_provider': 'ppstructure',
-                    'ocr_provider': 'gemini',
-                    'ppstructure': {'host': 'localhost', 'port': 18811},
-                    'gemini': {'api_key': 'k', 'model': 'm'},
+                    'engine_type': 'commercial_api',
+                    'commercial_api': {
+                        'provider': 'gemini',
+                        'api_key': 'k',
+                        'model': 'm',
+                    },
                 },
             ),
             patch.object(document_service, '_dispatch_ocr_extraction'),

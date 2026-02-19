@@ -1,4 +1,4 @@
-"""Celery task for 2-stage OCR extraction (PP-StructureV3 + text OCR)."""
+"""Celery task for OCR extraction using the engine abstraction."""
 
 import json
 import logging
@@ -8,7 +8,7 @@ from typing import Any
 import psycopg
 
 from saegim.api.settings import get_settings
-from saegim.services.ocr_pipeline import build_ocr_pipeline
+from saegim.services.engines import build_engine
 from saegim.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -73,10 +73,9 @@ def run_ocr_extraction(
     page_info: list[dict[str, Any]],
     ocr_config: dict[str, Any],
 ) -> dict[str, Any]:
-    """Run 2-stage OCR extraction as a Celery task.
+    """Run OCR extraction as a Celery task.
 
-    Uses PP-StructureV3 for layout detection and a text OCR provider
-    (Gemini, OlmOCR, or PP-OCR built-in) for text extraction.
+    Builds an OCR engine from the config and extracts each page.
 
     Args:
         self: Celery task instance (bound).
@@ -97,20 +96,17 @@ def run_ocr_extraction(
             as extraction_failed.
     """
     dsn = _get_dsn()
-    ocr_provider_name = ocr_config.get('ocr_provider', 'unknown')
+    engine_type = ocr_config.get('engine_type', 'unknown')
 
     logger.info(
-        'Starting OCR extraction for document %s (%d pages, ocr=%s)',
+        'Starting OCR extraction for document %s (%d pages, engine=%s)',
         document_id,
         len(page_info),
-        ocr_provider_name,
+        engine_type,
     )
 
     try:
-        pipeline = build_ocr_pipeline(ocr_config)
-        if pipeline is None:
-            msg = 'Pipeline build returned None (pymupdf should not reach Celery task)'
-            raise ValueError(msg)
+        engine = build_engine(ocr_config)
 
         for page in page_info:
             page_id = page['page_id']
@@ -123,10 +119,10 @@ def run_ocr_extraction(
                 'Extracting page %s (idx=%d) with %s',
                 page_id,
                 page_idx,
-                ocr_provider_name,
+                engine_type,
             )
 
-            extracted = pipeline.extract_page(image_path, width, height)
+            extracted = engine.extract_page(image_path, width, height)
             _update_page_extraction(dsn, page_id, extracted)
 
             logger.info(

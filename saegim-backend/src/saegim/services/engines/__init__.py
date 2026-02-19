@@ -8,5 +8,6 @@ Provides a unified interface for different OCR engine types:
 """
 
 from saegim.services.engines.base import BaseOCREngine
+from saegim.services.engines.factory import build_engine
 
-__all__ = ['BaseOCREngine']
+__all__ = ['BaseOCREngine', 'build_engine']
