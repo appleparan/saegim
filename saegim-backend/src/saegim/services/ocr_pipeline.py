@@ -1,24 +1,40 @@
 """2-stage OCR pipeline orchestrator.
 
 Combines PP-StructureV3 layout detection with text-only OCR providers
-(Gemini, OlmOCR, or PP-OCR built-in) to produce OmniDocBench pages.
+(Gemini, vLLM, or PP-OCR built-in) to produce OmniDocBench pages.
 """
 
 import io
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from PIL import Image
 
-from saegim.services.ocr_provider import (
-    TextOcrProvider,
-    bbox_to_poly,
-    get_text_ocr_provider,
-)
+from saegim.services.ocr_provider import bbox_to_poly
 from saegim.services.ppstructure_service import LayoutRegion, PpstructureClient
 
 logger = logging.getLogger(__name__)
+
+
+class TextOcrProvider(Protocol):
+    """Protocol for text-only OCR providers (2-stage pipeline).
+
+    Used with PP-StructureV3 layout detection: receives a cropped region
+    image and returns extracted text.
+    """
+
+    def extract_text(self, image_bytes: bytes, category_hint: str = '') -> str:
+        """Extract text from a cropped region image.
+
+        Args:
+            image_bytes: Raw image bytes of the cropped region.
+            category_hint: OmniDocBench category hint (e.g. 'table', 'equation_isolated').
+
+        Returns:
+            Extracted text string.
+        """
+        ...
 
 
 class OcrPipeline:
@@ -39,7 +55,7 @@ class OcrPipeline:
 
         Args:
             layout_client: PP-StructureV3 client for layout detection.
-            text_provider: Text-only OCR provider (Gemini or OlmOCR).
+            text_provider: Text-only OCR provider (Gemini or vLLM).
             use_builtin_ocr: If True, use PP-OCR built-in text from layout results.
         """
         self._layout_client = layout_client
@@ -178,32 +194,3 @@ def _build_layout_det(
         else:
             det['text'] = text
     return det
-
-
-def build_ocr_pipeline(ocr_config: dict[str, Any]) -> OcrPipeline | None:
-    """Build an OCR pipeline from configuration.
-
-    Args:
-        ocr_config: OCR configuration dict.
-
-    Returns:
-        OcrPipeline instance, or None for pymupdf layout provider.
-    """
-    layout_provider = ocr_config.get('layout_provider', 'pymupdf')
-
-    if layout_provider == 'pymupdf':
-        return None
-
-    pp_config = ocr_config.get('ppstructure', {})
-    layout_client = PpstructureClient(
-        host=pp_config.get('host', 'localhost'),
-        port=pp_config.get('port', 18811),
-    )
-
-    ocr_provider = ocr_config.get('ocr_provider', 'ppocr')
-
-    if ocr_provider == 'ppocr':
-        return OcrPipeline(layout_client, use_builtin_ocr=True)
-
-    text_provider = get_text_ocr_provider(ocr_config)
-    return OcrPipeline(layout_client, text_provider)

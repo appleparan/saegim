@@ -1,19 +1,13 @@
-"""Tests for OCR provider factory and utilities."""
-
-import pytest
+"""Tests for OCR provider utilities and prompts."""
 
 from saegim.services.ocr_provider import (
     bbox_to_poly,
     build_omnidocbench_page,
-    get_ocr_provider,
-    get_text_ocr_provider,
     get_text_prompt,
 )
 
 
 class TestBboxToPoly:
-    """Test bbox_to_poly conversion."""
-
     def test_basic_conversion(self):
         poly = bbox_to_poly([10, 20, 300, 400])
         assert poly == [10, 20, 300, 20, 300, 400, 10, 400]
@@ -28,12 +22,15 @@ class TestBboxToPoly:
 
 
 class TestBuildOmnidocbenchPage:
-    """Test OmniDocBench page building."""
-
     def test_build_with_elements(self):
         elements = [
             {'category_type': 'title', 'bbox': [10, 20, 400, 60], 'text': 'Title', 'order': 0},
-            {'category_type': 'text_block', 'bbox': [10, 80, 400, 200], 'text': 'Body', 'order': 1},
+            {
+                'category_type': 'text_block',
+                'bbox': [10, 80, 400, 200],
+                'text': 'Body',
+                'order': 1,
+            },
         ]
         result = build_omnidocbench_page(elements)
 
@@ -73,34 +70,6 @@ class TestBuildOmnidocbenchPage:
         assert result['layout_dets'][1]['html'] == '<table><tr><td>A</td></tr></table>'
 
 
-class TestGetOcrProvider:
-    """Test OCR provider factory (uses ocr_provider key)."""
-
-    def test_get_gemini_provider(self):
-        config = {
-            'ocr_provider': 'gemini',
-            'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
-        }
-        provider = get_ocr_provider(config)
-        from saegim.services.gemini_ocr_service import GeminiOcrProvider
-
-        assert isinstance(provider, GeminiOcrProvider)
-
-    def test_get_olmocr_provider(self):
-        config = {
-            'ocr_provider': 'olmocr',
-            'vllm': {'host': 'localhost', 'port': 8080, 'model': 'test-model'},
-        }
-        provider = get_ocr_provider(config)
-        from saegim.services.vllm_ocr_service import VllmOcrProvider
-
-        assert isinstance(provider, VllmOcrProvider)
-
-    def test_get_unknown_provider(self):
-        with pytest.raises(ValueError, match='Unknown OCR provider'):
-            get_ocr_provider({'ocr_provider': 'unknown'})
-
-
 class TestGetTextPrompt:
     def test_default_prompt(self):
         prompt = get_text_prompt()
@@ -121,29 +90,3 @@ class TestGetTextPrompt:
     def test_unknown_category_returns_default(self):
         prompt = get_text_prompt('figure')
         assert 'Read all text' in prompt
-
-
-class TestGetTextOcrProvider:
-    def test_get_gemini_text_provider(self):
-        config = {
-            'ocr_provider': 'gemini',
-            'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
-        }
-        provider = get_text_ocr_provider(config)
-        from saegim.services.gemini_ocr_service import GeminiTextOcrProvider
-
-        assert isinstance(provider, GeminiTextOcrProvider)
-
-    def test_get_olmocr_text_provider(self):
-        config = {
-            'ocr_provider': 'olmocr',
-            'vllm': {'host': 'localhost', 'port': 8080, 'model': 'test-model'},
-        }
-        provider = get_text_ocr_provider(config)
-        from saegim.services.vllm_ocr_service import VllmTextOcrProvider
-
-        assert isinstance(provider, VllmTextOcrProvider)
-
-    def test_get_unknown_text_provider(self):
-        with pytest.raises(ValueError, match='Unknown text OCR provider'):
-            get_text_ocr_provider({'ocr_provider': 'unknown'})
