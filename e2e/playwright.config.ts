@@ -29,6 +29,16 @@ export default defineConfig({
         browserName: 'chromium',
         viewport: { width: 1920, height: 1080 },
       },
+      testIgnore: /gpu\//,
+    },
+    {
+      name: 'gpu',
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 1920, height: 1080 },
+      },
+      testMatch: /gpu\/.*\.spec\.ts/,
+      timeout: 600_000,
     },
   ],
   metadata: {

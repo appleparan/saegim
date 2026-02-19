@@ -304,3 +304,23 @@ export async function waitForBackendReady(
   }
   throw new Error(`Backend not ready after ${maxWaitMs}ms`)
 }
+
+const VLLM_URL = process.env.E2E_VLLM_URL ?? 'http://localhost:28000'
+
+export async function waitForVllmReady(
+  maxWaitMs = 300_000,
+  intervalMs = 10_000,
+): Promise<void> {
+  const url = `${VLLM_URL}/v1/models`
+  const deadline = Date.now() + maxWaitMs
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+      if (response.ok) return
+    } catch {
+      // vLLM not ready yet (model loading)
+    }
+    await new Promise((r) => setTimeout(r, intervalMs))
+  }
+  throw new Error(`vLLM not ready after ${maxWaitMs}ms`)
+}
