@@ -294,6 +294,7 @@ norecursedirs = [
     "__pycache__"
 ]
 log_cli = "true"
+log_cli_level = "CRITICAL"
 markers = [
     "slow"
 ]
