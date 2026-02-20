@@ -12,8 +12,10 @@ class DocumentStatus(StrEnum):
 
     UPLOADING = 'uploading'
     PROCESSING = 'processing'
+    EXTRACTING = 'extracting'
     READY = 'ready'
     ERROR = 'error'
+    EXTRACTION_FAILED = 'extraction_failed'
 
 
 class DocumentResponse(BaseModel):

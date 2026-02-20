@@ -93,22 +93,31 @@ services:
       - gpu
 
   vllm:
-    image: vllm/vllm-openai:v0.15.0
-    runtime: nvidia
+    image: vllm/vllm-openai:v0.15.1
     environment:
       NVIDIA_VISIBLE_DEVICES: all
       HF_HOME: /root/.cache/huggingface
+      VLLM_ATTENTION_BACKEND: TORCH_SDPA
     volumes:
       - ${HF_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
     ports:
       - "28000:8000"
     ipc: host
     command: >
-      --model datalab-to/chandra
-      --gpu-memory-utilization 0.9
+      --model richarddavison/chandra-fp8
+      --gpu-memory-utilization 0.8
+      --max-num-seqs 4
       --max-model-len 8192
+      --max-num-batched-token 8192
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/v1/models || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 20

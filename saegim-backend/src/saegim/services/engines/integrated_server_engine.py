@@ -1,7 +1,10 @@
 """Integrated pipeline server engine (Type 2).
 
-Uses a self-hosted framework (e.g., PP-StructureV3 + PP-OCR) that
-performs both layout detection and text recognition in a single server.
+Uses a self-hosted framework that performs both layout detection and text
+recognition in a single server. Supports two backends:
+
+- PP-StructureV3: PaddleOCR-based server (model starts with 'PP-')
+- vLLM: OpenAI-compatible VLM server (HuggingFace models like datalab-to/chandra)
 """
 
 import logging
@@ -9,11 +12,29 @@ from pathlib import Path
 from typing import Any
 
 from saegim.services.engines.base import BaseOCREngine
-from saegim.services.ocr_connection_test import check_ppstructure_connection
+from saegim.services.ocr_connection_test import (
+    check_ppstructure_connection,
+    check_vllm_connection,
+)
 from saegim.services.ocr_pipeline import OcrPipeline
 from saegim.services.ppstructure_service import PpstructureClient
+from saegim.services.vllm_ocr_service import VllmOcrProvider
 
 logger = logging.getLogger(__name__)
+
+_PPSTRUCTURE_MODEL_PREFIXES = ('PP-',)
+
+
+def _is_ppstructure_model(model: str) -> bool:
+    """Check if the model name indicates a PP-StructureV3 server.
+
+    Args:
+        model: Model name string.
+
+    Returns:
+        True if the model is a PP-StructureV3 model.
+    """
+    return any(model.startswith(prefix) for prefix in _PPSTRUCTURE_MODEL_PREFIXES)
 
 
 class IntegratedServerEngine(BaseOCREngine):
@@ -21,6 +42,10 @@ class IntegratedServerEngine(BaseOCREngine):
 
     The server receives a page image and returns layout regions
     with built-in OCR text in a single response.
+
+    Automatically selects the appropriate backend based on the model name:
+    - PP-StructureV3 models (prefix 'PP-'): uses PpstructureClient
+    - Other models (e.g. datalab-to/chandra): uses VllmOcrProvider
 
     Args:
         host: Server hostname.
@@ -44,8 +69,16 @@ class IntegratedServerEngine(BaseOCREngine):
         self._host = host
         self._port = port
         self._model = model
-        self._layout_client = PpstructureClient(host=host, port=port)
-        self._pipeline = OcrPipeline(self._layout_client, use_builtin_ocr=True)
+        self._use_ppstructure = _is_ppstructure_model(model)
+
+        if self._use_ppstructure:
+            self._layout_client = PpstructureClient(host=host, port=port)
+            self._pipeline = OcrPipeline(self._layout_client, use_builtin_ocr=True)
+            self._vllm_provider = None
+        else:
+            self._layout_client = None  # type: ignore[assignment]
+            self._pipeline = None  # type: ignore[assignment]
+            self._vllm_provider = VllmOcrProvider(host=host, port=port, model=model)
 
     def extract_page(
         self,
@@ -63,12 +96,20 @@ class IntegratedServerEngine(BaseOCREngine):
         Returns:
             OmniDocBench-compatible dict.
         """
-        return self._pipeline.extract_page(image_path, page_width, page_height)
+        if self._use_ppstructure:
+            return self._pipeline.extract_page(image_path, page_width, page_height)
+        return self._vllm_provider.extract_page(image_path, page_width, page_height)
 
     def test_connection(self) -> tuple[bool, str]:
         """Test integrated server connectivity.
 
+        Uses PP-StructureV3 health check or vLLM model list depending
+        on the configured model type.
+
         Returns:
             Tuple of (success, message).
         """
-        return check_ppstructure_connection({'host': self._host, 'port': self._port})
+        config = {'host': self._host, 'port': self._port}
+        if self._use_ppstructure:
+            return check_ppstructure_connection(config)
+        return check_vllm_connection(config)

@@ -15,7 +15,7 @@ import { ensureTestPdf, getTestPdfPath } from '../../helpers/pdf'
 
 const VLLM_HOST = 'vllm'
 const VLLM_PORT = 8000
-const VLLM_MODEL = 'datalab-to/chandra'
+const VLLM_MODEL = 'richarddavison/chandra-fp8'
 
 let projectId: string
 let documentId: string
