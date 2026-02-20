@@ -30,7 +30,7 @@ class TestIsPpstructureModel:
 class TestIntegratedServerEnginePpstructure:
     @patch('saegim.services.engines.integrated_server_engine.OcrPipeline')
     @patch('saegim.services.engines.integrated_server_engine.PpstructureClient')
-    def test_is_base_ocr_engine_subclass(self, _mock_client, _mock_pipeline):
+    def test_is_base_ocr_engine_subclass(self, _mock_client, _mock_pipeline):  # noqa: PT019
         engine = IntegratedServerEngine(host='localhost', port=18811, model='PP-StructureV3')
         assert isinstance(engine, BaseOCREngine)
 
@@ -45,7 +45,7 @@ class TestIntegratedServerEnginePpstructure:
 
     @patch('saegim.services.engines.integrated_server_engine.OcrPipeline')
     @patch('saegim.services.engines.integrated_server_engine.PpstructureClient')
-    def test_extract_page_delegates_to_pipeline(self, _mock_client, mock_pipeline_cls):
+    def test_extract_page_delegates_to_pipeline(self, _mock_client, mock_pipeline_cls):  # noqa: PT019
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
         expected = {'layout_dets': [], 'page_attribute': {}, 'extra': {'relation': []}}
@@ -60,7 +60,7 @@ class TestIntegratedServerEnginePpstructure:
     @patch('saegim.services.engines.integrated_server_engine.check_ppstructure_connection')
     @patch('saegim.services.engines.integrated_server_engine.OcrPipeline')
     @patch('saegim.services.engines.integrated_server_engine.PpstructureClient')
-    def test_test_connection_delegates_ppstructure(self, _mock_client, _mock_pipeline, mock_check):
+    def test_test_connection_delegates_ppstructure(self, _mock_client, _mock_pipeline, mock_check):  # noqa: PT019
         mock_check.return_value = (True, 'Connected to PP-StructureV3')
         engine = IntegratedServerEngine(host='myhost', port=18811, model='PP-StructureV3')
 
@@ -72,7 +72,7 @@ class TestIntegratedServerEnginePpstructure:
     @patch('saegim.services.engines.integrated_server_engine.check_ppstructure_connection')
     @patch('saegim.services.engines.integrated_server_engine.OcrPipeline')
     @patch('saegim.services.engines.integrated_server_engine.PpstructureClient')
-    def test_test_connection_failure(self, _mock_client, _mock_pipeline, mock_check):
+    def test_test_connection_failure(self, _mock_client, _mock_pipeline, mock_check):  # noqa: PT019
         mock_check.return_value = (False, 'Cannot connect')
         engine = IntegratedServerEngine(host='badhost', port=18811, model='PP-StructureV3')
 
@@ -83,7 +83,7 @@ class TestIntegratedServerEnginePpstructure:
 
 class TestIntegratedServerEngineVllm:
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
-    def test_is_base_ocr_engine_subclass(self, _mock_vllm):
+    def test_is_base_ocr_engine_subclass(self, _mock_vllm):  # noqa: PT019
         engine = IntegratedServerEngine(host='localhost', port=8000, model='datalab-to/chandra')
         assert isinstance(engine, BaseOCREngine)
 
@@ -109,7 +109,7 @@ class TestIntegratedServerEngineVllm:
 
     @patch('saegim.services.engines.integrated_server_engine.check_vllm_connection')
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
-    def test_test_connection_delegates_vllm(self, _mock_vllm, mock_check):
+    def test_test_connection_delegates_vllm(self, _mock_vllm, mock_check):  # noqa: PT019
         mock_check.return_value = (True, 'Connected to vLLM (richarddavison/chandra-fp8)')
         engine = IntegratedServerEngine(
             host='vllm-host', port=8000, model='richarddavison/chandra-fp8'
@@ -122,7 +122,7 @@ class TestIntegratedServerEngineVllm:
 
     @patch('saegim.services.engines.integrated_server_engine.check_vllm_connection')
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
-    def test_test_connection_failure(self, _mock_vllm, mock_check):
+    def test_test_connection_failure(self, _mock_vllm, mock_check):  # noqa: PT019
         mock_check.return_value = (False, 'Cannot connect to vLLM')
         engine = IntegratedServerEngine(host='badhost', port=8000, model='datalab-to/chandra')
 
@@ -131,7 +131,7 @@ class TestIntegratedServerEngineVllm:
         assert 'Cannot connect' in message
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
-    def test_stores_model(self, _mock_vllm):
+    def test_stores_model(self, _mock_vllm):  # noqa: PT019
         engine = IntegratedServerEngine(host='localhost', port=8000, model='datalab-to/chandra')
         assert engine._model == 'datalab-to/chandra'
 

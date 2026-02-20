@@ -71,13 +71,14 @@ class IntegratedServerEngine(BaseOCREngine):
         self._model = model
         self._use_ppstructure = _is_ppstructure_model(model)
 
+        self._layout_client: PpstructureClient | None = None
+        self._pipeline: OcrPipeline | None = None
+        self._vllm_provider: VllmOcrProvider | None = None
+
         if self._use_ppstructure:
             self._layout_client = PpstructureClient(host=host, port=port)
             self._pipeline = OcrPipeline(self._layout_client, use_builtin_ocr=True)
-            self._vllm_provider = None
         else:
-            self._layout_client = None  # type: ignore[assignment]
-            self._pipeline = None  # type: ignore[assignment]
             self._vllm_provider = VllmOcrProvider(host=host, port=port, model=model)
 
     def extract_page(
@@ -97,7 +98,9 @@ class IntegratedServerEngine(BaseOCREngine):
             OmniDocBench-compatible dict.
         """
         if self._use_ppstructure:
+            assert self._pipeline is not None
             return self._pipeline.extract_page(image_path, page_width, page_height)
+        assert self._vllm_provider is not None
         return self._vllm_provider.extract_page(image_path, page_width, page_height)
 
     def test_connection(self) -> tuple[bool, str]:

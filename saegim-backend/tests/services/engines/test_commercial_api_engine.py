@@ -17,7 +17,7 @@ class TestCommercialApiEngineInit:
 
     def test_unknown_provider_raises_value_error(self):
         with pytest.raises(ValueError, match='Unknown commercial API provider'):
-            CommercialApiEngine(provider='unknown', config={})
+            CommercialApiEngine(provider='unknown', config={})  # type: ignore[arg-type]
 
 
 class TestCommercialApiEngineExtractPage:
