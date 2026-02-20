@@ -98,9 +98,13 @@ class IntegratedServerEngine(BaseOCREngine):
             OmniDocBench-compatible dict.
         """
         if self._use_ppstructure:
-            assert self._pipeline is not None
+            if self._pipeline is None:
+                msg = 'Pipeline not initialized for PP-StructureV3 mode'
+                raise RuntimeError(msg)
             return self._pipeline.extract_page(image_path, page_width, page_height)
-        assert self._vllm_provider is not None
+        if self._vllm_provider is None:
+            msg = 'VllmOcrProvider not initialized for vLLM mode'
+            raise RuntimeError(msg)
         return self._vllm_provider.extract_page(image_path, page_width, page_height)
 
     def test_connection(self) -> tuple[bool, str]:

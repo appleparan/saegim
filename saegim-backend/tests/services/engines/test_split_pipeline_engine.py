@@ -12,10 +12,10 @@ _MODULE = 'saegim.services.engines.split_pipeline_engine'
 
 
 class TestSplitPipelineEngineInit:
-    @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}.PpstructureClient')
+    @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
+    @patch(f'{_MODULE}.PpstructureClient', new=MagicMock())
     @patch(f'{_MODULE}._create_text_provider')
-    def test_gemini_creates_engine(self, mock_text, _mock_client, _mock_pipeline):  # noqa: PT019
+    def test_gemini_creates_engine(self, mock_text):
         mock_text.return_value = MagicMock()
         config = {'api_key': 'test-key', 'model': 'gemini-3-flash-preview'}
         engine = SplitPipelineEngine(
@@ -25,10 +25,10 @@ class TestSplitPipelineEngineInit:
         )
         assert isinstance(engine, BaseOCREngine)
 
-    @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}.PpstructureClient')
+    @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
+    @patch(f'{_MODULE}.PpstructureClient', new=MagicMock())
     @patch(f'{_MODULE}._create_text_provider')
-    def test_vllm_creates_engine(self, mock_text, _mock_client, _mock_pipeline):  # noqa: PT019
+    def test_vllm_creates_engine(self, mock_text):
         mock_text.return_value = MagicMock()
         config = {'host': 'localhost', 'port': 8000}
         engine = SplitPipelineEngine(
@@ -66,9 +66,9 @@ class TestSplitPipelineEngineInit:
 
 class TestSplitPipelineEngineExtractPage:
     @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}.PpstructureClient')
+    @patch(f'{_MODULE}.PpstructureClient', new=MagicMock())
     @patch(f'{_MODULE}._create_text_provider')
-    def test_delegates_to_pipeline(self, mock_text, _mock_client, mock_pipeline_cls):  # noqa: PT019
+    def test_delegates_to_pipeline(self, mock_text, mock_pipeline_cls):
         mock_text.return_value = MagicMock()
         mock_pipeline = MagicMock()
         mock_pipeline_cls.return_value = mock_pipeline
@@ -89,11 +89,14 @@ class TestSplitPipelineEngineExtractPage:
 class TestSplitPipelineEngineTestConnection:
     @patch(f'{_MODULE}._check_ocr_provider')
     @patch(f'{_MODULE}.check_ppstructure_connection')
-    @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}.PpstructureClient')
+    @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
+    @patch(f'{_MODULE}.PpstructureClient', new=MagicMock())
     @patch(f'{_MODULE}._create_text_provider')
     def test_both_succeed(
-        self, mock_text, _mock_client, _mock_pipeline, mock_layout_check, mock_ocr_check  # noqa: PT019
+        self,
+        mock_text,
+        mock_layout_check,
+        mock_ocr_check,
     ):
         mock_text.return_value = MagicMock()
         mock_layout_check.return_value = (True, 'Layout OK')
@@ -111,10 +114,10 @@ class TestSplitPipelineEngineTestConnection:
         assert 'OCR OK' in message
 
     @patch(f'{_MODULE}.check_ppstructure_connection')
-    @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}.PpstructureClient')
+    @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
+    @patch(f'{_MODULE}.PpstructureClient', new=MagicMock())
     @patch(f'{_MODULE}._create_text_provider')
-    def test_layout_fails_fast(self, mock_text, _mock_client, _mock_pipeline, mock_layout_check):  # noqa: PT019
+    def test_layout_fails_fast(self, mock_text, mock_layout_check):
         mock_text.return_value = MagicMock()
         mock_layout_check.return_value = (False, 'Layout down')
 
@@ -130,11 +133,14 @@ class TestSplitPipelineEngineTestConnection:
 
     @patch(f'{_MODULE}._check_ocr_provider')
     @patch(f'{_MODULE}.check_ppstructure_connection')
-    @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}.PpstructureClient')
+    @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
+    @patch(f'{_MODULE}.PpstructureClient', new=MagicMock())
     @patch(f'{_MODULE}._create_text_provider')
     def test_ocr_fails(
-        self, mock_text, _mock_client, _mock_pipeline, mock_layout_check, mock_ocr_check  # noqa: PT019
+        self,
+        mock_text,
+        mock_layout_check,
+        mock_ocr_check,
     ):
         mock_text.return_value = MagicMock()
         mock_layout_check.return_value = (True, 'Layout OK')
