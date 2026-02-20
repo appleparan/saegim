@@ -55,18 +55,12 @@ class TestIntegratedServerEnginePpstructure:
         result = engine.extract_page(Path('/fake/image.png'), 1200, 1600)
 
         assert result == expected
-        mock_pipeline.extract_page.assert_called_once_with(
-            Path('/fake/image.png'), 1200, 1600
-        )
+        mock_pipeline.extract_page.assert_called_once_with(Path('/fake/image.png'), 1200, 1600)
 
-    @patch(
-        'saegim.services.engines.integrated_server_engine.check_ppstructure_connection'
-    )
+    @patch('saegim.services.engines.integrated_server_engine.check_ppstructure_connection')
     @patch('saegim.services.engines.integrated_server_engine.OcrPipeline')
     @patch('saegim.services.engines.integrated_server_engine.PpstructureClient')
-    def test_test_connection_delegates_ppstructure(
-        self, _mock_client, _mock_pipeline, mock_check
-    ):
+    def test_test_connection_delegates_ppstructure(self, _mock_client, _mock_pipeline, mock_check):
         mock_check.return_value = (True, 'Connected to PP-StructureV3')
         engine = IntegratedServerEngine(host='myhost', port=18811, model='PP-StructureV3')
 
@@ -75,9 +69,7 @@ class TestIntegratedServerEnginePpstructure:
         assert 'PP-StructureV3' in message
         mock_check.assert_called_once_with({'host': 'myhost', 'port': 18811})
 
-    @patch(
-        'saegim.services.engines.integrated_server_engine.check_ppstructure_connection'
-    )
+    @patch('saegim.services.engines.integrated_server_engine.check_ppstructure_connection')
     @patch('saegim.services.engines.integrated_server_engine.OcrPipeline')
     @patch('saegim.services.engines.integrated_server_engine.PpstructureClient')
     def test_test_connection_failure(self, _mock_client, _mock_pipeline, mock_check):
@@ -92,9 +84,7 @@ class TestIntegratedServerEnginePpstructure:
 class TestIntegratedServerEngineVllm:
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_is_base_ocr_engine_subclass(self, _mock_vllm):
-        engine = IntegratedServerEngine(
-            host='localhost', port=8000, model='datalab-to/chandra'
-        )
+        engine = IntegratedServerEngine(host='localhost', port=8000, model='datalab-to/chandra')
         assert isinstance(engine, BaseOCREngine)
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
@@ -111,19 +101,13 @@ class TestIntegratedServerEngineVllm:
         expected = {'layout_dets': [{'category_type': 'title'}], 'page_attribute': {}, 'extra': {}}
         mock_provider.extract_page.return_value = expected
 
-        engine = IntegratedServerEngine(
-            host='localhost', port=8000, model='datalab-to/chandra'
-        )
+        engine = IntegratedServerEngine(host='localhost', port=8000, model='datalab-to/chandra')
         result = engine.extract_page(Path('/fake/image.png'), 1200, 1600)
 
         assert result == expected
-        mock_provider.extract_page.assert_called_once_with(
-            Path('/fake/image.png'), 1200, 1600
-        )
+        mock_provider.extract_page.assert_called_once_with(Path('/fake/image.png'), 1200, 1600)
 
-    @patch(
-        'saegim.services.engines.integrated_server_engine.check_vllm_connection'
-    )
+    @patch('saegim.services.engines.integrated_server_engine.check_vllm_connection')
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_test_connection_delegates_vllm(self, _mock_vllm, mock_check):
         mock_check.return_value = (True, 'Connected to vLLM (richarddavison/chandra-fp8)')
@@ -136,15 +120,11 @@ class TestIntegratedServerEngineVllm:
         assert 'vLLM' in message
         mock_check.assert_called_once_with({'host': 'vllm-host', 'port': 8000})
 
-    @patch(
-        'saegim.services.engines.integrated_server_engine.check_vllm_connection'
-    )
+    @patch('saegim.services.engines.integrated_server_engine.check_vllm_connection')
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_test_connection_failure(self, _mock_vllm, mock_check):
         mock_check.return_value = (False, 'Cannot connect to vLLM')
-        engine = IntegratedServerEngine(
-            host='badhost', port=8000, model='datalab-to/chandra'
-        )
+        engine = IntegratedServerEngine(host='badhost', port=8000, model='datalab-to/chandra')
 
         success, message = engine.test_connection()
         assert success is False
@@ -152,9 +132,7 @@ class TestIntegratedServerEngineVllm:
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_stores_model(self, _mock_vllm):
-        engine = IntegratedServerEngine(
-            host='localhost', port=8000, model='datalab-to/chandra'
-        )
+        engine = IntegratedServerEngine(host='localhost', port=8000, model='datalab-to/chandra')
         assert engine._model == 'datalab-to/chandra'
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')

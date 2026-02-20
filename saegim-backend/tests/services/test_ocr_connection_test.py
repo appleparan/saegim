@@ -177,5 +177,3 @@ class TestVllmConnection:
         )
         assert success is True
         assert 'gpu-server:8000' in message
-
-

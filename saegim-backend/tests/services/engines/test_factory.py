@@ -6,7 +6,6 @@ import pytest
 
 from saegim.services.engines.factory import build_engine
 
-
 _MODULE = 'saegim.services.engines.factory'
 
 

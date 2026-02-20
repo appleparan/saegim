@@ -31,9 +31,7 @@ class TestCommercialApiEngineExtractPage:
 
         result = engine.extract_page(Path('/fake/image.png'), 1200, 1600)
         assert result == expected
-        engine._provider.extract_page.assert_called_once_with(
-            Path('/fake/image.png'), 1200, 1600
-        )
+        engine._provider.extract_page.assert_called_once_with(Path('/fake/image.png'), 1200, 1600)
 
 
 class TestCommercialApiEngineTestConnection:

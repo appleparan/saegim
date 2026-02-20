@@ -8,7 +8,6 @@ import pytest
 from saegim.services.engines.base import BaseOCREngine
 from saegim.services.engines.split_pipeline_engine import SplitPipelineEngine
 
-
 _MODULE = 'saegim.services.engines.split_pipeline_engine'
 
 
@@ -62,9 +61,7 @@ class TestSplitPipelineEngineInit:
             ocr_config={'api_key': 'k'},
         )
         mock_client_cls.assert_called_once_with(host='myhost', port=9999)
-        mock_pipeline_cls.assert_called_once_with(
-            mock_client_cls.return_value, mock_text_provider
-        )
+        mock_pipeline_cls.assert_called_once_with(mock_client_cls.return_value, mock_text_provider)
 
 
 class TestSplitPipelineEngineExtractPage:
@@ -86,9 +83,7 @@ class TestSplitPipelineEngineExtractPage:
         result = engine.extract_page(Path('/fake/image.png'), 1200, 1600)
 
         assert result == expected
-        mock_pipeline.extract_page.assert_called_once_with(
-            Path('/fake/image.png'), 1200, 1600
-        )
+        mock_pipeline.extract_page.assert_called_once_with(Path('/fake/image.png'), 1200, 1600)
 
 
 class TestSplitPipelineEngineTestConnection:
@@ -119,9 +114,7 @@ class TestSplitPipelineEngineTestConnection:
     @patch(f'{_MODULE}.OcrPipeline')
     @patch(f'{_MODULE}.PpstructureClient')
     @patch(f'{_MODULE}._create_text_provider')
-    def test_layout_fails_fast(
-        self, mock_text, _mock_client, _mock_pipeline, mock_layout_check
-    ):
+    def test_layout_fails_fast(self, mock_text, _mock_client, _mock_pipeline, mock_layout_check):
         mock_text.return_value = MagicMock()
         mock_layout_check.return_value = (False, 'Layout down')
 

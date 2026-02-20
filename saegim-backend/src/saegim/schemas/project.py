@@ -48,7 +48,10 @@ class IntegratedServerConfig(BaseModel):
 
     host: str = Field(default='localhost', description='Server host')
     port: int = Field(
-        default=8000, ge=1, le=65535, description='Server port',
+        default=8000,
+        ge=1,
+        le=65535,
+        description='Server port',
     )
     model: str = Field(
         default='datalab-to/chandra',
@@ -67,7 +70,10 @@ class SplitPipelineConfig(BaseModel):
     ocr_api_key: str = Field(default='', description='OCR API key (for Gemini)')
     ocr_host: str = Field(default='localhost', description='OCR server host (for vLLM)')
     ocr_port: int = Field(
-        default=8000, ge=1, le=65535, description='OCR server port (for vLLM)',
+        default=8000,
+        ge=1,
+        le=65535,
+        description='OCR server port (for vLLM)',
     )
     ocr_model: str = Field(
         default='allenai/olmOCR-2-7B-1025-FP8',
