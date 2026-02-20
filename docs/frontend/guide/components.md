@@ -23,11 +23,13 @@
 
 프로젝트 설정 페이지. Route: `#/projects/:id/settings`
 
-- 2단계 OCR 설정: 레이아웃 프로바이더 (PP-StructureV3 / PyMuPDF) + OCR 프로바이더 (Gemini / OlmOCR / PP-OCR)
-- PP-StructureV3: 호스트, 포트 설정
-- Gemini: API Key, 모델명 설정
-- OlmOCR (vLLM): 호스트, 포트, 모델명 설정
-- 연결 테스트 버튼 (PP-StructureV3 + OCR 프로바이더)
+- `engine_type` 기반 OCR 엔진 선택 (카드 UI)
+  - `commercial_api`: Gemini/vLLM full-page VLM (API key, model)
+  - `integrated_server`: PP-StructureV3 또는 vLLM 통합 서버 (host, port, model)
+  - `split_pipeline`: PP-StructureV3 레이아웃 + 외부 OCR (layout URL, OCR provider, key/host)
+  - `pymupdf`: PyMuPDF 폴백 (추가 설정 불필요)
+- 엔진별 세부 설정 폼 (선택한 카드에 따라 동적 표시)
+- 연결 테스트 버튼 (`build_engine → test_connection`)
 - 문서 목록에서 톱니바퀴 아이콘으로 진입
 
 ### LabelingPage (`src/pages/LabelingPage.svelte`)
@@ -236,7 +238,7 @@ Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), �
 
 ### OcrSettingsPanel
 
-OCR 프로바이더 설정 폼 컴포넌트.
+OCR 엔진 설정 폼 컴포넌트.
 
 | Prop | Type | Default | 설명 |
 | ------ | ------ | --------- | ------ |
@@ -249,10 +251,12 @@ OCR 프로바이더 설정 폼 컴포넌트.
 
 기능:
 
-- 2단계 설정 UI: 레이아웃 프로바이더 (PP-StructureV3 / PyMuPDF) 선택
-- PP-StructureV3 선택 시 OCR 프로바이더 (Gemini / OlmOCR / PP-OCR) 선택
-- PP-StructureV3: 호스트 + 포트 입력
-- Gemini 선택 시 API Key (password) + 모델명 입력 표시
-- OlmOCR 선택 시 호스트 + 포트 + 모델명 입력 표시
-- 연결 테스트 버튼 (PP-StructureV3 + OCR 프로바이더)
-- 유효성 검증 (PP-StructureV3: 호스트 필수, Gemini: API Key 필수, OlmOCR: 호스트 필수)
+- `engine_type` 카드 선택 UI (4종: commercial_api, integrated_server, split_pipeline, pymupdf)
+- 선택한 엔진 카드에 따라 세부 설정 폼 동적 표시
+  - `commercial_api`: provider (gemini/vllm), API key, model
+  - `integrated_server`: host, port, model (PP-StructureV3 또는 vLLM 자동 분기)
+  - `split_pipeline`: layout server URL, OCR provider, key/host/port/model
+  - `pymupdf`: 추가 설정 없음
+- 연결 테스트 버튼 (`build_engine → test_connection`)
+- 저장 시 test-then-save 패턴 (연결 테스트 성공 후 저장)
+- 유효성 검증 (엔진 타입별 필수 필드 체크)

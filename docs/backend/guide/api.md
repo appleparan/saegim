@@ -77,36 +77,43 @@
 
 ### `GET /api/v1/projects/{project_id}/ocr-config`
 
-프로젝트의 OCR 설정 조회. 미설정 시 기본값 `{"layout_provider": "pymupdf"}` 반환.
+프로젝트의 OCR 엔진 설정 조회. 미설정 시 기본값 `{"engine_type": "pymupdf"}` 반환.
 
 **응답:** `200 OK`
 
 ```json
 {
-  "layout_provider": "ppstructure",
-  "ocr_provider": "gemini",
-  "ppstructure": { "host": "localhost", "port": 18811 },
-  "gemini": { "api_key": "...", "model": "gemini-3-flash-preview" }
+  "engine_type": "integrated_server",
+  "integrated_server": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
 }
 ```
 
 ### `PUT /api/v1/projects/{project_id}/ocr-config`
 
-프로젝트 OCR 설정 업데이트 (2단계 파이프라인).
+프로젝트 OCR 엔진 설정 업데이트. `engine_type`에 따라 해당 서브 설정이 필요합니다:
 
-- `layout_provider: ppstructure` → `ocr_provider` + `ppstructure` config 필수
-- `ocr_provider: gemini` → `gemini` config 필수
-- `ocr_provider: olmocr` → `vllm` config 필수
-- `layout_provider: pymupdf` → 추가 설정 불필요
+- `commercial_api` → `commercial_api` 설정 (provider, api_key, model)
+- `integrated_server` → `integrated_server` 설정 (host, port, model)
+- `split_pipeline` → `split_pipeline` 설정 (layout_server_url, ocr_provider 등)
+- `pymupdf` → 추가 설정 불필요
 
-**요청 Body:**
+**요청 Body 예시:**
 
 ```json
 {
-  "layout_provider": "ppstructure",
-  "ocr_provider": "olmocr",
-  "ppstructure": { "host": "gpu-server", "port": 18811 },
-  "vllm": { "host": "gpu-server", "port": 8000, "model": "allenai/olmOCR-2-7B-1025" }
+  "engine_type": "commercial_api",
+  "commercial_api": {
+    "provider": "gemini",
+    "api_key": "...",
+    "model": "gemini-3-flash-preview"
+  }
+}
+```
+
+```json
+{
+  "engine_type": "integrated_server",
+  "integrated_server": { "host": "gpu-server", "port": 8000, "model": "datalab-to/chandra" }
 }
 ```
 
@@ -114,7 +121,7 @@
 
 ### `POST /api/v1/projects/{project_id}/ocr-config/test`
 
-OCR 파이프라인 연결 테스트. PP-StructureV3 서버 + OCR 프로바이더 연결 확인.
+OCR 엔진 연결 테스트. `build_engine()` → `engine.test_connection()` 실행.
 
 **요청 Body:** `PUT /ocr-config`과 동일한 형식.
 
@@ -123,7 +130,7 @@ OCR 파이프라인 연결 테스트. PP-StructureV3 서버 + OCR 프로바이�
 ```json
 {
   "success": true,
-  "message": "Connected to PP-StructureV3 at localhost:18811 | Connected to Gemini (Gemini 2.0 Flash)"
+  "message": "Connected to vLLM (datalab-to/chandra)"
 }
 ```
 

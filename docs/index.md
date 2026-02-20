@@ -1,85 +1,163 @@
-# saegim
+# saegim (새김)
 
-Human-in-the-loop labeling platform for Korean document benchmarks
+한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
 
-saegim은 한국어 문서 VLM(Vision-Language Model) 벤치마크를 위한 레이블링 플랫폼 백엔드입니다.
-[OmniDocBench](https://github.com/opendatalab/OmniDocBench) 포맷을 기반으로
-문서의 레이아웃, 텍스트, 수식, 표 등을 어노테이션하고 관리합니다.
+PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
+웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
+
+## 아키텍처
+
+```text
+Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
+┌──────────────────┐          ┌──────────────────┐         ┌──────────┐
+│ Canvas + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
+│ Runes 상태관리     │◄──JSON──►│ Engine Factory   │◄──SQL──►│  JSONB   │
+│ 3-Panel 에디터    │           │ Repository 패턴   │         │          │
+└──────────────────┘          └──────────────────┘         └──────────┘
+                                      │
+                              ┌───────┴───────┐
+                              │ Celery Worker │
+                              │  + Redis      │
+                              └───────┬───────┘
+                                      │
+                    ┌─────────────────┼─────────────────┐
+                    │                 │                  │
+              ┌─────┴─────┐   ┌──────┴──────┐   ┌──────┴──────┐
+              │  Gemini   │   │ PP-Structure│   │    vLLM     │
+              │  API      │   │   V3        │   │  (Chandra)  │
+              └───────────┘   └─────────────┘   └─────────────┘
+```
 
 ## 주요 기능
 
-- **PDF 업로드 및 변환** - PDF를 업로드하면 페이지별 이미지로 자동 변환
-- **2단계 OCR 파이프라인** - PP-StructureV3 (레이아웃) + Gemini/OlmOCR/PP-OCR (텍스트), PyMuPDF 폴백
-- **OmniDocBench 어노테이션** - 15가지 블록 레벨 + 4가지 스팬 레벨 카테고리 지원
-- **페이지별 레이블링** - 페이지 단위로 어노테이션 데이터 편집 및 저장
-- **벤치마크 데이터 내보내기** - OmniDocBench JSON 포맷으로 프로젝트 전체 내보내기
-- **사용자 관리** - admin, annotator, reviewer 역할 기반 사용자 관리
+- **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
+- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택
+- **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
+- **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
+- **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
+- **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
+- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
 
 ## 기술 스택
 
-| 구분 | 기술 |
-| ------ | ------ |
-| Framework | FastAPI |
-| Database | PostgreSQL + asyncpg (raw SQL) |
-| PDF 변환 | PyMuPDF (fitz) |
-| 스키마 검증 | Pydantic v2 |
-| 설정 관리 | pydantic-settings |
-| 패키지 관리 | uv |
+| 계층 | 기술 |
+| ---- | ---- |
+| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js |
+| **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
+| **데이터베이스** | PostgreSQL 15+ (JSONB) |
+| **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
+| **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
+| **비동기 태스크** | Celery + Redis |
+| **패키지 관리** | Backend: uv / Frontend: Bun |
+| **E2E 테스트** | Playwright + Docker Compose |
+
+## OCR 엔진 아키텍처
+
+프로젝트별 `ocr_config` JSONB의 `engine_type`으로 추출 엔진을 선택합니다:
+
+| Engine Type | 설명 | 외부 서비스 |
+| --- | --- | --- |
+| `commercial_api` | Gemini/vLLM full-page VLM 분석 | Gemini API 또는 vLLM 서버 |
+| `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 또는 vLLM (모델명 기반 자동 분기) |
+| `split_pipeline` | PP-StructureV3 레이아웃 + 외부 OCR | PP-StructureV3 + Gemini/vLLM |
+| `pymupdf` | PyMuPDF 기본 추출 (GPU 불필요) | 없음 |
 
 ## 프로젝트 구조
 
 ```text
-src/saegim/
-├── app.py                  # FastAPI 앱 팩토리
-├── api/
-│   ├── settings.py         # 환경 설정 (Pydantic Settings)
-│   └── routes/             # API 라우터
-│       ├── health.py       # 헬스체크
-│       ├── projects.py     # 프로젝트 CRUD
-│       ├── documents.py    # 문서 업로드/조회
-│       ├── pages.py        # 페이지 레이블링
-│       ├── users.py        # 사용자 관리
-│       └── export.py       # 데이터 내보내기
-├── core/
-│   └── database.py         # asyncpg 커넥션 풀 관리
-├── repositories/           # Raw SQL 데이터 접근 레이어
-│   ├── project_repo.py
-│   ├── document_repo.py
-│   ├── page_repo.py
-│   └── user_repo.py
-├── schemas/                # Pydantic 스키마
-│   ├── annotation.py       # OmniDocBench 어노테이션 구조
-│   ├── project.py
-│   ├── document.py
-│   ├── page.py
-│   ├── user.py
-│   └── export.py
-├── services/               # 비즈니스 로직
-│   ├── document_service.py       # PDF 업로드/변환/추출 분기
-│   ├── extraction_service.py     # PyMuPDF 폴백 추출
-│   ├── ppstructure_service.py    # PP-StructureV3 HTTP 클라이언트
-│   ├── ocr_pipeline.py           # 2단계 파이프라인 오케스트레이터
-│   ├── ocr_provider.py           # TextOcrProvider Protocol + 팩토리
-│   ├── gemini_ocr_service.py     # Gemini 텍스트 OCR
-│   ├── vllm_ocr_service.py       # OlmOCR (vLLM) 텍스트 OCR
-│   ├── ocr_connection_test.py    # 연결 테스트
-│   ├── labeling_service.py       # 어노테이션 관리, 자동 추출 수락
-│   └── export_service.py         # OmniDocBench JSON 내보내기
-└── migrations/
-    └── 001_init.sql        # 초기 DDL
+saegim/
+├── saegim-backend/           # FastAPI 백엔드
+│   ├── src/saegim/
+│   │   ├── api/routes/       # REST 엔드포인트
+│   │   ├── schemas/          # Pydantic 스키마 (EngineType, OcrConfig 등)
+│   │   ├── services/
+│   │   │   ├── engines/      # OCR 엔진 Strategy 패턴
+│   │   │   │   ├── base.py, factory.py
+│   │   │   │   ├── pymupdf_engine.py
+│   │   │   │   ├── commercial_api_engine.py
+│   │   │   │   ├── integrated_server_engine.py
+│   │   │   │   └── split_pipeline_engine.py
+│   │   │   ├── ppstructure_service.py
+│   │   │   ├── gemini_ocr_service.py
+│   │   │   ├── vllm_ocr_service.py
+│   │   │   └── ocr_pipeline.py
+│   │   ├── tasks/            # Celery 비동기 태스크
+│   │   ├── repositories/     # asyncpg raw SQL
+│   │   └── core/             # DB 커넥션 풀
+│   ├── migrations/           # SQL 마이그레이션
+│   └── tests/                # pytest 테스트
+│
+├── saegim-frontend/          # Svelte 5 SPA
+│   ├── src/
+│   │   ├── pages/            # 라우트 페이지
+│   │   └── lib/
+│   │       ├── api/          # FastAPI 호출 + 타입
+│   │       ├── components/   # canvas/, panels/, settings/
+│   │       ├── stores/       # Svelte 5 Runes 상태관리
+│   │       ├── types/        # OmniDocBench 타입 정의
+│   │       └── utils/        # bbox, color, interaction
+│   └── tests/                # Vitest 테스트
+│
+├── e2e/                      # E2E 테스트
+│   ├── docker-compose.e2e.yml
+│   ├── tests/                # 기본 테스트 (Playwright)
+│   └── tests/gpu/            # GPU 전용 (vLLM Chandra)
+│
+└── docker-compose.yml        # 개발/배포용
 ```
 
 ## 빠른 시작
 
+### Docker Compose (권장)
+
 ```bash
-# 의존성 설치
-uv sync --group dev --group docs
-
-# 서버 실행
-uv run uvicorn saegim.app:app --reload
-
-# 테스트 실행
-uv run pytest --cov
+cp .env.example .env
+docker compose up -d --build
 ```
 
-자세한 내용은 [시작하기](backend/guide/getting-started.md) 문서를 참조하세요.
+| URL | 설명 |
+| --- | ---- |
+| <http://localhost:13000> | 프론트엔드 |
+| <http://localhost:15000/docs> | Swagger UI |
+
+### 로컬 개발
+
+```bash
+# 백엔드
+cd saegim-backend
+uv sync --group dev --group docs
+uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
+
+# 프론트엔드
+cd saegim-frontend
+bun install
+bun run dev
+```
+
+## 개발
+
+```bash
+# 백엔드
+uv run ruff format                  # 포맷팅
+uv run ruff check --fix             # 린트
+uv run ty check                     # 타입 체크
+uv run pytest --cov                 # 테스트 + 커버리지
+
+# 프론트엔드
+bun run check                       # 타입 체크
+bun run test                        # 테스트
+bun run build                       # 프로덕션 빌드
+
+# E2E 테스트
+cd e2e
+bun run docker:up && bun run test   # 기본 테스트
+bun run docker:gpu:up && bun run test:gpu  # GPU 테스트
+```
+
+## 상세 문서
+
+- [백엔드 API 가이드](backend/guide/api.md)
+- [백엔드 시작하기](backend/guide/getting-started.md)
+- [E2E 테스트 가이드](../e2e/README.md)
+- [플래닝 가이드 (AGENTS.md)](../AGENTS.md)

@@ -345,9 +345,10 @@ ORM 없이 asyncpg raw SQL을 사용하며, Repository가 SQL 쿼리를 캡슐�
 | postgres | postgres:18.2-trixie | 5432 | |
 | backend | ./saegim-backend | 5000 | |
 | frontend | ./saegim-frontend | 80 (→ 5173) | |
-| redis | redis:7-alpine | 6379 | |
-| celery-worker | ./saegim-backend | - | Celery 워커, PP-StructureV3 + OCR 파이프라인 실행 |
+| redis | redis:8-alpine | 6379 | |
+| celery-worker | ./saegim-backend | - | Celery 워커, OCR 파이프라인 실행 |
 | ppstructure | paddlex:3.0.1-paddleocr1.1.0 | 18811 | PP-StructureV3 레이아웃 감지 (profile: ppstructure, GPU 필요) |
+| vllm | vllm/vllm-openai:v0.15.1 | 8000 | vLLM + Chandra (profile: vllm, GPU 필요) |
 
 `docker compose up` 한 줄이면 로컬/서버 동일 환경.
 E2E 테스트용 격리 환경: [e2e/docker-compose.e2e.yml](e2e/docker-compose.e2e.yml) (Section 3.8).
@@ -591,7 +592,7 @@ ocr_config.engine_type
 | Engine Type | 설명 | 외부 서비스 | 사용 시나리오 |
 | --- | --- | --- | --- |
 | `commercial_api` | 상업용 VLM API (Gemini, vLLM) | Gemini API 또는 vLLM 서버 | 고품질 full-page OCR |
-| `integrated_server` | PP-StructureV3 통합 서버 | PP-StructureV3 Docker | 레이아웃+OCR 일체형 |
+| `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 Docker 또는 vLLM 서버 | 레이아웃+OCR 일체형 (모델명으로 자동 분기) |
 | `split_pipeline` | 분리 파이프라인 (Layout + OCR) | PP-StructureV3 + Gemini/vLLM | 레이아웃은 PP, OCR은 VLM |
 | `pymupdf` | PyMuPDF 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
 
@@ -638,16 +639,25 @@ PDF 업로드
 
 #### 5.0.3 Integrated Server Engine (`engine_type: integrated_server`)
 
+모델 이름 기반으로 PP-StructureV3 / vLLM 백엔드를 자동 선택한다:
+- `PP-` 접두사 모델 (예: `PP-StructureV3`): PP-StructureV3 + PP-OCR 내장
+- 그 외 모델 (예: `datalab-to/chandra`, `richarddavison/chandra-fp8`): vLLM OpenAI-compatible API
+
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
   → Celery 태스크 디스패치 (run_ocr_extraction)
-     → 페이지별:
+     → 페이지별 (PP-StructureV3 모드):
         1. PpstructureClient.detect_layout(image_path)
            → PP-StructureV3 HTTP POST /api/v1/predict
            → list[LayoutRegion(bbox, category, score, text)]
         2. PP-OCR 내장 텍스트 직접 사용 (use_builtin_ocr=True)
         3. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
+     → 페이지별 (vLLM 모드):
+        1. VllmOcrProvider.extract_page(image_path)
+           → vLLM /v1/chat/completions (base64 이미지)
+           → structured OCR 프롬프트로 JSON 파싱
+        2. OmniDocBench layout_dets 변환
      → psycopg로 각 페이지 auto_extracted_data 업데이트
      → document status: extracting → ready (또는 extraction_failed)
 ```
@@ -684,10 +694,16 @@ PDF 업로드
   }
 }
 
-// integrated_server
+// integrated_server (vLLM + Chandra)
 {
   "engine_type": "integrated_server",
   "integrated_server": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
+}
+
+// integrated_server (PP-StructureV3)
+{
+  "engine_type": "integrated_server",
+  "integrated_server": { "host": "localhost", "port": 18811, "model": "PP-StructureV3" }
 }
 
 // split_pipeline
@@ -713,7 +729,7 @@ PDF 업로드
 - `services/engines/factory.py`: `build_engine(ocr_config)` 팩토리 (`engine_type` 분기)
 - `services/engines/pymupdf_engine.py`: `PyMuPDFEngine`
 - `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
-- `services/engines/integrated_server_engine.py`: `IntegratedServerEngine` (PP-StructureV3 + PP-OCR)
+- `services/engines/integrated_server_engine.py`: `IntegratedServerEngine` (PP-StructureV3 또는 vLLM, 모델명 기반 자동 분기)
 - `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (Layout + 외부 OCR)
 
 하위 서비스 (엔진이 위임하는 구현):

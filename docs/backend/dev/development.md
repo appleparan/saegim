@@ -68,15 +68,27 @@ tests/
 │   ├── test_app.py                 # 앱 설정
 │   ├── test_health.py              # 헬스체크
 │   ├── test_projects.py            # 프로젝트 CRUD
+│   ├── test_project_ocr_config.py  # OCR 엔진 설정 API (engine_type CRUD)
 │   ├── test_documents.py           # 문서 업로드/조회
 │   ├── test_pages.py               # 페이지 레이블링
 │   ├── test_users.py               # 사용자 관리
 │   ├── test_export.py              # 데이터 내보내기
 │   └── test_settings.py            # 설정 검증
-└── services/                       # 서비스 레이어 테스트
-    ├── test_document_service.py    # PDF 업로드/변환
-    ├── test_labeling_service.py    # 어노테이션 관리
-    └── test_export_service.py      # 내보내기 서비스
+├── services/                       # 서비스 레이어 테스트
+│   ├── engines/                    # OCR 엔진 테스트
+│   │   ├── test_base.py            # BaseOCREngine ABC
+│   │   ├── test_factory.py         # build_engine() 팩토리
+│   │   ├── test_pymupdf_engine.py
+│   │   ├── test_commercial_api_engine.py
+│   │   ├── test_integrated_server_engine.py
+│   │   └── test_split_pipeline_engine.py
+│   ├── test_document_service.py    # PDF 업로드/변환
+│   ├── test_labeling_service.py    # 어노테이션 관리
+│   ├── test_ocr_connection_test.py # 연결 테스트
+│   ├── test_ocr_pipeline.py        # 파이프라인 오케스트레이터
+│   └── test_export_service.py      # 내보내기 서비스
+└── tasks/                          # Celery 태스크 테스트
+    └── test_ocr_extraction_task.py
 ```
 
 ### 테스트 패턴
@@ -132,7 +144,7 @@ class TestSaveAnnotation:
 
 1. **스키마 정의** - `src/saegim/schemas/`에 Pydantic 모델 추가
 2. **리포지토리 작성** - `src/saegim/repositories/`에 raw SQL 함수 추가
-3. **서비스 작성** - `src/saegim/services/`에 비즈니스 로직 추가
+3. **서비스 작성** - `src/saegim/services/`에 비즈니스 로직 추가 (OCR 엔진은 `services/engines/`)
 4. **라우터 작성** - `src/saegim/api/routes/`에 엔드포인트 추가
 5. **라우터 등록** - `src/saegim/app.py`에 `include_router` 추가
 6. **테스트 작성** - `tests/api/`와 `tests/services/`에 테스트 추가

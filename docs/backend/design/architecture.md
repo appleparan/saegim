@@ -55,17 +55,24 @@ src/saegim/api/routes/
 
 ```text
 src/saegim/services/
-├── document_service.py       # PDF 업로드 → 이미지 변환 → 추출 분기 (PyMuPDF/Celery)
-├── extraction_service.py     # PyMuPDF 폴백 추출 (text_block + figure)
-├── ppstructure_service.py    # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
-├── ocr_pipeline.py           # 2단계 파이프라인 오케스트레이터 (OcrPipeline, build_ocr_pipeline)
-├── ocr_provider.py           # TextOcrProvider Protocol + 팩토리 (get_text_ocr_provider)
-├── gemini_ocr_service.py     # GeminiTextOcrProvider (크롭 이미지 → 텍스트)
-├── vllm_ocr_service.py       # VllmTextOcrProvider (OlmOCR via vLLM)
-├── ocr_connection_test.py    # PP-StructureV3 + OCR 프로바이더 연결 테스트
-├── labeling_service.py       # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
-├── analysis_service.py       # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
-└── export_service.py         # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
+├── engines/                       # OCR 엔진 Strategy 패턴
+│   ├── base.py                    # BaseOCREngine ABC (extract_page, test_connection)
+│   ├── factory.py                 # build_engine(ocr_config) 팩토리 (engine_type 분기)
+│   ├── pymupdf_engine.py          # PyMuPDFEngine (GPU 불필요 폴백)
+│   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
+│   ├── integrated_server_engine.py # IntegratedServerEngine (PP-StructureV3 또는 vLLM 자동 분기)
+│   └── split_pipeline_engine.py   # SplitPipelineEngine (Layout + 외부 OCR)
+├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (PyMuPDF/Celery)
+├── extraction_service.py          # PyMuPDF 폴백 추출 (text_block + figure)
+├── ppstructure_service.py         # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
+├── ocr_pipeline.py                # 2단계 파이프라인 오케스트레이터 (OcrPipeline, TextOcrProvider)
+├── ocr_provider.py                # 프롬프트 상수, bbox_to_poly(), build_omnidocbench_page()
+├── gemini_ocr_service.py          # GeminiOcrProvider, GeminiTextOcrProvider
+├── vllm_ocr_service.py            # VllmOcrProvider, VllmTextOcrProvider
+├── ocr_connection_test.py         # check_ppstructure/gemini/vllm_connection()
+├── labeling_service.py            # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
+├── analysis_service.py            # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
+└── export_service.py              # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
 ```
 
 - Repository를 호출하여 데이터 접근
@@ -101,6 +108,7 @@ sequenceDiagram
     participant PR as PageRepo
     participant PDF as PyMuPDF
     participant EX as ExtractionService
+    participant CL as Celery Worker
 
     C->>R: POST /projects/{id}/documents (PDF file)
     R->>DS: upload_and_convert(pool, project_id, file)
@@ -111,12 +119,20 @@ sequenceDiagram
     loop 각 페이지
         DS->>PDF: page.get_pixmap(matrix=2x)
         DS->>DS: 이미지 저장 (storage/images/)
-        DS->>EX: extract_page_elements(page, scale=2.0)
-        Note over EX: get_text("dict") → 텍스트/이미지 블록 추출<br/>좌표 × 2.0 스케일링
-        EX-->>DS: auto_extracted_data (OmniDocBench 형식)
-        DS->>PR: create(pool, document_id, page_no, ..., auto_extracted_data)
+        DS->>PR: create(pool, document_id, page_no, ...)
     end
-    DS->>DR: update_status(pool, id, 'ready')
+
+    alt engine_type == pymupdf
+        DS->>EX: extract_page_elements(page, scale=2.0)
+        Note over EX: PyMuPDF 동기 추출 (text_block + figure)
+        DS->>DR: update_status(pool, id, 'ready')
+    else engine_type != pymupdf (Celery 비동기)
+        DS->>DR: update_status(pool, id, 'extracting')
+        DS->>CL: run_ocr_extraction.delay(document_id)
+        Note over CL: build_engine(ocr_config) → engine.extract_page()<br/>페이지별 auto_extracted_data 업데이트
+        CL->>DR: update_status(pool, id, 'ready' 또는 'extraction_failed')
+    end
+
     DS-->>R: {id, filename, total_pages, status}
     R-->>C: 201 Created
 ```
