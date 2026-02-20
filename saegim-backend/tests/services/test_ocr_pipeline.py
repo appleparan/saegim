@@ -1,7 +1,7 @@
 """Tests for 2-stage OCR pipeline orchestrator."""
 
 import io
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from PIL import Image
 
@@ -9,7 +9,6 @@ from saegim.services.ocr_pipeline import (
     OcrPipeline,
     _build_layout_det,
     _crop_region,
-    build_ocr_pipeline,
 )
 from saegim.services.ppstructure_service import LayoutRegion
 
@@ -193,56 +192,3 @@ class TestOcrPipeline:
 
         # With no text provider and no builtin OCR, text should be empty
         assert 'text' not in result['layout_dets'][0]
-
-
-class TestBuildOcrPipeline:
-    def test_pymupdf_returns_none(self):
-        config = {'layout_provider': 'pymupdf'}
-        assert build_ocr_pipeline(config) is None
-
-    def test_empty_config_returns_none(self):
-        assert build_ocr_pipeline({}) is None
-
-    def test_ppstructure_ppocr(self):
-        config = {
-            'layout_provider': 'ppstructure',
-            'ocr_provider': 'ppocr',
-            'ppstructure': {'host': 'localhost', 'port': 18811},
-        }
-        pipeline = build_ocr_pipeline(config)
-        assert isinstance(pipeline, OcrPipeline)
-        assert pipeline._use_builtin_ocr is True
-
-    @patch('saegim.services.ocr_pipeline.get_text_ocr_provider')
-    def test_ppstructure_gemini(self, mock_get_provider):
-        mock_provider = MagicMock()
-        mock_get_provider.return_value = mock_provider
-
-        config = {
-            'layout_provider': 'ppstructure',
-            'ocr_provider': 'gemini',
-            'ppstructure': {'host': 'localhost', 'port': 18811},
-            'gemini': {'api_key': 'test-key'},
-        }
-        pipeline = build_ocr_pipeline(config)
-
-        assert isinstance(pipeline, OcrPipeline)
-        assert pipeline._use_builtin_ocr is False
-        assert pipeline._text_provider is mock_provider
-        mock_get_provider.assert_called_once_with(config)
-
-    @patch('saegim.services.ocr_pipeline.get_text_ocr_provider')
-    def test_ppstructure_olmocr(self, mock_get_provider):
-        mock_provider = MagicMock()
-        mock_get_provider.return_value = mock_provider
-
-        config = {
-            'layout_provider': 'ppstructure',
-            'ocr_provider': 'olmocr',
-            'ppstructure': {'host': 'gpu-server', 'port': 18811},
-            'vllm': {'host': 'gpu-server', 'port': 8000},
-        }
-        pipeline = build_ocr_pipeline(config)
-
-        assert isinstance(pipeline, OcrPipeline)
-        assert pipeline._text_provider is mock_provider

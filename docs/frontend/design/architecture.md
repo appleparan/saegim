@@ -67,7 +67,7 @@ Hash-based SPA 라우팅 (`svelte-spa-router`):
 | ------ | -------- | ------ |
 | `#/` | ProjectList | 프로젝트 목록 + 생성 |
 | `#/projects/:id` | DocumentList | 문서 목록 + PDF 업로드 |
-| `#/projects/:id/settings` | ProjectSettings | OCR 프로바이더 설정 |
+| `#/projects/:id/settings` | ProjectSettings | OCR 엔진 설정 (engine_type 선택) |
 | `#/label/:pageId` | LabelingPage | 3패널 레이블링 화면 |
 
 ## Data Flow

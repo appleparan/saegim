@@ -24,11 +24,11 @@ async def upload_and_convert(
     """Upload a PDF and convert each page to an image.
 
     Renders page images at 2x scale. Extraction backend is determined
-    by the project's ocr_config (2-stage pipeline).
+    by the project's ``engine_type`` setting.
 
-    Layout providers:
+    Engine types:
     - 'pymupdf': Synchronous extraction via PyMuPDF (default fallback)
-    - 'ppstructure': Dispatches async Celery task for PP-StructureV3 + OCR
+    - Others: Dispatches async Celery task for OCR extraction
 
     Args:
         pool: Database connection pool.
@@ -46,9 +46,9 @@ async def upload_and_convert(
     pdfs_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
 
-    # Resolve extraction provider from project config
+    # Resolve extraction engine from project config
     ocr_config = await _resolve_ocr_config(pool, project_id)
-    layout_provider = ocr_config.get('layout_provider', 'pymupdf')
+    engine_type = ocr_config.get('engine_type', 'pymupdf')
 
     doc_id = uuid.uuid4()
     safe_name = f'{doc_id}_{filename}'
@@ -68,7 +68,7 @@ async def upload_and_convert(
         pdf_doc = fitz.open(str(pdf_path))
         total_pages = len(pdf_doc)
 
-        use_pymupdf = layout_provider == 'pymupdf'
+        use_pymupdf = engine_type == 'pymupdf'
         page_info_list: list[dict] = []
 
         for page_no in range(total_pages):
@@ -157,20 +157,17 @@ async def _resolve_ocr_config(
 ) -> dict[str, Any]:
     """Resolve OCR configuration from project settings.
 
-    Handles backward compatibility: if stored config uses the old
-    single 'provider' key (pre-2-stage), falls back to pymupdf.
-
     Args:
         pool: Database connection pool.
         project_id: Project UUID.
 
     Returns:
-        OCR config dict with at least a 'layout_provider' key.
+        OCR config dict with at least an 'engine_type' key.
     """
     config = await project_repo.get_ocr_config(pool, project_id)
-    if config and config.get('layout_provider'):
+    if config and config.get('engine_type'):
         return config
-    return {'layout_provider': 'pymupdf'}
+    return {'engine_type': 'pymupdf'}
 
 
 def _dispatch_ocr_extraction(
@@ -193,10 +190,10 @@ def _dispatch_ocr_extraction(
         ocr_config=ocr_config,
     )
     logger.info(
-        'Dispatched OCR extraction task for document %s (%d pages, ocr=%s)',
+        'Dispatched OCR extraction task for document %s (%d pages, engine=%s)',
         document_id,
         len(page_info_list),
-        ocr_config.get('ocr_provider'),
+        ocr_config.get('engine_type'),
     )
 
 

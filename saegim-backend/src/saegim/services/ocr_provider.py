@@ -1,13 +1,11 @@
-"""OCR provider factory and common interfaces.
+"""OCR provider utilities and prompts.
 
-Provides a unified interface for different OCR providers (Gemini, vLLM).
-Each provider extracts structured layout elements from page images and returns
-OmniDocBench-compatible dicts.
+Shared constants and helper functions used by OCR provider implementations
+(Gemini, vLLM) for OmniDocBench-compatible page extraction.
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,48 +34,6 @@ STRUCTURED_OCR_PROMPT = (
     '- Maintain correct reading order\n'
     '- Return [] if no elements are found'
 )
-
-
-class OcrProvider(Protocol):
-    """Protocol for OCR providers (full-page layout + text)."""
-
-    def extract_page(
-        self,
-        image_path: Path,
-        page_width: int,
-        page_height: int,
-    ) -> dict[str, Any]:
-        """Extract structured layout elements from a page image.
-
-        Args:
-            image_path: Path to the page image file.
-            page_width: Image width in pixels.
-            page_height: Image height in pixels.
-
-        Returns:
-            OmniDocBench-compatible dict with layout_dets, page_attribute, extra.
-        """
-        ...
-
-
-class TextOcrProvider(Protocol):
-    """Protocol for text-only OCR providers (2-stage pipeline).
-
-    Used with PP-StructureV3 layout detection: receives a cropped region
-    image and returns extracted text.
-    """
-
-    def extract_text(self, image_bytes: bytes, category_hint: str = '') -> str:
-        """Extract text from a cropped region image.
-
-        Args:
-            image_bytes: Raw image bytes of the cropped region.
-            category_hint: OmniDocBench category hint (e.g. 'table', 'equation_isolated').
-
-        Returns:
-            Extracted text string.
-        """
-        ...
 
 
 def bbox_to_poly(bbox: list[float]) -> list[float]:
@@ -133,43 +89,6 @@ def build_omnidocbench_page(
     }
 
 
-def get_ocr_provider(ocr_config: dict[str, Any]) -> OcrProvider:
-    """Get an OCR provider instance based on 2-stage configuration.
-
-    Args:
-        ocr_config: OCR configuration dict with 'ocr_provider' key.
-
-    Returns:
-        OcrProvider instance for the specified provider.
-
-    Raises:
-        ValueError: If provider is unknown.
-    """
-    provider = ocr_config.get('ocr_provider', '')
-
-    if provider == 'gemini':
-        from saegim.services.gemini_ocr_service import GeminiOcrProvider
-
-        gemini_config = ocr_config.get('gemini', {})
-        return GeminiOcrProvider(
-            api_key=gemini_config['api_key'],
-            model=gemini_config.get('model', 'gemini-2.0-flash'),
-        )
-
-    if provider == 'olmocr':
-        from saegim.services.vllm_ocr_service import VllmOcrProvider
-
-        vllm_config = ocr_config.get('vllm', {})
-        return VllmOcrProvider(
-            host=vllm_config.get('host', 'localhost'),
-            port=vllm_config.get('port', 8000),
-            model=vllm_config.get('model', 'allenai/olmOCR-2-7B-1025'),
-        )
-
-    msg = f"Unknown OCR provider: '{provider}'. Use 'gemini' or 'olmocr'."
-    raise ValueError(msg)
-
-
 # --- Text-only OCR for 2-stage pipeline ---
 
 # Category-specific prompts for text-only extraction
@@ -215,40 +134,3 @@ def get_text_prompt(category_hint: str = '') -> str:
         Prompt string for text extraction.
     """
     return _CATEGORY_PROMPT_MAP.get(category_hint, _TEXT_PROMPT_DEFAULT)
-
-
-def get_text_ocr_provider(ocr_config: dict[str, Any]) -> TextOcrProvider:
-    """Get a text-only OCR provider instance for the 2-stage pipeline.
-
-    Args:
-        ocr_config: OCR configuration dict with 'ocr_provider' key.
-
-    Returns:
-        TextOcrProvider instance.
-
-    Raises:
-        ValueError: If provider is unknown or unsupported for text extraction.
-    """
-    provider = ocr_config.get('ocr_provider', '')
-
-    if provider == 'gemini':
-        from saegim.services.gemini_ocr_service import GeminiTextOcrProvider
-
-        gemini_config = ocr_config.get('gemini', {})
-        return GeminiTextOcrProvider(
-            api_key=gemini_config['api_key'],
-            model=gemini_config.get('model', 'gemini-2.0-flash'),
-        )
-
-    if provider == 'olmocr':
-        from saegim.services.vllm_ocr_service import VllmTextOcrProvider
-
-        vllm_config = ocr_config.get('vllm', {})
-        return VllmTextOcrProvider(
-            host=vllm_config.get('host', 'localhost'),
-            port=vllm_config.get('port', 8000),
-            model=vllm_config.get('model', 'allenai/olmOCR-2-7B-1025'),
-        )
-
-    msg = f"Unknown text OCR provider: '{provider}'. Use 'gemini' or 'olmocr'."
-    raise ValueError(msg)

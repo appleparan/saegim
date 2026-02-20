@@ -1,19 +1,19 @@
-import { defineConfig } from 'vitest/config'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import tailwindcss from '@tailwindcss/vite'
-import path from 'node:path'
+import { defineConfig } from "vitest/config";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import tailwindcss from "@tailwindcss/vite";
+import path from "node:path";
 
 export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   resolve: {
     alias: {
-      $lib: path.resolve('./src/lib'),
+      $lib: path.resolve("./src/lib"),
     },
-    conditions: ['browser'],
+    conditions: ["browser"],
   },
   test: {
-    include: ['tests/**/*.test.ts'],
-    environment: 'jsdom',
-    setupFiles: ['tests/setup.ts'],
+    include: ["tests/**/*.test.ts"],
+    environment: "jsdom",
+    setupFiles: ["tests/setup.ts"],
   },
-})
+});

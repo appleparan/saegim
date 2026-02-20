@@ -26,7 +26,7 @@ _GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 class GeminiOcrProvider:
     """OCR provider using Google Gemini API."""
 
-    def __init__(self, api_key: str, model: str = 'gemini-2.0-flash') -> None:
+    def __init__(self, api_key: str, model: str = 'gemini-3-flash-preview') -> None:
         """Initialize Gemini OCR provider.
 
         Args:
@@ -152,7 +152,7 @@ class GeminiTextOcrProvider:
     and returns extracted text.
     """
 
-    def __init__(self, api_key: str, model: str = 'gemini-2.0-flash') -> None:
+    def __init__(self, api_key: str, model: str = 'gemini-3-flash-preview') -> None:
         """Initialize Gemini text OCR provider.
 
         Args:

@@ -20,7 +20,7 @@ erDiagram
         varchar name
         text description
         varchar project_type "element_annotation | vqa | ocrag"
-        jsonb ocr_config "OCR 프로바이더 설정"
+        jsonb ocr_config "OCR 엔진 설정 (engine_type)"
         timestamptz created_at
     }
 
@@ -80,7 +80,7 @@ erDiagram
 | `name` | VARCHAR(255) | - | 프로젝트 이름 |
 | `description` | TEXT | `''` | 프로젝트 설명 |
 | `project_type` | VARCHAR(30) | `'element_annotation'` | 프로젝트 유형: `element_annotation`, `vqa`, `ocrag` |
-| `ocr_config` | JSONB | `NULL` | OCR 프로바이더 설정 (provider, API key, host/port) |
+| `ocr_config` | JSONB | `NULL` | OCR 엔진 설정 (engine_type + 타입별 세부 설정) |
 | `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
 
 ### documents
@@ -104,8 +104,10 @@ PDF 문서 정보를 저장합니다.
 | ---- | ------ |
 | `uploading` | 업로드 중 |
 | `processing` | 이미지 변환 중 |
-| `ready` | 변환 완료, 레이블링 가능 |
+| `extracting` | OCR 추출 중 (Celery 비동기) |
+| `ready` | 변환/추출 완료, 레이블링 가능 |
 | `error` | 변환 실패 |
+| `extraction_failed` | OCR 추출 실패 |
 
 **인덱스:**
 

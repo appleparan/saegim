@@ -25,21 +25,26 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
-| **레이아웃 감지** | PP-StructureV3 (PaddleX HTTP 서비스) |
-| **텍스트 OCR** | Gemini API, OlmOCR (vLLM), PP-OCRv5 (내장) |
+| **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
+| | - `commercial_api`: Gemini API / vLLM (full-page VLM) |
+| | - `integrated_server`: PP-StructureV3 또는 vLLM (Chandra 등) |
+| | - `split_pipeline`: PP-StructureV3 레이아웃 + Gemini/vLLM OCR |
+| | - `pymupdf`: PyMuPDF 폴백 (GPU 불필요) |
 | **비동기 태스크** | Celery + Redis |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
+| **E2E 테스트** | Playwright + Docker Compose (기본 + GPU 프로파일) |
 
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **2단계 OCR 파이프라인**: PP-StructureV3 (레이아웃) + Gemini/OlmOCR/PP-OCR (텍스트), PyMuPDF 폴백
-- **텍스트/이미지 자동 추출**: PyMuPDF로 텍스트 블록·이미지 위치를 추출, 수락 시 어노테이션에 반영
+- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Gemini, vLLM/Chandra, PP-StructureV3, PyMuPDF)
+- **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
 - **사용자 역할**: admin, annotator, reviewer
 - **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
+- **E2E 테스트**: Playwright 기반 자동화 (기본 + GPU 프로파일)
 
 ## 시작하기
 
@@ -172,9 +177,20 @@ saegim/
 │   ├── src/saegim/
 │   │   ├── app.py                  # FastAPI 앱 팩토리
 │   │   ├── api/routes/             # REST 엔드포인트
-│   │   ├── schemas/                # Pydantic 모델
-│   │   ├── services/               # 비즈니스 로직 (OCR 프로바이더 등)
-│   │   ├── tasks/                 # Celery 비동기 태스크
+│   │   ├── schemas/                # Pydantic 모델 (EngineType, OcrConfig 등)
+│   │   ├── services/
+│   │   │   ├── engines/            # OCR 엔진 Strategy 패턴
+│   │   │   │   ├── base.py         # BaseOCREngine ABC
+│   │   │   │   ├── factory.py      # build_engine() 팩토리
+│   │   │   │   ├── pymupdf_engine.py
+│   │   │   │   ├── commercial_api_engine.py
+│   │   │   │   ├── integrated_server_engine.py
+│   │   │   │   └── split_pipeline_engine.py
+│   │   │   ├── ppstructure_service.py  # PP-StructureV3 HTTP 클라이언트
+│   │   │   ├── gemini_ocr_service.py   # Gemini VLM 프로바이더
+│   │   │   ├── vllm_ocr_service.py     # vLLM 프로바이더 (Chandra 등)
+│   │   │   └── ocr_pipeline.py         # 2단계 파이프라인 오케스트레이터
+│   │   ├── tasks/                  # Celery 비동기 태스크
 │   │   ├── repositories/           # 데이터 접근 (raw SQL)
 │   │   └── core/                   # DB 커넥션 풀
 │   ├── migrations/                 # SQL 마이그레이션
@@ -187,10 +203,16 @@ saegim/
 │   │       ├── types/              # OmniDocBench 타입 정의
 │   │       ├── api/                # HTTP 클라이언트
 │   │       ├── stores/             # Svelte 5 Runes 스토어
-│   │       ├── components/         # UI 컴포넌트
+│   │       ├── components/         # UI 컴포넌트 (OcrSettingsPanel 등)
 │   │       └── utils/              # 유틸리티 함수
 │   └── tests/                      # Vitest 테스트
-└── AGENTS.md
+├── e2e/                            # E2E 테스트 (Playwright + Docker Compose)
+│   ├── docker-compose.e2e.yml      # 기본 + GPU 프로파일
+│   ├── tests/                      # 기본 테스트
+│   └── tests/gpu/                  # GPU 전용 테스트 (vLLM)
+├── docker-compose.yml              # 개발/배포용
+├── docker-compose.chandra.yml      # vLLM Chandra 독립 실행용
+└── AGENTS.md                       # 플래닝 가이드
 ```
 
 ## API 엔드포인트

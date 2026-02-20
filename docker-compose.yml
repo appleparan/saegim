@@ -50,7 +50,7 @@ services:
       - saegim-net
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-16379}:6379"
@@ -123,21 +123,28 @@ services:
     networks:
       - saegim-net
 
-  # Optional: vLLM server for OlmOCR text recognition
+  # Optional: vLLM server for Chandra OCR
   # Enable with: docker compose --profile vllm up
   # vllm:
   #   image: vllm/vllm-openai:v0.15.1
   #   profiles:
   #     - vllm
   #   restart: unless-stopped
+  #   environment:
+  #     NVIDIA_VISIBLE_DEVICES: all
+  #     HF_HOME: /root/.cache/huggingface
+  #     VLLM_ATTENTION_BACKEND: TORCH_SDPA
   #   command: >
-  #     --model allenai/olmOCR-2-7B-1025-FP8
-  #     --host 0.0.0.0
-  #     --port 8000
-  #     --max-model-len 4096
-  #     --gpu-memory-utilization 0.6
+  #     --model datalab-to/chandra
+  #     --gpu-memory-utilization 0.8
+  #     --no-enforce-eager
+  #     --max-num-seqs 4
+  #     --dtype bfloat16
+  #     --max-model-len 8192
+  #     --max-num-batched-token 8192
   #   ports:
   #     - "${VLLM_PORT:-18000}:8000"
+  #   ipc: host
   #   volumes:
   #     - vllm_cache:/root/.cache/huggingface
   #   deploy:
@@ -149,16 +156,16 @@ services:
   #             capabilities: [gpu]
   #   healthcheck:
   #     test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 10
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 20
   #     start_period: 120s
   #   networks:
   #     - saegim-net
 
 volumes:
   postgres_data:
-  # vllm_cache:
+  vllm_cache:
 
 networks:
   saegim-net:

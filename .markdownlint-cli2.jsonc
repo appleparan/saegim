@@ -8,6 +8,8 @@
   ],
   "config": {
     // Line length 120 (matches ruff/prettier settings)
-    "MD013": { "line_length": 120, "tables": false }
+    "MD013": { "line_length": 120, "tables": false },
+    // Allow duplicate headings under different parent sections (e.g. State, Methods per store)
+    "MD024": { "siblings_only": true }
   }
 }

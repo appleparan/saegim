@@ -56,7 +56,19 @@
     isSaving = true
     error = null
     successMessage = null
+    testResult = null
+
     try {
+      // For non-pymupdf engines, test connection first
+      if (config.engine_type !== 'pymupdf') {
+        const result = await testOcrConnection(params.id, config)
+        testResult = result
+        if (!result.success) {
+          error = '연결 테스트 실패로 설정이 저장되지 않았습니다.'
+          return
+        }
+      }
+
       ocrConfig = await updateOcrConfig(params.id, config)
       successMessage = 'OCR 설정이 저장되었습니다.'
       setTimeout(() => (successMessage = null), 3000)

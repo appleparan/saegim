@@ -25,63 +25,81 @@ class ProjectResponse(BaseModel):
 
 # --- OCR Config schemas ---
 
-LayoutProvider = Literal['ppstructure', 'pymupdf']
-OcrProvider = Literal['gemini', 'olmocr', 'ppocr']
+EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pymupdf']
+CommercialApiProvider = Literal['gemini', 'vllm']
+GeminiModel = Literal[
+    'gemini-3.1-pro-preview',
+    'gemini-3-pro-preview',
+    'gemini-3-flash-preview',
+]
+SplitPipelineOcrProvider = Literal['gemini', 'vllm']
 
 
-class PpstructureConfig(BaseModel):
-    """PP-StructureV3 server configuration."""
+class CommercialApiConfig(BaseModel):
+    """Commercial VLM API configuration (Type 1)."""
 
-    host: str = Field(default='localhost', description='PP-StructureV3 server host')
+    provider: CommercialApiProvider = Field(description='VLM provider type')
+    api_key: str = Field(default='', description='API key')
+    model: str = Field(default='gemini-3-flash-preview', description='Model name')
+
+
+class IntegratedServerConfig(BaseModel):
+    """Integrated pipeline server configuration (Type 2)."""
+
+    host: str = Field(default='localhost', description='Server host')
     port: int = Field(
-        default=18811,
+        default=8000,
         ge=1,
         le=65535,
-        description='PP-StructureV3 server port',
+        description='Server port',
+    )
+    model: str = Field(
+        default='datalab-to/chandra',
+        description='Model running on the server',
     )
 
 
-class GeminiConfig(BaseModel):
-    """Gemini API configuration."""
+class SplitPipelineConfig(BaseModel):
+    """Split pipeline configuration (Type 3)."""
 
-    api_key: str = Field(min_length=1, description='Google Gemini API key')
-    model: str = Field(default='gemini-2.0-flash', description='Gemini model name')
-
-
-class VllmConfig(BaseModel):
-    """vLLM server configuration (for OlmOCR)."""
-
-    host: str = Field(default='localhost', description='vLLM server host')
-    port: int = Field(default=8000, ge=1, le=65535, description='vLLM server port')
-    model: str = Field(
-        default='allenai/olmOCR-2-7B-1025',
-        description='vLLM model name',
+    layout_server_url: str = Field(
+        default='http://localhost:18811',
+        description='Layout detection server URL',
+    )
+    ocr_provider: SplitPipelineOcrProvider = Field(description='OCR text provider')
+    ocr_api_key: str = Field(default='', description='OCR API key (for Gemini)')
+    ocr_host: str = Field(default='localhost', description='OCR server host (for vLLM)')
+    ocr_port: int = Field(
+        default=8000,
+        ge=1,
+        le=65535,
+        description='OCR server port (for vLLM)',
+    )
+    ocr_model: str = Field(
+        default='allenai/olmOCR-2-7B-1025-FP8',
+        description='OCR model name',
     )
 
 
 class OcrConfigUpdate(BaseModel):
     """Schema for updating project OCR configuration.
 
-    Two-stage pipeline: layout_provider (detection) + ocr_provider (text).
-    - pymupdf layout: no extra config needed (fallback).
-    - ppstructure layout: requires ppstructure config + ocr_provider.
+    Single engine_type selector with type-specific sub-config.
     """
 
-    layout_provider: LayoutProvider
-    ocr_provider: OcrProvider | None = None
-    ppstructure: PpstructureConfig | None = None
-    gemini: GeminiConfig | None = None
-    vllm: VllmConfig | None = None
+    engine_type: EngineType
+    commercial_api: CommercialApiConfig | None = None
+    integrated_server: IntegratedServerConfig | None = None
+    split_pipeline: SplitPipelineConfig | None = None
 
 
 class OcrConfigResponse(BaseModel):
     """Schema for OCR configuration response."""
 
-    layout_provider: LayoutProvider
-    ocr_provider: OcrProvider | None = None
-    ppstructure: PpstructureConfig | None = None
-    gemini: GeminiConfig | None = None
-    vllm: VllmConfig | None = None
+    engine_type: EngineType
+    commercial_api: CommercialApiConfig | None = None
+    integrated_server: IntegratedServerConfig | None = None
+    split_pipeline: SplitPipelineConfig | None = None
 
 
 class OcrConnectionTestResponse(BaseModel):

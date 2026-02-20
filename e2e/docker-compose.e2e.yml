@@ -8,16 +8,32 @@ services:
       POSTGRES_PASSWORD: labeling_e2e
     volumes:
       - e2e_postgres_data:/var/lib/postgresql
-      - ../saegim-backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
     ports:
       - "25432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U labeling -d labeling"]
       interval: 5s
       timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - saegim-e2e-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "26379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
       retries: 5
     networks:
       - saegim-e2e-net
+    profiles:
+      - gpu
 
   backend:
     build:
@@ -30,6 +46,8 @@ services:
       API_PORT: "5000"
       STORAGE_PATH: /workspace/storage
       CORS_ORIGINS: '["http://localhost:23000"]'
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
       LOG_LEVEL: INFO
     volumes:
       - e2e_storage:/workspace/storage
@@ -46,6 +64,68 @@ services:
         condition: service_healthy
     networks:
       - saegim-e2e-net
+
+  celery-worker:
+    build:
+      context: ../saegim-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://labeling:labeling_e2e@postgres:5432/labeling
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      STORAGE_PATH: /workspace/storage
+      LOG_LEVEL: INFO
+    volumes:
+      - e2e_storage:/workspace/storage
+    command: >
+      celery -A saegim.tasks.celery_app worker
+      --loglevel=info
+      --concurrency=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saegim-e2e-net
+    profiles:
+      - gpu
+
+  vllm:
+    image: vllm/vllm-openai:v0.15.1
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      HF_HOME: /root/.cache/huggingface
+      VLLM_ATTENTION_BACKEND: TORCH_SDPA
+    volumes:
+      - ${HF_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
+    ports:
+      - "28000:8000"
+    ipc: host
+    command: >
+      --model richarddavison/chandra-fp8
+      --gpu-memory-utilization 0.8
+      --max-num-seqs 4
+      --max-model-len 8192
+      --max-num-batched-token 8192
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    networks:
+      - saegim-e2e-net
+    profiles:
+      - gpu
 
   frontend:
     build:

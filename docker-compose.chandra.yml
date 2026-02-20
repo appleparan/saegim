@@ -1,0 +1,171 @@
+services:
+  postgres:
+    image: postgres:18.2-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: labeling
+      POSTGRES_USER: labeling
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-labeling}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./saegim-backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    ports:
+      - "${PG_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labeling -d labeling"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saegim-net
+
+  backend:
+    build:
+      context: ./saegim-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
+      API_HOST: "0.0.0.0"
+      API_PORT: "5000"
+      STORAGE_PATH: /workspace/storage
+      CORS_ORIGINS: '["http://localhost:${FE_PORT:-13000}"]'
+      LOG_LEVEL: INFO
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./storage:/workspace/storage
+    ports:
+      - "${API_PORT:-15000}:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - saegim-net
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-16379}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saegim-net
+
+  celery-worker:
+    build:
+      context: ./saegim-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: celery -A saegim.tasks.celery_app worker --loglevel=info --concurrency=1
+    environment:
+      DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
+      STORAGE_PATH: /workspace/storage
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./storage:/workspace/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - saegim-net
+
+  frontend:
+    build:
+      context: ./saegim-frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:15000}
+    restart: unless-stopped
+    ports:
+      - "${FE_PORT:-13000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - saegim-net
+
+  # Optional: PP-StructureV3 layout detection server
+  # Enable with: docker compose --profile ppstructure up
+  ppstructure:
+    image: registry.baidubce.com/paddlepaddle/paddlex:3.0.1-paddleocr1.1.0
+    profiles:
+      - ppstructure
+    restart: unless-stopped
+    command: paddlex_serving --model PP-StructureV3 --host 0.0.0.0 --port 18811
+    ports:
+      - "${PPSTRUCTURE_PORT:-18811}:18811"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:18811/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - saegim-net
+
+  # Optional: vLLM server for Chandra OCR
+  # Enable with: docker compose --profile vllm up
+  vllm:
+    image: vllm/vllm-openai:v0.15.1
+    profiles:
+      - vllm
+    restart: unless-stopped
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      HF_HOME: /root/.cache/huggingface
+      VLLM_ATTENTION_BACKEND: TORCH_SDPA
+    # datalab-to/chandra 대신 양자화된 모델 사용
+    command: >
+      --model richarddavison/chandra-fp8
+      --gpu-memory-utilization 0.8
+      --max-num-seqs 4
+      --max-model-len 8192
+      --max-num-batched-token 8192
+    ports:
+      - "${VLLM_PORT:-18000}:8000"
+    ipc: host
+    volumes:
+      - vllm_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    networks:
+      - saegim-net
+
+volumes:
+  postgres_data:
+  vllm_cache:
+
+networks:
+  saegim-net:
+    driver: bridge

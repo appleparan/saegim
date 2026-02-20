@@ -1,4 +1,4 @@
-"""Tests for project OCR config endpoints (2-stage pipeline)."""
+"""Tests for project OCR config endpoints (engine_type based)."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -20,36 +20,38 @@ class TestGetOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['layout_provider'] == 'pymupdf'
+        assert data['engine_type'] == 'pymupdf'
 
-    def test_get_legacy_config_falls_back_to_pymupdf(
+    def test_get_config_without_engine_type_falls_back_to_pymupdf(
         self,
         client: TestClient,
         sample_project_record,
     ):
         project_id = sample_project_record['id']
-        legacy_config = {'provider': 'gemini', 'gemini': {'api_key': 'k'}}
+        stale_config = {'some_old_key': 'value'}
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
-            return_value=legacy_config,
+            return_value=stale_config,
         ):
             response = client.get(f'/api/v1/projects/{project_id}/ocr-config')
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['layout_provider'] == 'pymupdf'
+        assert response.json()['engine_type'] == 'pymupdf'
 
-    def test_get_existing_ppstructure_config(
+    def test_get_existing_commercial_api_config(
         self,
         client: TestClient,
         sample_project_record,
     ):
         project_id = sample_project_record['id']
         config = {
-            'layout_provider': 'ppstructure',
-            'ocr_provider': 'gemini',
-            'ppstructure': {'host': 'localhost', 'port': 18811},
-            'gemini': {'api_key': 'test-key', 'model': 'gemini-2.0-flash'},
+            'engine_type': 'commercial_api',
+            'commercial_api': {
+                'provider': 'gemini',
+                'api_key': 'test-key',
+                'model': 'gemini-3-flash-preview',
+            },
         }
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
@@ -60,9 +62,9 @@ class TestGetOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['layout_provider'] == 'ppstructure'
-        assert data['ocr_provider'] == 'gemini'
-        assert data['gemini']['api_key'] == 'test-key'
+        assert data['engine_type'] == 'commercial_api'
+        assert data['commercial_api']['provider'] == 'gemini'
+        assert data['commercial_api']['api_key'] == 'test-key'
 
     def test_get_config_project_not_found(self, client: TestClient):
         with patch(
@@ -96,13 +98,13 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
-                json={'layout_provider': 'pymupdf'},
+                json={'engine_type': 'pymupdf'},
             )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['layout_provider'] == 'pymupdf'
+        assert response.json()['engine_type'] == 'pymupdf'
 
-    def test_update_ppstructure_gemini(self, client: TestClient, sample_project_record):
+    def test_update_commercial_api_gemini(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -119,54 +121,22 @@ class TestUpdateOcrConfig:
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
                 json={
-                    'layout_provider': 'ppstructure',
-                    'ocr_provider': 'gemini',
-                    'ppstructure': {'host': 'localhost', 'port': 18811},
-                    'gemini': {'api_key': 'my-key', 'model': 'gemini-2.0-flash'},
-                },
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data['layout_provider'] == 'ppstructure'
-        assert data['ocr_provider'] == 'gemini'
-        assert data['gemini']['api_key'] == 'my-key'
-
-    def test_update_ppstructure_olmocr(self, client: TestClient, sample_project_record):
-        project_id = sample_project_record['id']
-        with (
-            patch(
-                'saegim.repositories.project_repo.get_by_id',
-                new_callable=AsyncMock,
-                return_value=sample_project_record,
-            ),
-            patch(
-                'saegim.repositories.project_repo.update_ocr_config',
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-        ):
-            response = client.put(
-                f'/api/v1/projects/{project_id}/ocr-config',
-                json={
-                    'layout_provider': 'ppstructure',
-                    'ocr_provider': 'olmocr',
-                    'ppstructure': {'host': 'localhost', 'port': 18811},
-                    'vllm': {
-                        'host': '192.168.1.10',
-                        'port': 8080,
-                        'model': 'allenai/olmOCR-2-7B-1025',
+                    'engine_type': 'commercial_api',
+                    'commercial_api': {
+                        'provider': 'gemini',
+                        'api_key': 'my-key',
+                        'model': 'gemini-3-flash-preview',
                     },
                 },
             )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['layout_provider'] == 'ppstructure'
-        assert data['ocr_provider'] == 'olmocr'
-        assert data['vllm']['host'] == '192.168.1.10'
+        assert data['engine_type'] == 'commercial_api'
+        assert data['commercial_api']['provider'] == 'gemini'
+        assert data['commercial_api']['api_key'] == 'my-key'
 
-    def test_update_ppstructure_ppocr(self, client: TestClient, sample_project_record):
+    def test_update_integrated_server(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -183,18 +153,55 @@ class TestUpdateOcrConfig:
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
                 json={
-                    'layout_provider': 'ppstructure',
-                    'ocr_provider': 'ppocr',
-                    'ppstructure': {'host': 'localhost', 'port': 18811},
+                    'engine_type': 'integrated_server',
+                    'integrated_server': {
+                        'host': 'localhost',
+                        'port': 8000,
+                        'model': 'datalab-to/chandra',
+                    },
                 },
             )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['layout_provider'] == 'ppstructure'
-        assert data['ocr_provider'] == 'ppocr'
+        assert data['engine_type'] == 'integrated_server'
+        assert data['integrated_server']['host'] == 'localhost'
+        assert data['integrated_server']['port'] == 8000
+        assert data['integrated_server']['model'] == 'datalab-to/chandra'
 
-    def test_update_ppstructure_without_ppstructure_config(
+    def test_update_split_pipeline_gemini(self, client: TestClient, sample_project_record):
+        project_id = sample_project_record['id']
+        with (
+            patch(
+                'saegim.repositories.project_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_project_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.update_ocr_config',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.put(
+                f'/api/v1/projects/{project_id}/ocr-config',
+                json={
+                    'engine_type': 'split_pipeline',
+                    'split_pipeline': {
+                        'layout_server_url': 'http://localhost:18811',
+                        'ocr_provider': 'gemini',
+                        'ocr_api_key': 'my-key',
+                        'ocr_model': 'gemini-3-flash-preview',
+                    },
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['engine_type'] == 'split_pipeline'
+        assert data['split_pipeline']['ocr_provider'] == 'gemini'
+
+    def test_update_commercial_api_without_sub_config(
         self,
         client: TestClient,
         sample_project_record,
@@ -202,15 +209,12 @@ class TestUpdateOcrConfig:
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={
-                'layout_provider': 'ppstructure',
-                'ocr_provider': 'ppocr',
-            },
+            json={'engine_type': 'commercial_api'},
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_ppstructure_without_ocr_provider(
+    def test_update_integrated_server_without_sub_config(
         self,
         client: TestClient,
         sample_project_record,
@@ -218,15 +222,12 @@ class TestUpdateOcrConfig:
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={
-                'layout_provider': 'ppstructure',
-                'ppstructure': {'host': 'localhost', 'port': 18811},
-            },
+            json={'engine_type': 'integrated_server'},
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_gemini_without_gemini_config(
+    def test_update_split_pipeline_without_sub_config(
         self,
         client: TestClient,
         sample_project_record,
@@ -234,28 +235,7 @@ class TestUpdateOcrConfig:
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={
-                'layout_provider': 'ppstructure',
-                'ocr_provider': 'gemini',
-                'ppstructure': {'host': 'localhost', 'port': 18811},
-            },
-        )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    def test_update_olmocr_without_vllm_config(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        response = client.put(
-            f'/api/v1/projects/{project_id}/ocr-config',
-            json={
-                'layout_provider': 'ppstructure',
-                'ocr_provider': 'olmocr',
-                'ppstructure': {'host': 'localhost', 'port': 18811},
-            },
+            json={'engine_type': 'split_pipeline'},
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -268,12 +248,12 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 '/api/v1/projects/00000000-0000-0000-0000-000000000000/ocr-config',
-                json={'layout_provider': 'pymupdf'},
+                json={'engine_type': 'pymupdf'},
             )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_update_invalid_layout_provider(
+    def test_update_invalid_engine_type(
         self,
         client: TestClient,
         sample_project_record,
@@ -281,42 +261,7 @@ class TestUpdateOcrConfig:
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={'layout_provider': 'invalid_provider'},
-        )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    def test_update_gemini_empty_api_key(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        response = client.put(
-            f'/api/v1/projects/{project_id}/ocr-config',
-            json={
-                'layout_provider': 'ppstructure',
-                'ocr_provider': 'gemini',
-                'ppstructure': {'host': 'localhost', 'port': 18811},
-                'gemini': {'api_key': '', 'model': 'gemini-2.0-flash'},
-            },
-        )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    def test_update_ppstructure_invalid_port(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        response = client.put(
-            f'/api/v1/projects/{project_id}/ocr-config',
-            json={
-                'layout_provider': 'ppstructure',
-                'ocr_provider': 'ppocr',
-                'ppstructure': {'host': 'localhost', 'port': 99999},
-            },
+            json={'engine_type': 'invalid_engine'},
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
