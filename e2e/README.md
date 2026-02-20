@@ -75,7 +75,7 @@ bun run docker:gpu:up
 
 ## 테스트 구조
 
-```
+```text
 e2e/
 ├── docker-compose.e2e.yml    # Docker Compose (기본 + gpu 프로파일)
 ├── playwright.config.ts      # Playwright 설정 (chromium, gpu 프로젝트)
@@ -100,7 +100,7 @@ e2e/
 ## Docker Compose 서비스
 
 | 서비스 | 프로파일 | 포트 | 설명 |
-|--------|----------|------|------|
+| ------------- | -------- | ----- | ------------------------------------------ |
 | postgres | 기본 | 25432 | PostgreSQL 18 |
 | backend | 기본 | 25000 | FastAPI 서버 |
 | frontend | 기본 | 23000 | SvelteKit (Nginx) |
@@ -111,7 +111,7 @@ e2e/
 ## 환경변수
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------------------- | ------------------------- | ------------------------------- |
 | `E2E_BACKEND_URL` | `http://localhost:25000` | 백엔드 API URL |
 | `E2E_FRONTEND_URL` | `http://localhost:23000` | 프론트엔드 URL |
 | `E2E_VLLM_URL` | `http://localhost:28000` | vLLM API URL |
@@ -120,7 +120,7 @@ e2e/
 ## Playwright 프로젝트
 
 | 프로젝트 | 매칭 패턴 | Timeout | 설명 |
-|----------|-----------|---------|------|
+| ---------- | ----------------------------------- | ------- | ---------------------- |
 | `chromium` | `tests/*.spec.ts` (gpu/ 제외) | 2분 | 기본 테스트 |
 | `gpu` | `tests/gpu/*.spec.ts` | 10분 | GPU 전용 (vLLM 추출) |
 
