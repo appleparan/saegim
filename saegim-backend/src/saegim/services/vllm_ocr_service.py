@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from partialjson import JSONParser
 
 from saegim.services.ocr_provider import (
     STRUCTURED_OCR_PROMPT,
@@ -114,12 +115,17 @@ class VllmOcrProvider:
         return build_omnidocbench_page(elements)
 
 
+_partial_parser = JSONParser(strict=False)
+
+
 def _loads_lenient(text: str) -> list | dict | str | int | float | bool | None:
-    """Parse JSON with lenient handling of LLM output quirks.
+    r"""Parse JSON with lenient handling of LLM output quirks.
 
     Handles common vLLM JSON issues:
-    - Control characters (tabs, newlines) inside strings → strict=False
-    - Extra trailing data after valid JSON → JSONDecoder.raw_decode
+    - Control characters (tabs, newlines) inside strings -> strict=False
+    - Invalid escape sequences (\R, \U) -> partialjson repair
+    - Missing commas, unclosed brackets -> partialjson repair
+    - Extra trailing data after valid JSON -> JSONDecoder.raw_decode
 
     Args:
         text: Raw JSON string from LLM.
@@ -128,9 +134,9 @@ def _loads_lenient(text: str) -> list | dict | str | int | float | bool | None:
         Parsed JSON value.
 
     Raises:
-        json.JSONDecodeError: If text cannot be parsed even leniently.
+        json.JSONDecodeError: If text cannot be parsed even with repair.
     """
-    # 1) Try strict first
+    # 1) Try strict stdlib first (fast path)
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -142,9 +148,29 @@ def _loads_lenient(text: str) -> list | dict | str | int | float | bool | None:
     except json.JSONDecodeError:
         pass
 
-    # 3) Extract first valid JSON value (handles "Extra data" after array)
-    decoder = json.JSONDecoder(strict=False)
-    return decoder.raw_decode(text)[0]
+    # 3) Repair with partialjson (handles invalid escapes, missing commas, etc.)
+    return _partial_parser.parse(text)
+
+
+def _strip_markdown_fences(text: str) -> str:
+    """Remove markdown code fences from LLM output.
+
+    Args:
+        text: Raw text that may be wrapped in markdown code fences.
+
+    Returns:
+        Inner content with fences removed, or original text if no fences.
+    """
+    text = text.strip()
+    if not text.startswith('```'):
+        return text
+    lines = text.split('\n')
+    # Remove opening fence (```json or ```) and closing fence (```)
+    if len(lines) > 2 and lines[-1].strip() == '```':
+        return '\n'.join(lines[1:-1])
+    if len(lines) > 1:
+        return '\n'.join(lines[1:])
+    return text
 
 
 def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
@@ -156,6 +182,7 @@ def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
     Returns:
         List of element dicts with category_type, bbox, text, order.
     """
+    text = ''
     try:
         choices = result.get('choices', [])
         if not choices:
@@ -167,11 +194,12 @@ def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
         if not text.strip():
             return []
 
-        # Parse JSON response (may be wrapped in markdown code block)
+        # Strip markdown code fences and check for empty content
+        text = _strip_markdown_fences(text)
         text = text.strip()
-        if text.startswith('```'):
-            lines = text.split('\n')
-            text = '\n'.join(lines[1:-1]) if len(lines) > 2 else text
+        if not text:
+            logger.warning('vLLM response empty after stripping markdown fences')
+            return []
 
         elements = _loads_lenient(text)
         if not isinstance(elements, list):
@@ -180,8 +208,9 @@ def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
 
         return elements
 
-    except (json.JSONDecodeError, KeyError, IndexError) as exc:
-        logger.exception('Failed to parse vLLM response: %s', exc)
+    except (json.JSONDecodeError, KeyError, IndexError, ValueError) as exc:
+        raw_preview = text[:200] if text else '(empty)'
+        logger.warning('Failed to parse vLLM response: %s | raw preview: %s', exc, raw_preview)
         return []
 
 

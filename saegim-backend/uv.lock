@@ -1917,6 +1917,15 @@ wheels = [
 ]
 
 [[package]]
+name = "partialjson"
+version = "0.0.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/28/4681ff6b8686206babfa6ae9072679e465814feb56366b0f53b63d6ee31b/partialjson-0.0.9.tar.gz", hash = "sha256:54c7bafaf96a45af8ae10e7890f4f9d4ad2a557c1926824addc96636fb82a376", size = 4410, upload-time = "2025-01-24T12:22:18.264Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/d0/96a3a97bb7738f73924cf618294eba0b617944a6d91ad5462dab5938d0f3/partialjson-0.0.9-py3-none-any.whl", hash = "sha256:bb57133ed32e36eb92af1fc8d300297879a04a04e847b0d948de86f26c4dc42b", size = 4788, upload-time = "2025-01-24T12:22:14.934Z" },
+]
+
+[[package]]
 name = "pathspec"
 version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2973,6 +2982,7 @@ dependencies = [
     { name = "jsonargparse", extra = ["all"] },
     { name = "numpy" },
     { name = "pandas", extra = ["parquet", "performance"] },
+    { name = "partialjson" },
     { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-extra-types" },
@@ -3027,6 +3037,7 @@ requires-dist = [
     { name = "jsonargparse", extras = ["all"], specifier = "~=4.45.0" },
     { name = "numpy", specifier = "~=2.3.5" },
     { name = "pandas", extras = ["parquet", "performance"], specifier = "~=2.3.3" },
+    { name = "partialjson", specifier = "~=0.0.8" },
     { name = "pillow", specifier = "~=12.1.1" },
     { name = "pydantic", specifier = "~=2.12.5" },
     { name = "pydantic-extra-types", specifier = "~=2.11.0" },

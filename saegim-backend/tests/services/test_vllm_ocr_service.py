@@ -9,7 +9,9 @@ from saegim.services.vllm_ocr_service import (
     VllmOcrProvider,
     VllmTextOcrProvider,
     _extract_text_from_vllm,
+    _loads_lenient,
     _parse_vllm_response,
+    _strip_markdown_fences,
 )
 
 
@@ -50,6 +52,83 @@ class TestParseVllmResponse:
     def test_parse_non_list_json(self):
         response = {'choices': [{'message': {'content': '{"key": "val"}'}}]}
         assert _parse_vllm_response(response) == []
+
+    def test_parse_empty_markdown_fence(self):
+        """Markdown fence with no content should return empty list."""
+        response = {'choices': [{'message': {'content': '```json\n\n```'}}]}
+        assert _parse_vllm_response(response) == []
+
+    def test_parse_invalid_escape_sequence(self):
+        r"""Invalid escape sequences like \R, \U should be repaired."""
+        raw = (
+            r'[{"category_type": "text_block",'
+            r' "bbox": [0,0,100,50],'
+            r' "text": "path\\Report",'
+            r' "order": 0}]'
+        )
+        response = {'choices': [{'message': {'content': raw}}]}
+        result = _parse_vllm_response(response)
+        assert len(result) == 1
+        assert result[0]['category_type'] == 'text_block'
+
+    def test_parse_missing_comma(self):
+        """Missing comma in JSON should be repaired by partialjson."""
+        raw = (
+            '[{"category_type": "title"'
+            ' "bbox": [0,0,100,50],'
+            ' "text": "Hi", "order": 0}]'
+        )
+        response = {'choices': [{'message': {'content': raw}}]}
+        result = _parse_vllm_response(response)
+        assert len(result) >= 1
+
+    def test_parse_incomplete_json(self):
+        """Incomplete JSON (truncated) should be partially parsed."""
+        raw = (
+            '[{"category_type": "title",'
+            ' "bbox": [0,0,100,50],'
+            ' "text": "Hello", "order": 0},'
+            ' {"category_type": "text_block"'
+        )
+        response = {'choices': [{'message': {'content': raw}}]}
+        result = _parse_vllm_response(response)
+        assert len(result) >= 1
+        assert result[0]['category_type'] == 'title'
+
+
+class TestStripMarkdownFences:
+    def test_no_fences(self):
+        assert _strip_markdown_fences('[{"key": "val"}]') == '[{"key": "val"}]'
+
+    def test_json_fence(self):
+        text = '```json\n[{"key": "val"}]\n```'
+        assert _strip_markdown_fences(text) == '[{"key": "val"}]'
+
+    def test_plain_fence(self):
+        text = '```\n[{"key": "val"}]\n```'
+        assert _strip_markdown_fences(text) == '[{"key": "val"}]'
+
+    def test_empty_fence(self):
+        assert _strip_markdown_fences('```json\n\n```').strip() == ''
+
+    def test_unclosed_fence(self):
+        text = '```json\n[{"key": "val"}]'
+        assert _strip_markdown_fences(text) == '[{"key": "val"}]'
+
+
+class TestLoadsLenient:
+    def test_valid_json(self):
+        assert _loads_lenient('[1, 2, 3]') == [1, 2, 3]
+
+    def test_control_characters(self):
+        result = _loads_lenient('{"text": "line1\tline2"}')
+        assert result['text'] == 'line1\tline2'
+
+    def test_invalid_escape_repaired(self):
+        raw = r'{"text": "C:\\Users\\Report"}'
+        result = _loads_lenient(raw)
+        assert isinstance(result, dict)
+        assert 'text' in result
 
 
 class TestVllmOcrProvider:

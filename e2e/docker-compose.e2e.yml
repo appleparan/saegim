@@ -60,11 +60,11 @@ services:
       - "28000:8000"
     ipc: host
     command: >
-      --model richarddavison/chandra-fp8
+      richarddavison/chandra-fp8
       --gpu-memory-utilization 0.9
-      --max-num-seqs 4
-      --max-model-len 32768
-      --max-num-batched-token 65536
+      --max-num-seqs 2
+      --max-model-len 18342
+      --max-num-batched-token 36684
     deploy:
       resources:
         reservations:
