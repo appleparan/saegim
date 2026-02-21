@@ -85,6 +85,7 @@
 
 <canvas
   bind:this={canvasEl}
+  data-pdf-renderer
   style="
     position: absolute;
     transform-origin: 0 0;
