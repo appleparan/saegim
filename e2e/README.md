@@ -38,7 +38,7 @@ bun run docker:down
 
 ## GPU 테스트 (vLLM + Chandra)
 
-`gpu` 프로파일은 기본 서비스에 redis, celery-worker, vLLM 서버를 추가한다. vLLM은 `datalab-to/chandra` (9B) 모델을 로드하며, **24GB+ VRAM GPU**가 필요하다.
+`gpu` 프로파일은 기본 서비스에 vLLM 서버를 추가한다. vLLM은 `datalab-to/chandra` (9B) 모델을 로드하며, **24GB+ VRAM GPU**가 필요하다.
 
 ### 요구사항
 
@@ -104,8 +104,6 @@ e2e/
 | postgres | 기본 | 25432 | PostgreSQL 18 |
 | backend | 기본 | 25000 | FastAPI 서버 |
 | frontend | 기본 | 23000 | SvelteKit (Nginx) |
-| redis | gpu | 26379 | Celery broker |
-| celery-worker | gpu | - | OCR 추출 워커 |
 | vllm | gpu | 28000 | vLLM OpenAI API (datalab-to/chandra) |
 
 ## 환경변수

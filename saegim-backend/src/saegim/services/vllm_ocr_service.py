@@ -114,11 +114,12 @@ class VllmOcrProvider:
         return build_omnidocbench_page(elements)
 
 
-def _loads_lenient(text: str) -> Any:
+def _loads_lenient(text: str) -> list | dict | str | int | float | bool | None:
     """Parse JSON with lenient handling of LLM output quirks.
 
-    Tries strict parsing first, then falls back to allowing control
-    characters (tabs, newlines inside strings) that vLLM models often emit.
+    Handles common vLLM JSON issues:
+    - Control characters (tabs, newlines) inside strings → strict=False
+    - Extra trailing data after valid JSON → JSONDecoder.raw_decode
 
     Args:
         text: Raw JSON string from LLM.
@@ -129,10 +130,21 @@ def _loads_lenient(text: str) -> Any:
     Raises:
         json.JSONDecodeError: If text cannot be parsed even leniently.
     """
+    # 1) Try strict first
     try:
         return json.loads(text)
     except json.JSONDecodeError:
+        pass
+
+    # 2) Allow control characters
+    try:
         return json.loads(text, strict=False)
+    except json.JSONDecodeError:
+        pass
+
+    # 3) Extract first valid JSON value (handles "Extra data" after array)
+    decoder = json.JSONDecoder(strict=False)
+    return decoder.raw_decode(text)[0]
 
 
 def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:

@@ -249,7 +249,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 | **레이아웃 감지** | PP-StructureV3 (PaddleX HTTP 서비스) | 2단계 파이프라인 1단계: bbox + category 감지. Docker profile로 선택적 실행 |
 | **텍스트 OCR** | Gemini API, OlmOCR (vLLM), PP-OCRv5 (내장) | 2단계 파이프라인 2단계: 크롭 영역 텍스트 추출. 프로젝트별 설정 |
 | **PDF 추출 (폴백)** | PyMuPDF | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
-| **태스크 큐** | Celery + Redis | PP-StructureV3 + OCR 비동기 추출, Celery worker |
+| **비동기 태스크** | asyncio 백그라운드 태스크 | asyncio.create_task + asyncio.to_thread로 OCR 비동기 추출 |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
 
 #### 프론트엔드 ↔ 백엔드 연결 구조
@@ -345,8 +345,6 @@ ORM 없이 asyncpg raw SQL을 사용하며, Repository가 SQL 쿼리를 캡슐�
 | postgres | postgres:18.2-trixie | 5432 | |
 | backend | ./saegim-backend | 5000 | |
 | frontend | ./saegim-frontend | 80 (→ 5173) | |
-| redis | redis:8-alpine | 6379 | |
-| celery-worker | ./saegim-backend | - | Celery 워커, OCR 파이프라인 실행 |
 | ppstructure | paddlex:3.0.1-paddleocr1.1.0 | 18811 | PP-StructureV3 레이아웃 감지 (profile: ppstructure, GPU 필요) |
 | vllm | vllm/vllm-openai:v0.15.1 | 8000 | vLLM + Chandra (profile: vllm, GPU 필요) |
 
@@ -376,9 +374,8 @@ saegim/
 │   │   ├── core/                 # asyncpg 커넥션 풀
 │   │   ├── repositories/         # DB 접근 (asyncpg raw SQL, JSONB CRUD)
 │   │   ├── services/             # 비즈니스 로직 (document, extraction, labeling, export)
-│   │   ├── tasks/                # Celery 비동기 태스크 (Redis broker)
 │   │   └── schemas/              # Pydantic 요청/응답 스키마
-│   └── tests/                    # pytest (api/, services/, tasks/)
+│   └── tests/                    # pytest (api/, services/)
 │
 ├── saegim-frontend/              # Svelte 5 (Runes) SPA
 │   ├── Dockerfile
@@ -615,9 +612,7 @@ PDF 업로드
 
 - `services/engines/pymupdf_engine.py`: `PyMuPDFEngine` (`BaseOCREngine` 구현)
 - `services/extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
-- `services/document_service.py`: 업로드 시 `engine_type` 분기 + Celery 디스패치
-- `tasks/celery_app.py`: Celery 앱 설정 (Redis broker)
-- `tasks/ocr_extraction_task.py`: `build_engine()` → `engine.extract_page()` Celery 태스크
+- `services/document_service.py`: 업로드 시 `engine_type` 분기 + asyncio 백그라운드 태스크 디스패치
 - `page_repo.py`: `create()`, `accept_auto_extracted()`, `update_auto_extracted_data()`
 - `labeling_service.py`: `accept_auto_extraction()`
 - `ExtractionPreview.svelte`: 추출 진행중 표시 + 수락/무시 UI
@@ -627,13 +622,13 @@ PDF 업로드
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → Celery 태스크 디스패치 (run_ocr_extraction)
+  → asyncio 백그라운드 태스크 디스패치
      → 페이지별:
         1. VLM API에 full-page 이미지 전송
            - gemini: Google Gemini API (structured output 프롬프트)
            - vllm: vLLM OpenAI-compatible API
         2. JSON 응답 파싱 → OmniDocBench layout_dets 변환
-     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → asyncpg로 각 페이지 auto_extracted_data 업데이트
      → document status: extracting → ready (또는 extraction_failed)
 ```
 
@@ -647,7 +642,7 @@ PDF 업로드
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → Celery 태스크 디스패치 (run_ocr_extraction)
+  → asyncio 백그라운드 태스크 디스패치
      → 페이지별 (PP-StructureV3 모드):
         1. PpstructureClient.detect_layout(image_path)
            → PP-StructureV3 HTTP POST /api/v1/predict
@@ -659,7 +654,7 @@ PDF 업로드
            → vLLM /v1/chat/completions (base64 이미지)
            → structured OCR 프롬프트로 JSON 파싱
         2. OmniDocBench layout_dets 변환
-     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → asyncpg로 각 페이지 auto_extracted_data 업데이트
      → document status: extracting → ready (또는 extraction_failed)
 ```
 
@@ -668,7 +663,7 @@ PDF 업로드
 ```text
 PDF 업로드
   → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → Celery 태스크 디스패치 (run_ocr_extraction)
+  → asyncio 백그라운드 태스크 디스패치
      → 페이지별:
         1. PpstructureClient.detect_layout(image_path)
            → PP-StructureV3 레이아웃 감지 (bbox + category)
@@ -677,7 +672,7 @@ PDF 업로드
            - gemini: Gemini API (category_hint별 프롬프트)
            - vllm: vLLM API (OlmOCR 등)
         4. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
-     → psycopg로 각 페이지 auto_extracted_data 업데이트
+     → asyncpg로 각 페이지 auto_extracted_data 업데이트
      → document status: extracting → ready (또는 extraction_failed)
   → 프론트엔드에서 "수락" → annotation_data로 복사
 ```
@@ -745,7 +740,7 @@ PDF 업로드
 
 통합:
 
-- `tasks/ocr_extraction_task.py`: Celery 태스크 (`build_engine()` → `engine.extract_page()`)
+- `services/document_service.py`: asyncio 백그라운드 태스크 (`build_engine()` → `asyncio.to_thread(engine.extract_page())`)
 - `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `IntegratedServerConfig`, `SplitPipelineConfig`
 - `OcrSettingsPanel.svelte`: 엔진 타입 선택 카드 UI + 연결 테스트
 
@@ -924,11 +919,11 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 - **PP-StructureV3 HTTP 클라이언트**: `PpstructureClient` — bbox + category 감지
 - **텍스트 OCR 프로바이더**: `TextOcrProvider` Protocol — 크롭 이미지에서 텍스트 추출
 - **파이프라인 오케스트레이터**: `OcrPipeline` — layout → crop → OCR → OmniDocBench 조합
-- **Celery + Redis 비동기 처리**: 2단계 파이프라인을 Celery 태스크로 비동기 실행
+- **asyncio 백그라운드 태스크**: 2단계 파이프라인을 asyncio.create_task로 비동기 실행
 - **프로젝트별 OCR 설정**: `ocr_config` JSONB (`engine_type` + 타입별 세부 설정)
 - **문서 상태 확장**: `extracting`, `extraction_failed` 상태
 - **프론트엔드 UI**: 2단계 OCR 설정 패널 + 연결 테스트 + 추출 진행중 표시
-- **Docker Compose**: Redis + Celery 워커 + PP-StructureV3 서비스 (profile: ppstructure)
+- **Docker Compose**: PP-StructureV3 서비스 (profile: ppstructure)
 
 #### 미구현 (후속 PR)
 
@@ -967,7 +962,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 - `documents` 테이블에 `analysis_data JSONB` 컬럼 추가
 - VLM/LLM API 호출로 문서 분석 자동 추출 (Overview, Core Idea, Key Figures, Limitations)
 - 자동 추출 결과를 `analysis_data`에 저장 → 사람이 검수/수정
-- Phase 2의 auto-extraction 파이프라인과 동일한 Celery 태스크로 구현
+- Phase 2의 auto-extraction 파이프라인과 동일한 asyncio 백그라운드 태스크로 구현
 - Key Figures는 `page` + `anno_id`로 기존 element 참조
 
 #### Project Type 추상화

@@ -17,8 +17,8 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 └──────────────────┘          └──────────────────┘         └──────────┘
                                       │
                               ┌───────┴───────┐
-                              │ Celery Worker │
-                              │  + Redis      │
+                              │ asyncio       │
+                              │ background    │
                               └───────┬───────┘
                                       │
                     ┌─────────────────┼─────────────────┐
@@ -48,7 +48,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
 | **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
-| **비동기 태스크** | Celery + Redis |
+| **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Playwright + Docker Compose |
 
@@ -82,7 +82,6 @@ saegim/
 │   │   │   ├── gemini_ocr_service.py
 │   │   │   ├── vllm_ocr_service.py
 │   │   │   └── ocr_pipeline.py
-│   │   ├── tasks/            # Celery 비동기 태스크
 │   │   ├── repositories/     # asyncpg raw SQL
 │   │   └── core/             # DB 커넥션 풀
 │   ├── migrations/           # SQL 마이그레이션

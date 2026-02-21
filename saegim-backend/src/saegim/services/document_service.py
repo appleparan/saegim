@@ -1,5 +1,6 @@
 """Document service for PDF upload and image conversion."""
 
+import asyncio
 import logging
 import uuid
 from pathlib import Path
@@ -10,6 +11,7 @@ import fitz
 
 from saegim.repositories import document_repo, page_repo, project_repo
 from saegim.services import extraction_service
+from saegim.services.engines import build_engine
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,7 @@ async def upload_and_convert(
 
     Engine types:
     - 'pymupdf': Synchronous extraction via PyMuPDF (default fallback)
-    - Others: Dispatches async Celery task for OCR extraction
+    - Others: Background asyncio task for OCR extraction
 
     Args:
         pool: Database connection pool.
@@ -124,7 +126,7 @@ async def upload_and_convert(
                 'status': 'ready',
             }
 
-        # Async extraction via Celery
+        # Async extraction via background task
         await document_repo.update_status(
             pool,
             document_id=document_id,
@@ -132,11 +134,15 @@ async def upload_and_convert(
             total_pages=total_pages,
         )
 
-        _dispatch_ocr_extraction(
-            document_id=document_id,
-            page_info_list=page_info_list,
-            ocr_config=ocr_config,
+        _task = asyncio.create_task(
+            _run_ocr_extraction_background(
+                pool,
+                document_id,
+                page_info_list,
+                ocr_config,
+            )
         )
+        _task.add_done_callback(lambda t: t.result() if not t.cancelled() else None)
 
         return {
             'id': document_id,
@@ -170,31 +176,71 @@ async def _resolve_ocr_config(
     return {'engine_type': 'pymupdf'}
 
 
-def _dispatch_ocr_extraction(
+async def _run_ocr_extraction_background(
+    pool: asyncpg.Pool,
     document_id: uuid.UUID,
     page_info_list: list[dict],
     ocr_config: dict[str, Any],
 ) -> None:
-    """Dispatch VLM-based OCR extraction as a Celery task.
+    """Run OCR extraction as a background asyncio task.
+
+    Builds an OCR engine and extracts each page in a thread pool,
+    then updates the database with results via asyncpg.
 
     Args:
+        pool: Database connection pool.
         document_id: Document UUID.
-        page_info_list: List of page info dicts with image_path.
+        page_info_list: List of page info dicts with keys:
+            page_id, page_idx, width, height, image_path.
         ocr_config: OCR provider configuration dict.
     """
-    from saegim.tasks.ocr_extraction_task import run_ocr_extraction
-
-    run_ocr_extraction.delay(
-        document_id=str(document_id),
-        page_info=page_info_list,
-        ocr_config=ocr_config,
-    )
+    engine_type = ocr_config.get('engine_type', 'unknown')
     logger.info(
-        'Dispatched OCR extraction task for document %s (%d pages, engine=%s)',
+        'Starting OCR extraction for document %s (%d pages, engine=%s)',
         document_id,
         len(page_info_list),
-        ocr_config.get('engine_type'),
+        engine_type,
     )
+
+    try:
+        engine = build_engine(ocr_config)
+
+        for page in page_info_list:
+            page_id = page['page_id']
+            page_idx = page['page_idx']
+
+            logger.info('Extracting page %s (idx=%d) with %s', page_id, page_idx, engine_type)
+
+            extracted = await asyncio.to_thread(
+                engine.extract_page,
+                Path(page['image_path']),
+                page['width'],
+                page['height'],
+            )
+
+            await page_repo.update_auto_extracted_data(
+                pool,
+                uuid.UUID(page_id),
+                extracted,
+            )
+
+            logger.info(
+                'Updated page %s (idx=%d) with %d elements',
+                page_id,
+                page_idx,
+                len(extracted.get('layout_dets', [])),
+            )
+
+        await document_repo.update_status(pool, document_id=document_id, status='ready')
+        logger.info('OCR extraction completed for document %s', document_id)
+
+    except Exception:
+        logger.exception('OCR extraction failed for document %s', document_id)
+        await document_repo.update_status(
+            pool,
+            document_id=document_id,
+            status='extraction_failed',
+        )
 
 
 async def delete_with_files(

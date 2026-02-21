@@ -62,7 +62,7 @@ src/saegim/services/
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
 │   ├── integrated_server_engine.py # IntegratedServerEngine (PP-StructureV3 또는 vLLM 자동 분기)
 │   └── split_pipeline_engine.py   # SplitPipelineEngine (Layout + 외부 OCR)
-├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (PyMuPDF/Celery)
+├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (PyMuPDF/asyncio)
 ├── extraction_service.py          # PyMuPDF 폴백 추출 (text_block + figure)
 ├── ppstructure_service.py         # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
 ├── ocr_pipeline.py                # 2단계 파이프라인 오케스트레이터 (OcrPipeline, TextOcrProvider)
@@ -108,7 +108,7 @@ sequenceDiagram
     participant PR as PageRepo
     participant PDF as PyMuPDF
     participant EX as ExtractionService
-    participant CL as Celery Worker
+    participant BG as asyncio Task
 
     C->>R: POST /projects/{id}/documents (PDF file)
     R->>DS: upload_and_convert(pool, project_id, file)
@@ -126,11 +126,11 @@ sequenceDiagram
         DS->>EX: extract_page_elements(page, scale=2.0)
         Note over EX: PyMuPDF 동기 추출 (text_block + figure)
         DS->>DR: update_status(pool, id, 'ready')
-    else engine_type != pymupdf (Celery 비동기)
+    else engine_type != pymupdf (asyncio 백그라운드)
         DS->>DR: update_status(pool, id, 'extracting')
-        DS->>CL: run_ocr_extraction.delay(document_id)
-        Note over CL: build_engine(ocr_config) → engine.extract_page()<br/>페이지별 auto_extracted_data 업데이트
-        CL->>DR: update_status(pool, id, 'ready' 또는 'extraction_failed')
+        DS->>BG: asyncio.create_task(_run_ocr_extraction_background(...))
+        Note over BG: build_engine(ocr_config) → asyncio.to_thread(engine.extract_page())<br/>페이지별 auto_extracted_data 업데이트
+        BG->>DR: update_status(pool, id, 'ready' 또는 'extraction_failed')
     end
 
     DS-->>R: {id, filename, total_pages, status}

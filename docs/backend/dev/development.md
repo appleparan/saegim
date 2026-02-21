@@ -87,8 +87,6 @@ tests/
 │   ├── test_ocr_connection_test.py # 연결 테스트
 │   ├── test_ocr_pipeline.py        # 파이프라인 오케스트레이터
 │   └── test_export_service.py      # 내보내기 서비스
-└── tasks/                          # Celery 태스크 테스트
-    └── test_ocr_extraction_task.py
 ```
 
 ### 테스트 패턴

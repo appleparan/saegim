@@ -104,7 +104,7 @@ PDF 문서 정보를 저장합니다.
 | ---- | ------ |
 | `uploading` | 업로드 중 |
 | `processing` | 이미지 변환 중 |
-| `extracting` | OCR 추출 중 (Celery 비동기) |
+| `extracting` | OCR 추출 중 (asyncio 백그라운드) |
 | `ready` | 변환/추출 완료, 레이블링 가능 |
 | `error` | 변환 실패 |
 | `extraction_failed` | OCR 추출 실패 |

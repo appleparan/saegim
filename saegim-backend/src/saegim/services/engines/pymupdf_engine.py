@@ -18,7 +18,7 @@ class PyMuPDFEngine(BaseOCREngine):
     This engine does not support image-based extraction. PyMuPDF works
     directly with fitz.Page objects during the synchronous upload path.
     The extract_page() method raises NotImplementedError because it is
-    never called in the Celery async extraction path.
+    never called in the asyncio background extraction path.
     """
 
     def extract_page(
