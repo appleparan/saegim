@@ -161,17 +161,18 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    const transformContainer = page.locator('[style*="transform-origin: 0 0"]').first()
-    const initialTransform = await transformContainer.evaluate(
-      (el) => el.style.transform || window.getComputedStyle(el).transform,
+    const bgLayer = page.locator('canvas[data-pdf-renderer], img[alt="page background"]').first()
+    await expect(bgLayer).toBeVisible({ timeout: 15_000 })
+    const initialTransform = await bgLayer.evaluate(
+      (el) => window.getComputedStyle(el).transform,
     )
 
     // Click zoom in
     await page.getByRole('button', { name: '+' }).click()
     await page.waitForTimeout(300)
 
-    const zoomedTransform = await transformContainer.evaluate(
-      (el) => el.style.transform || window.getComputedStyle(el).transform,
+    const zoomedTransform = await bgLayer.evaluate(
+      (el) => window.getComputedStyle(el).transform,
     )
 
     // Transform should have changed after zoom
@@ -422,9 +423,9 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
     await page.getByRole('button', { name: '1:1' }).click()
     await page.waitForTimeout(500)
 
-    // After reset, the transform container should exist and be stable
-    const transformContainer = page.locator('[style*="transform-origin: 0 0"]').first()
-    await expect(transformContainer).toBeAttached()
+    // After reset, the background layer should still be stable
+    const bgLayerAfterReset = page.locator('canvas[data-pdf-renderer], img[alt="page background"]').first()
+    await expect(bgLayerAfterReset).toBeAttached()
   })
 
   test.afterAll(async () => {

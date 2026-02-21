@@ -4,6 +4,7 @@ import { ensureTestPdf, getTestPdfPath } from '../helpers/pdf'
 
 const PROJECT_NAME = `E2E Test ${Date.now()}`
 const PROJECT_DESC = 'Automated e2e test project'
+const TEST_PDF_FILENAME = getTestPdfPath().split('/').pop()!
 
 // Shared state across serial tests
 let projectId: string
@@ -64,7 +65,7 @@ test.describe.serial('Full Workflow', () => {
 
     // Wait for upload to complete - document card should appear
     // The paper has 15 pages
-    await expect(page.locator('text=attention.pdf')).toBeVisible({ timeout: 60_000 })
+    await expect(page.locator(`text=${TEST_PDF_FILENAME}`)).toBeVisible({ timeout: 60_000 })
     await expect(page.locator('text=준비됨')).toBeVisible({ timeout: 60_000 })
 
     // Verify page count is shown
@@ -74,10 +75,10 @@ test.describe.serial('Full Workflow', () => {
 
   test('04 - expand document and see pages', async ({ page }) => {
     await page.goto(`/#/projects/${projectId}`)
-    await expect(page.locator('text=attention.pdf')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator(`text=${TEST_PDF_FILENAME}`)).toBeVisible({ timeout: 10_000 })
 
     // Click document card to expand page grid
-    await page.locator('h3:has-text("attention.pdf")').click()
+    await page.locator(`h3:has-text("${TEST_PDF_FILENAME}")`).click()
 
     // Wait for page grid to load
     await expect(page.locator('.grid')).toBeVisible({ timeout: 10_000 })
@@ -267,7 +268,7 @@ test.describe.serial('Full Workflow', () => {
 
   test('14 - delete document via UI', async ({ page }) => {
     await page.goto(`/#/projects/${projectId}`)
-    await expect(page.locator('text=attention.pdf')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator(`text=${TEST_PDF_FILENAME}`)).toBeVisible({ timeout: 10_000 })
 
     // Handle confirm dialog
     page.on('dialog', (dialog) => dialog.accept())
@@ -277,7 +278,7 @@ test.describe.serial('Full Workflow', () => {
     await deleteBtn.click()
 
     // Document should disappear
-    await expect(page.locator('text=attention.pdf')).not.toBeVisible({ timeout: 10_000 })
+    await expect(page.locator(`text=${TEST_PDF_FILENAME}`)).not.toBeVisible({ timeout: 10_000 })
   })
 
   test('15 - delete project via UI', async ({ page }) => {

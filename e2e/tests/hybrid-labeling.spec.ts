@@ -186,19 +186,19 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Get the transform container (parent of background layer) for zoom check.
-    // Works whether background is PDF.js canvas or fallback image.
-    const transformContainer = page.locator('[style*="transform-origin: 0 0"]').first()
-    const initialTransform = await transformContainer.evaluate(
-      (el) => el.style.transform || window.getComputedStyle(el).transform,
+    // Get the background layer (PDF.js canvas or fallback image) for zoom check.
+    const bgLayer = page.locator('canvas[data-pdf-renderer], img[alt="page background"]').first()
+    await expect(bgLayer).toBeVisible({ timeout: 15_000 })
+    const initialTransform = await bgLayer.evaluate(
+      (el) => window.getComputedStyle(el).transform,
     )
 
     // Click zoom in
     await page.getByRole('button', { name: '+' }).click()
     await page.waitForTimeout(300)
 
-    const zoomedTransform = await transformContainer.evaluate(
-      (el) => el.style.transform || window.getComputedStyle(el).transform,
+    const zoomedTransform = await bgLayer.evaluate(
+      (el) => window.getComputedStyle(el).transform,
     )
 
     // Transform should have changed after zoom
