@@ -15,7 +15,7 @@
 
 <div class="flex flex-col items-center justify-center gap-2">
   <svg
-    class="animate-spin text-blue-600 {sizeClasses[size]}"
+    class="animate-spin text-primary {sizeClasses[size]}"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
@@ -35,6 +35,6 @@
     ></path>
   </svg>
   {#if message}
-    <p class="text-sm text-gray-500">{message}</p>
+    <p class="text-sm text-muted-foreground">{message}</p>
   {/if}
 </div>

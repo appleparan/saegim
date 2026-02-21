@@ -1,7 +1,7 @@
 <script lang="ts">
   import { link } from 'svelte-spa-router'
   import Header from '$lib/components/layout/Header.svelte'
-  import Button from '$lib/components/common/Button.svelte'
+  import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import OcrSettingsPanel from '$lib/components/settings/OcrSettingsPanel.svelte'
   import {
@@ -101,14 +101,14 @@
 <div class="h-full flex flex-col">
   <Header title={project?.name ?? 'saegim'} />
 
-  <div class="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+  <div class="flex-1 p-8 overflow-y-auto bg-background">
     <div class="max-w-2xl mx-auto">
       <div class="mb-4">
         {#if params?.id}
           <a
             href="/projects/{params.id}"
             use:link
-            class="text-sm text-gray-500 hover:text-primary-600
+            class="text-sm text-muted-foreground hover:text-primary
               transition-colors flex items-center gap-1 w-fit"
           >
             <svg
@@ -131,9 +131,9 @@
 
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">프로젝트 설정</h1>
+          <h1 class="text-2xl font-bold text-foreground">프로젝트 설정</h1>
           {#if project}
-            <p class="text-sm text-gray-500 mt-1">{project.name}</p>
+            <p class="text-sm text-muted-foreground mt-1">{project.name}</p>
           {/if}
         </div>
       </div>
@@ -144,16 +144,16 @@
         </div>
       {:else if error}
         <div
-          class="bg-red-50/80 border border-red-200 rounded-xl p-6 text-center"
+          class="bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 rounded-xl p-6 text-center"
         >
-          <p class="text-red-700 mb-4 font-medium">{error}</p>
-          <Button variant="secondary" onclick={loadData}>다시 시도</Button>
+          <p class="text-destructive mb-4 font-medium">{error}</p>
+          <Button variant="outline" onclick={loadData}>다시 시도</Button>
         </div>
       {:else if ocrConfig}
         {#if successMessage}
           <div
-            class="mb-4 bg-green-50 border border-green-200
-              rounded-lg p-3 text-sm text-green-700"
+            class="mb-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800
+              rounded-lg p-3 text-sm text-emerald-700 dark:text-emerald-300"
           >
             {successMessage}
           </div>

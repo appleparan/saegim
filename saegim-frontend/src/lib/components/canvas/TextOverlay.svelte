@@ -49,7 +49,7 @@
           border: 1px solid transparent;
           transition: border-color 0.15s, background-color 0.15s;
         "
-        class="hover:border-blue-400/50 hover:bg-blue-50/10"
+        class="hover:border-primary/50 hover:bg-primary/10"
         onclick={() => annotationStore.selectElement(el.anno_id)}
         onkeydown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {

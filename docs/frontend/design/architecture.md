@@ -10,7 +10,8 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 | ------ | ------ | ------ |
 | UI Framework | Svelte 5 (runes) | ^5.43 |
 | Build Tool | Vite | ^7.2 |
-| Styling | Tailwind CSS 4 | ^4.1 |
+| Styling | Tailwind CSS 4 + shadcn-svelte (bits-ui) | ^4.1 |
+| Theme | Violet 테마 (OKLCH CSS 변수) + 다크모드 (mode-watcher) | - |
 | Canvas | Konva.js | ^10.2 |
 | Router | svelte-spa-router | ^4.0 |
 | Test | Vitest + jsdom | ^4.0 |
@@ -21,8 +22,8 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 ```text
 src/
 ├── main.ts                 # 앱 마운트
-├── App.svelte              # 라우터 + 전역 레이아웃
-├── app.css                 # Tailwind + 카테고리 색상 테마
+├── App.svelte              # 라우터 + 전역 레이아웃 + ModeWatcher
+├── app.css                 # Tailwind + shadcn 테마 CSS 변수 (violet OKLCH) + 카테고리 색상
 ├── pages/                  # 라우트별 페이지
 │   ├── ProjectList.svelte      # /
 │   ├── DocumentList.svelte     # /projects/:id
@@ -50,9 +51,10 @@ src/
 │   │   ├── canvas.svelte.ts      # 뷰포트 (zoom/pan/tool)
 │   │   └── ui.svelte.ts          # 사이드바, 알림
 │   └── components/
-│       ├── common/         # 재사용 UI 위젯
-│       ├── layout/         # Header, Sidebar
-│       ├── canvas/         # Konva.js 통합 (ImageViewer, BboxLayer, BboxDrawTool, TextOverlay)
+│       ├── ui/            # shadcn-svelte (button, badge, card, dialog, ...)
+│       ├── common/         # 재사용 UI 위젯 (LoadingSpinner, Select)
+│       ├── layout/         # Header, Sidebar, ThemeToggle
+│       ├── canvas/         # Konva.js 통합 (HybridViewer, BboxLayer, BboxDrawTool, TextOverlay)
 │       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview 등)
 │       └── settings/       # 프로젝트 설정 (OcrSettingsPanel)
 └── tests/

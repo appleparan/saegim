@@ -21,7 +21,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 
 | 계층 | 기술 |
 | ---- | ---- |
-| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js |
+| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, shadcn-svelte + Tailwind CSS 4, Konva.js, 다크모드 (mode-watcher) |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
@@ -202,7 +202,7 @@ saegim/
 │   │       ├── types/              # OmniDocBench 타입 정의
 │   │       ├── api/                # HTTP 클라이언트
 │   │       ├── stores/             # Svelte 5 Runes 스토어
-│   │       ├── components/         # UI 컴포넌트 (OcrSettingsPanel 등)
+│   │       ├── components/         # UI: ui/ (shadcn-svelte), canvas/, panels/, layout/, settings/
 │   │       └── utils/              # 유틸리티 함수
 │   └── tests/                      # Vitest 테스트
 ├── e2e/                            # E2E 테스트 (Playwright + Docker Compose)

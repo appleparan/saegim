@@ -61,35 +61,35 @@
 
 {#if isExtracting}
   <div
-    class="mx-3 mt-3 p-3 rounded-lg border border-amber-200 bg-amber-50/80 shadow-sm"
+    class="mx-3 mt-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 shadow-sm"
   >
     <div class="flex items-center gap-2">
-      <svg class="w-4 h-4 text-amber-600 animate-spin" fill="none" viewBox="0 0 24 24">
+      <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
       </svg>
       <div>
-        <p class="text-sm font-medium text-amber-900">OCR 추출 진행 중...</p>
-        <p class="text-xs text-amber-700 mt-0.5">구조 분석이 완료되면 자동으로 결과가 표시됩니다.</p>
+        <p class="text-sm font-medium text-amber-900 dark:text-amber-200">OCR 추출 진행 중...</p>
+        <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">구조 분석이 완료되면 자동으로 결과가 표시됩니다.</p>
       </div>
     </div>
   </div>
 {:else if visible}
   <div
-    class="mx-3 mt-3 p-3 rounded-lg border border-blue-200 bg-blue-50/80 shadow-sm"
+    class="mx-3 mt-3 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/80 dark:bg-blue-950/30 shadow-sm"
   >
     <div class="flex items-start justify-between gap-2">
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium text-blue-900">
+        <p class="text-sm font-medium text-blue-900 dark:text-blue-200">
           자동 추출 결과가 있습니다
         </p>
-        <p class="text-xs text-blue-700 mt-1">
+        <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
           텍스트 {textCount}개, 이미지 {imageCount}개 — 총 {totalCount}개 요소
         </p>
       </div>
       <button
         type="button"
-        class="text-blue-400 hover:text-blue-600 text-lg leading-none p-0.5"
+        class="text-blue-400 dark:text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 text-lg leading-none p-0.5"
         onclick={handleDismiss}
         aria-label="닫기"
       >
@@ -111,8 +111,8 @@
       <button
         type="button"
         class="px-3 py-1.5 text-xs font-medium rounded-md
-          bg-white text-gray-600 border border-gray-200
-          hover:bg-gray-50 transition-colors"
+          bg-card text-muted-foreground border border-border
+          hover:bg-accent transition-colors"
         onclick={handleDismiss}
       >
         무시

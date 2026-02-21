@@ -13,10 +13,10 @@
   }
 </script>
 
-<div class="p-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+<div class="p-3 border-b border-border flex items-center justify-between bg-muted">
   <div>
-    <h3 class="text-sm font-semibold text-gray-800">요소 목록</h3>
-    <p class="text-xs text-gray-400 mt-0.5">
+    <h3 class="text-sm font-semibold text-foreground">요소 목록</h3>
+    <p class="text-xs text-muted-foreground mt-0.5">
       {annotationStore.elements.length}개 요소
     </p>
   </div>
@@ -29,8 +29,8 @@
     <div
       class="w-full text-left px-2.5 py-2 rounded-lg text-sm transition-all flex items-center gap-2.5 group cursor-pointer mb-0.5
         {annotationStore.selectedElementId === element.anno_id
-          ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-200'
-          : 'hover:bg-gray-50 text-gray-700 border border-transparent'}"
+          ? 'bg-primary/10 text-primary shadow-sm border border-primary/30'
+          : 'hover:bg-accent text-foreground border border-transparent'}"
       onclick={() => annotationStore.selectElement(element.anno_id)}
     >
       <span
@@ -38,14 +38,14 @@
         style="background-color: {getCategoryColor(element.category_type)}"
       ></span>
       <span class="flex-1 truncate">
-        <span class="font-medium text-gray-400 mr-0.5">{element.order}.</span>
+        <span class="font-medium text-muted-foreground mr-0.5">{element.order}.</span>
         {getLabel(element.category_type)}
         {#if element.ignore}
-          <span class="text-xs text-gray-400 italic">(무시)</span>
+          <span class="text-xs text-muted-foreground italic">(무시)</span>
         {/if}
       </span>
       <button
-        class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 px-1 transition-all"
+        class="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive px-1 transition-all"
         onclick={(e) => handleDelete(e, element.anno_id)}
         aria-label="삭제"
       >
@@ -54,7 +54,7 @@
     </div>
   {/each}
   {#if annotationStore.elements.length === 0}
-    <p class="text-xs text-gray-400 text-center py-8">
+    <p class="text-xs text-muted-foreground text-center py-8">
       요소가 없습니다.<br/>그리기 도구로 추가하세요.
     </p>
   {/if}

@@ -126,7 +126,7 @@ test.describe.serial('Full Workflow', () => {
     await page.getByRole('button', { name: '그리기' }).click()
 
     // Draw a bounding box on the canvas
-    const canvas = page.locator('.flex-1.relative.bg-gray-100')
+    const canvas = page.locator('.flex-1.relative.bg-muted')
     const box = await canvas.boundingBox()
     if (box) {
       const startX = box.x + box.width * 0.2

@@ -241,7 +241,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 
 | 계층 | 기술 | 이유 |
 | ------ | ------ | ------ |
-| **프론트엔드** | Svelte 5 + SvelteKit + TypeScript | Svelte 5의 runes($state, $derived)로 bbox/annotation 상태 관리가 간결. Canvas 위 bbox 인터랙션은 Konva.js 또는 Fabric.js 활용 |
+| **프론트엔드** | Svelte 5 + TypeScript + Vite 7 (SPA) | Svelte 5 runes($state, $derived)로 상태 관리. shadcn-svelte (bits-ui) + Tailwind CSS v4 + violet 테마 + 다크모드 (mode-watcher). Canvas: Konva.js |
 | **백엔드** | FastAPI (Python) | 자동 추출 파이프라인(PyTorch 모델)과 자연스러운 통합. 프론트엔드와는 HTTP/JSON API로만 통신 |
 | **DB 드라이버** | asyncpg (raw SQL) | 비동기 PostgreSQL 드라이버. ORM 없이 raw SQL + Repository 패턴으로 JSONB 직접 제어 |
 | **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
@@ -384,7 +384,7 @@ saegim/
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── api/              # FastAPI 호출 함수 + 타입
-│   │   │   ├── components/       # canvas/ (HybridViewer, BboxLayer 등), panels/, common/, layout/
+│   │   │   ├── components/       # canvas/, panels/, layout/, settings/, ui/ (shadcn-svelte), common/
 │   │   │   ├── stores/           # $state 기반 어노테이션/캔버스/UI 상태
 │   │   │   ├── types/            # OmniDocBench JSON 타입, 카테고리 상수
 │   │   │   └── utils/            # bbox, color, interaction, text-layout

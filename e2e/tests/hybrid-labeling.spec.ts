@@ -165,15 +165,15 @@ test.describe.serial('Hybrid Labeling UX', () => {
 
     // Switch to draw mode
     await drawBtn.click()
-    await expect(drawBtn).toHaveClass(/bg-primary-500/)
+    await expect(drawBtn).toHaveClass(/bg-primary/)
 
     // Switch to pan mode
     await panBtn.click()
-    await expect(panBtn).toHaveClass(/bg-primary-500/)
+    await expect(panBtn).toHaveClass(/bg-primary/)
 
     // Switch back to select mode
     await selectBtn.click()
-    await expect(selectBtn).toHaveClass(/bg-primary-500/)
+    await expect(selectBtn).toHaveClass(/bg-primary/)
   })
 
   test('04 - zoom controls work', async ({ page }) => {
@@ -212,7 +212,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await page.waitForTimeout(300)
 
     // Draw on the canvas area
-    const canvasArea = page.locator('.flex-1.relative.bg-gray-100')
+    const canvasArea = page.locator('.flex-1.relative.bg-muted')
     const box = await canvasArea.boundingBox()
     if (box) {
       const startX = box.x + box.width * 0.6
@@ -240,17 +240,17 @@ test.describe.serial('Hybrid Labeling UX', () => {
     // Press 'd' for draw mode
     await page.keyboard.press('d')
     const drawBtn = page.getByRole('button', { name: '그리기' })
-    await expect(drawBtn).toHaveClass(/bg-primary-500/)
+    await expect(drawBtn).toHaveClass(/bg-primary/)
 
     // Press 'h' for pan mode
     await page.keyboard.press('h')
     const panBtn = page.getByRole('button', { name: '이동' })
-    await expect(panBtn).toHaveClass(/bg-primary-500/)
+    await expect(panBtn).toHaveClass(/bg-primary/)
 
     // Press 's' for select mode
     await page.keyboard.press('s')
     const selectBtn = page.getByRole('button', { name: '선택' })
-    await expect(selectBtn).toHaveClass(/bg-primary-500/)
+    await expect(selectBtn).toHaveClass(/bg-primary/)
   })
 
   test('07 - element list shows all elements', async ({ page }) => {
