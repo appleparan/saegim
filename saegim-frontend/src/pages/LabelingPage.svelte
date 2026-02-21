@@ -9,27 +9,42 @@
   import ExtractionPreview from '$lib/components/panels/ExtractionPreview.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
+  import { pdfStore } from '$lib/stores/pdf.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
   import { getPage, savePage } from '$lib/api/pages'
   import { API_BASE, NetworkError } from '$lib/api/client'
   import type { PageResponse } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
+  import type { PDFPageProxy } from 'pdfjs-dist'
 
   let { params }: { params: { pageId: string } } = $props()
 
   let pageData = $state<PageResponse | null>(null)
+  let currentPageProxy = $state<PDFPageProxy | null>(null)
   let saving = $state(false)
 
   async function loadPage() {
     if (!params?.pageId) return
     annotationStore.setLoading(true)
     annotationStore.setError(null)
+    currentPageProxy = null
     try {
       const data = await getPage(params.pageId)
       pageData = data
       annotationStore.load(params.pageId, data.annotation_data)
       canvasStore.setImageDimensions(data.width, data.height)
+
+      // Load PDF for vector rendering if available
+      if (data.pdf_url) {
+        try {
+          await pdfStore.loadDocument(`${API_BASE}${data.pdf_url}`)
+          currentPageProxy = await pdfStore.getPage(data.page_no)
+        } catch {
+          // PDF load failed — fall back to image rendering silently
+          currentPageProxy = null
+        }
+      }
     } catch (e) {
       if (e instanceof NetworkError) {
         annotationStore.setError('백엔드 서버에 연결할 수 없습니다.')
@@ -103,6 +118,7 @@
     return () => {
       window.removeEventListener('keydown', handleKeydown)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      pdfStore.destroy()
     }
   })
 </script>
@@ -187,6 +203,7 @@
 
         {#if pageData}
           <HybridViewer
+            pageProxy={currentPageProxy ?? undefined}
             imageUrl={`${API_BASE}${pageData.image_url}`}
             width={pageData.width}
             height={pageData.height}
