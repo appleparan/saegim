@@ -8,9 +8,17 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     environment: "jsdom",
     setupFiles: ["tests/setup.ts"],
+    server: {
+      deps: {
+        inline: [/svelte/],
+      },
+    },
     alias: {
       "$app/navigation": "tests/__mocks__/$app/navigation.ts",
       "$app/state": "tests/__mocks__/$app/state.ts",
     },
+  },
+  resolve: {
+    conditions: ["browser"],
   },
 });
