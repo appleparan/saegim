@@ -92,7 +92,7 @@ function makeMockPageProxy() {
       promise: Promise.resolve(),
       cancel: vi.fn(),
     })),
-  } as unknown;
+  } as unknown as import("pdfjs-dist").PDFPageProxy;
 }
 
 describe("HybridViewer", () => {
