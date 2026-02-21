@@ -86,6 +86,7 @@ async def get_by_id_with_context(
                p.annotation_data, p.auto_extracted_data, p.status, p.assigned_to,
                p.locked_at, p.updated_at,
                d.filename AS document_filename,
+               d.pdf_path,
                d.project_id AS project_id,
                pr.name AS project_name
         FROM pages p
