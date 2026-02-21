@@ -376,7 +376,7 @@ class TestUploadAndConvert:
 
 class TestUploadAndConvertOcr:
     @pytest.mark.asyncio
-    async def test_dispatches_ocr_celery_task(
+    async def test_creates_background_task_for_ocr(
         self, mock_pool, project_id, tmp_path, mock_ocr_settings
     ):
         doc_id = uuid.uuid4()
@@ -401,7 +401,11 @@ class TestUploadAndConvertOcr:
                     },
                 },
             ),
-            patch.object(document_service, '_dispatch_ocr_extraction') as mock_dispatch,
+            patch.object(
+                document_service.asyncio,
+                'create_task',
+                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
+            ) as mock_create_task,
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -425,7 +429,7 @@ class TestUploadAndConvertOcr:
             )
 
         assert result['status'] == 'extracting'
-        mock_dispatch.assert_called_once()
+        mock_create_task.assert_called_once()
         mock_doc_repo.update_status.assert_called_once_with(
             mock_pool, document_id=doc_id, status='extracting', total_pages=1
         )
@@ -458,7 +462,11 @@ class TestUploadAndConvertOcr:
                     },
                 },
             ),
-            patch.object(document_service, '_dispatch_ocr_extraction'),
+            patch.object(
+                document_service.asyncio,
+                'create_task',
+                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
+            ),
             patch.object(document_service, 'extraction_service') as mock_ext,
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
@@ -510,7 +518,11 @@ class TestUploadAndConvertOcr:
                     },
                 },
             ),
-            patch.object(document_service, '_dispatch_ocr_extraction'),
+            patch.object(
+                document_service.asyncio,
+                'create_task',
+                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
+            ),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()

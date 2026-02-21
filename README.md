@@ -30,7 +30,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | | - `integrated_server`: PP-StructureV3 또는 vLLM (Chandra 등) |
 | | - `split_pipeline`: PP-StructureV3 레이아웃 + Gemini/vLLM OCR |
 | | - `pymupdf`: PyMuPDF 폴백 (GPU 불필요) |
-| **비동기 태스크** | Celery + Redis |
+| **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Playwright + Docker Compose (기본 + GPU 프로파일) |
 
@@ -190,7 +190,6 @@ saegim/
 │   │   │   ├── gemini_ocr_service.py   # Gemini VLM 프로바이더
 │   │   │   ├── vllm_ocr_service.py     # vLLM 프로바이더 (Chandra 등)
 │   │   │   └── ocr_pipeline.py         # 2단계 파이프라인 오케스트레이터
-│   │   ├── tasks/                  # Celery 비동기 태스크
 │   │   ├── repositories/           # 데이터 접근 (raw SQL)
 │   │   └── core/                   # DB 커넥션 풀
 │   ├── migrations/                 # SQL 마이그레이션
