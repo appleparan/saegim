@@ -369,7 +369,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await page.waitForTimeout(2000)
 
     // Take screenshot before zoom
-    const canvasArea = page.locator('.flex-1.relative.bg-gray-100')
+    const canvasArea = page.locator('.flex-1.relative.bg-muted')
     const beforeZoom = await canvasArea.screenshot()
 
     // Zoom in
