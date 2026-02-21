@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { link } from 'svelte-spa-router'
+  import { link, push } from 'svelte-spa-router'
   import Header from '$lib/components/layout/Header.svelte'
   import Sidebar from '$lib/components/layout/Sidebar.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
@@ -7,14 +7,16 @@
   import HybridViewer from '$lib/components/canvas/HybridViewer.svelte'
   import ElementList from '$lib/components/panels/ElementList.svelte'
   import ExtractionPreview from '$lib/components/panels/ExtractionPreview.svelte'
+  import PageNavigator from '$lib/components/panels/PageNavigator.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { pdfStore } from '$lib/stores/pdf.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
   import { getPage, savePage } from '$lib/api/pages'
+  import { listPages } from '$lib/api/documents'
   import { API_BASE, NetworkError } from '$lib/api/client'
-  import type { PageResponse } from '$lib/api/types'
+  import type { PageResponse, PageSummary } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
 
@@ -22,6 +24,7 @@
 
   let pageData = $state<PageResponse | null>(null)
   let currentPageProxy = $state<PDFPageProxy | null>(null)
+  let documentPages = $state<readonly PageSummary[]>([])
   let saving = $state(false)
 
   async function loadPage() {
@@ -34,6 +37,13 @@
       pageData = data
       annotationStore.load(params.pageId, data.annotation_data)
       canvasStore.setImageDimensions(data.width, data.height)
+
+      // Load page list for document navigation (non-blocking)
+      listPages(data.document_id).then((pages) => {
+        documentPages = pages
+      }).catch(() => {
+        documentPages = []
+      })
 
       // Load PDF for vector rendering if available
       if (data.pdf_url) {
@@ -72,6 +82,16 @@
     }
   }
 
+  function navigateToAdjacentPage(direction: -1 | 1): void {
+    if (documentPages.length <= 1 || !params?.pageId) return
+    const currentIndex = documentPages.findIndex((p) => p.id === params.pageId)
+    if (currentIndex < 0) return
+    const targetIndex = currentIndex + direction
+    if (targetIndex >= 0 && targetIndex < documentPages.length) {
+      push(`/label/${documentPages[targetIndex].id}`)
+    }
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     // Ignore shortcuts when typing in input/textarea
     const tag = (e.target as HTMLElement)?.tagName
@@ -92,6 +112,10 @@
       handleSave()
     } else if (e.key === 'Escape') {
       annotationStore.selectElement(null)
+    } else if (e.key === '[') {
+      navigateToAdjacentPage(-1)
+    } else if (e.key === ']') {
+      navigateToAdjacentPage(1)
     }
   }
 
@@ -163,8 +187,14 @@
     </div>
   {:else}
     <div class="flex-1 flex overflow-hidden">
-      <!-- Left panel: Element list + extraction preview -->
+      <!-- Left panel: Page navigator + Element list + extraction preview -->
       <div class="w-64 border-r border-border bg-card overflow-y-auto flex flex-col shadow-sm">
+        {#if documentPages.length > 1}
+          <PageNavigator
+            pages={documentPages}
+            currentPageId={params.pageId}
+          />
+        {/if}
         {#if pageData}
           <ExtractionPreview
             pageId={params.pageId}
