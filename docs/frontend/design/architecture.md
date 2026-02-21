@@ -51,7 +51,7 @@ src/
 │   │   ├── canvas.svelte.ts      # 뷰포트 (zoom/pan/tool)
 │   │   └── ui.svelte.ts          # 사이드바, 알림
 │   └── components/
-│       ├── ui/            # shadcn-svelte 컴포넌트 (button, badge, card, dialog, input, label, select, separator, switch, tabs, textarea)
+│       ├── ui/            # shadcn-svelte (button, badge, card, dialog, ...)
 │       ├── common/         # 재사용 UI 위젯 (LoadingSpinner, Select)
 │       ├── layout/         # Header, Sidebar, ThemeToggle
 │       ├── canvas/         # Konva.js 통합 (HybridViewer, BboxLayer, BboxDrawTool, TextOverlay)
