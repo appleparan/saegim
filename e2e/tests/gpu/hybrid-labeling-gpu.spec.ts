@@ -82,7 +82,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('01 - labeling page loads with 3-layer structure', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -104,7 +104,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('02 - extracted text blocks are selectable', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -130,7 +130,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('03 - tool buttons work correctly', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     const selectBtn = page.getByRole('button', { name: '선택' })
@@ -155,7 +155,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('04 - zoom controls work', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -182,7 +182,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('05 - draw tool creates new bounding box on extracted page', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -213,7 +213,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('06 - keyboard shortcuts work', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Press 'd' for draw mode
@@ -233,7 +233,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('07 - element list shows extracted elements', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -243,7 +243,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('08 - breadcrumb navigation shows document info', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Breadcrumb should show page info
@@ -252,7 +252,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('09 - text overlay click selects corresponding element', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -272,7 +272,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('10 - zoom maintains bbox alignment (screenshot comparison)', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -297,7 +297,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('11 - extracted bbox poly coordinates are valid on canvas', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -328,7 +328,7 @@ test.describe.serial('GPU Hybrid Labeling UX', () => {
   })
 
   test('12 - multiple zoom levels maintain bbox consistency', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 

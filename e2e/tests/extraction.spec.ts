@@ -88,7 +88,7 @@ test.describe.serial('PDF Text/Image Extraction', () => {
   })
 
   test('03 - extraction preview banner shows in labeling page', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
 
     // Wait for page to load
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
@@ -106,7 +106,7 @@ test.describe.serial('PDF Text/Image Extraction', () => {
   })
 
   test('04 - dismiss button hides extraction preview', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=자동 추출 결과가 있습니다')).toBeVisible({ timeout: 15_000 })
 
     // Click dismiss
@@ -152,7 +152,7 @@ test.describe.serial('PDF Text/Image Extraction', () => {
   })
 
   test('07 - labeling page shows accepted elements', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Wait for elements to load
@@ -172,7 +172,7 @@ test.describe.serial('PDF Text/Image Extraction', () => {
   })
 
   test('08 - text overlay renders extracted text blocks', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 

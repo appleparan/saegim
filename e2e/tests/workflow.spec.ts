@@ -18,7 +18,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('01 - create project via UI', async ({ page }) => {
-    await page.goto('/#/')
+    await page.goto('/')
     await expect(page.locator('h1:has-text("프로젝트")')).toBeVisible()
 
     // Click "새 프로젝트" button
@@ -35,7 +35,7 @@ test.describe.serial('Full Workflow', () => {
     // Verify project card appears
     await expect(page.locator(`text=${PROJECT_NAME}`)).toBeVisible({ timeout: 10_000 })
 
-    // Extract project ID from the link href (handles "#/projects/UUID" from hash router)
+    // Extract project ID from the link href
     const link = page.locator(`a:has-text("${PROJECT_NAME}")`)
     const href = await link.getAttribute('href')
     expect(href).toBeTruthy()
@@ -43,20 +43,20 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('02 - navigate to project detail', async ({ page }) => {
-    await page.goto('/#/')
+    await page.goto('/')
     await expect(page.locator(`text=${PROJECT_NAME}`)).toBeVisible({ timeout: 10_000 })
 
     // Click project card
     await page.locator(`a:has-text("${PROJECT_NAME}")`).click()
 
     // Verify navigation to document list
-    await expect(page).toHaveURL(new RegExp(`#/projects/${projectId}`))
+    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}`))
     await expect(page.locator(`h1:has-text("${PROJECT_NAME}")`)).toBeVisible()
     await expect(page.locator('a:has-text("프로젝트 목록")')).toBeVisible()
   })
 
   test('03 - upload PDF document', async ({ page }) => {
-    await page.goto(`/#/projects/${projectId}`)
+    await page.goto(`/projects/${projectId}`)
     await expect(page.locator(`h1:has-text("${PROJECT_NAME}")`)).toBeVisible({ timeout: 10_000 })
 
     // Upload PDF via hidden file input
@@ -74,7 +74,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('04 - expand document and see pages', async ({ page }) => {
-    await page.goto(`/#/projects/${projectId}`)
+    await page.goto(`/projects/${projectId}`)
     await expect(page.locator(`text=${TEST_PDF_FILENAME}`)).toBeVisible({ timeout: 10_000 })
 
     // Click document card to expand page grid
@@ -88,7 +88,7 @@ test.describe.serial('Full Workflow', () => {
     const count = await pageLinks.count()
     expect(count).toBeGreaterThan(0)
 
-    // Extract first page ID from link (handles "#/label/UUID" from hash router)
+    // Extract first page ID from link
     const firstPageHref = await pageLinks.first().getAttribute('href')
     expect(firstPageHref).toBeTruthy()
     pageId = firstPageHref!.split('/label/')[1]
@@ -102,7 +102,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('05 - navigate to labeling page', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
 
     // Wait for page to load
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
@@ -117,7 +117,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('06 - use annotation tools (draw bounding box)', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Wait for canvas/image to load
@@ -153,7 +153,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('07 - sidebar tabs exist', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 30_000 })
 
     // Verify all three sidebar tabs are present
@@ -257,7 +257,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('13 - verify save reflected in UI', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // The element list should show our saved elements
@@ -267,7 +267,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('14 - delete document via UI', async ({ page }) => {
-    await page.goto(`/#/projects/${projectId}`)
+    await page.goto(`/projects/${projectId}`)
     await expect(page.locator(`text=${TEST_PDF_FILENAME}`)).toBeVisible({ timeout: 10_000 })
 
     // Handle confirm dialog
@@ -282,7 +282,7 @@ test.describe.serial('Full Workflow', () => {
   })
 
   test('15 - delete project via UI', async ({ page }) => {
-    await page.goto('/#/')
+    await page.goto('/')
     await expect(page.locator(`text=${PROJECT_NAME}`)).toBeVisible({ timeout: 10_000 })
 
     // Handle confirm dialog
@@ -310,7 +310,7 @@ test.describe.serial('Full Workflow', () => {
     }
 
     // Also verify via UI
-    await page.goto('/#/')
+    await page.goto('/')
     await page.waitForTimeout(2000)
     await expect(page.locator(`text=${PROJECT_NAME}`)).not.toBeVisible()
   })
