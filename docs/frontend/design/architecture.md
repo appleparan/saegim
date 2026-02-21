@@ -9,11 +9,11 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 | 영역 | 기술 | 버전 |
 | ------ | ------ | ------ |
 | UI Framework | Svelte 5 (runes) | ^5.43 |
-| Build Tool | Vite | ^7.2 |
+| Build Tool | SvelteKit (Vite-based) + adapter-static | ^2.21 |
 | Styling | Tailwind CSS 4 + shadcn-svelte (bits-ui) | ^4.1 |
 | Theme | Violet 테마 (OKLCH CSS 변수) + 다크모드 (mode-watcher) | - |
 | Canvas | Konva.js | ^10.2 |
-| Router | svelte-spa-router | ^4.0 |
+| Router | SvelteKit file-based routing | - |
 | Test | Vitest + jsdom | ^4.0 |
 | Package Manager | Bun | - |
 
@@ -21,14 +21,17 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 
 ```text
 src/
-├── main.ts                 # 앱 마운트
-├── App.svelte              # 라우터 + 전역 레이아웃 + ModeWatcher
+├── app.html                # SvelteKit HTML 템플릿
 ├── app.css                 # Tailwind + shadcn 테마 CSS 변수 (violet OKLCH) + 카테고리 색상
-├── pages/                  # 라우트별 페이지
-│   ├── ProjectList.svelte      # /
-│   ├── DocumentList.svelte     # /projects/:id
-│   ├── ProjectSettings.svelte  # /projects/:id/settings (OCR 설정)
-│   └── LabelingPage.svelte     # /label/:pageId
+├── routes/                 # SvelteKit 파일 기반 라우트
+│   ├── +layout.svelte          # 전역 레이아웃 + ModeWatcher
+│   ├── +layout.ts              # ssr=false, prerender=false
+│   ├── +page.svelte            # / (프로젝트 목록)
+│   ├── projects/[id]/
+│   │   ├── +page.svelte        # /projects/:id (문서 목록)
+│   │   └── settings/+page.svelte  # /projects/:id/settings (OCR 설정)
+│   └── label/[pageId]/
+│       └── +page.svelte        # /label/:pageId (레이블링)
 ├── lib/
 │   ├── types/              # 타입 정의
 │   │   ├── omnidocbench.ts     # AnnotationData, LayoutElement, Poly 등
@@ -63,14 +66,14 @@ src/
 
 ## Routing
 
-Hash-based SPA 라우팅 (`svelte-spa-router`):
+SvelteKit 파일 기반 라우팅 (`adapter-static` SPA 모드):
 
-| 경로 | 페이지 | 설명 |
+| 경로 | 라우트 파일 | 설명 |
 | ------ | -------- | ------ |
-| `#/` | ProjectList | 프로젝트 목록 + 생성 |
-| `#/projects/:id` | DocumentList | 문서 목록 + PDF 업로드 |
-| `#/projects/:id/settings` | ProjectSettings | OCR 엔진 설정 (engine_type 선택) |
-| `#/label/:pageId` | LabelingPage | 3패널 레이블링 화면 |
+| `/` | `routes/+page.svelte` | 프로젝트 목록 + 생성 |
+| `/projects/[id]` | `routes/projects/[id]/+page.svelte` | 문서 목록 + PDF 업로드 |
+| `/projects/[id]/settings` | `routes/projects/[id]/settings/+page.svelte` | OCR 엔진 설정 (engine_type 선택) |
+| `/label/[pageId]` | `routes/label/[pageId]/+page.svelte` | 3패널 레이블링 화면 |
 
 ## Data Flow
 
