@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "konva": "^10.2.0",
     "mode-watcher": "^1.1.0",
+    "pdfjs-dist": "^5.4.624",
     "svelte-spa-router": "^4.0.1",
     "tailwind-merge": "^3.5.0",
     "tailwind-variants": "^3.2.2",
