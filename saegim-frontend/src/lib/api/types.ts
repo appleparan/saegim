@@ -105,6 +105,7 @@ export interface PageResponse {
   readonly width: number;
   readonly height: number;
   readonly image_url: string;
+  readonly pdf_url: string;
   readonly annotation_data: AnnotationData;
   readonly auto_extracted_data: AnnotationData | null;
   readonly status: PageStatus;

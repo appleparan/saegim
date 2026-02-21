@@ -1,0 +1,102 @@
+<script lang="ts">
+  import { push } from 'svelte-spa-router'
+  import type { PageSummary } from '$lib/api/types'
+
+  interface Props {
+    pages: readonly PageSummary[]
+    currentPageId: string
+  }
+
+  let { pages, currentPageId }: Props = $props()
+
+  let currentIndex = $derived(pages.findIndex((p) => p.id === currentPageId))
+
+  let hasPrev = $derived(currentIndex > 0)
+  let hasNext = $derived(currentIndex < pages.length - 1)
+
+  function goToPage(pageId: string): void {
+    if (pageId !== currentPageId) {
+      push(`/label/${pageId}`)
+    }
+  }
+
+  function prevPage(): void {
+    if (hasPrev) {
+      goToPage(pages[currentIndex - 1].id)
+    }
+  }
+
+  function nextPage(): void {
+    if (hasNext) {
+      goToPage(pages[currentIndex + 1].id)
+    }
+  }
+
+  const statusColors: Record<string, string> = {
+    pending: 'bg-gray-200 text-gray-600',
+    in_progress: 'bg-blue-100 text-blue-700',
+    submitted: 'bg-yellow-100 text-yellow-700',
+    reviewed: 'bg-green-100 text-green-700',
+  }
+</script>
+
+<div class="border-b border-gray-200 bg-gray-50/50">
+  <div class="flex items-center justify-between px-3 py-2">
+    <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">페이지</span>
+    <div class="flex items-center gap-1">
+      <button
+        class="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        disabled={!hasPrev}
+        onclick={prevPage}
+        title="이전 페이지 ([)"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <span class="text-xs text-gray-500 min-w-[3rem] text-center">
+        {currentIndex + 1} / {pages.length}
+      </span>
+      <button
+        class="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        disabled={!hasNext}
+        onclick={nextPage}
+        title="다음 페이지 (])"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="max-h-48 overflow-y-auto px-2 pb-2">
+    <div class="flex flex-wrap gap-1">
+      {#each pages as page (page.id)}
+        <button
+          class="min-w-[2rem] px-1.5 py-0.5 text-xs rounded transition-all
+            {page.id === currentPageId
+              ? 'bg-primary-500 text-white font-medium shadow-sm'
+              : 'bg-white border border-gray-200 text-gray-600 hover:border-primary-300 hover:bg-primary-50'}"
+          onclick={() => goToPage(page.id)}
+          title="페이지 {page.page_no} ({page.status})"
+        >
+          {page.page_no}
+        </button>
+      {/each}
+    </div>
+  </div>
+
+  {#if pages.length > 0}
+    <div class="px-3 pb-2 flex gap-1 flex-wrap">
+      {#each ['pending', 'in_progress', 'submitted', 'reviewed'] as status}
+        {@const count = pages.filter((p) => p.status === status).length}
+        {#if count > 0}
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full {statusColors[status]}">
+            {status === 'in_progress' ? '진행중' : status === 'pending' ? '대기' : status === 'submitted' ? '제출' : '검토완료'} {count}
+          </span>
+        {/if}
+      {/each}
+    </div>
+  {/if}
+</div>

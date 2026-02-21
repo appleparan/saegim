@@ -35,6 +35,13 @@ class CanvasStore {
     this.offsetY = y;
   }
 
+  /** Atomically update scale and offset to avoid intermediate desync. */
+  setViewport(scale: number, offsetX: number, offsetY: number): void {
+    this.scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
+  }
+
   resetView(): void {
     this.scale = 1;
     this.offsetX = 0;
@@ -62,9 +69,11 @@ class CanvasStore {
     const scaleY = containerHeight / this.imageHeight;
     const fitScale = Math.min(scaleX, scaleY, 1);
 
-    this.scale = fitScale;
-    this.offsetX = (containerWidth - this.imageWidth * fitScale) / 2;
-    this.offsetY = (containerHeight - this.imageHeight * fitScale) / 2;
+    this.setViewport(
+      fitScale,
+      (containerWidth - this.imageWidth * fitScale) / 2,
+      (containerHeight - this.imageHeight * fitScale) / 2,
+    );
   }
 }
 

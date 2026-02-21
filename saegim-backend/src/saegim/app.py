@@ -75,11 +75,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(users.router, prefix='/api/v1', tags=['users'])
     app.include_router(export.router, prefix='/api/v1', tags=['export'])
 
-    # Mount static files for serving page images
+    # Mount static files for serving page images and PDF documents
     storage_path = Path(settings.storage_path)
     images_path = storage_path / 'images'
     images_path.mkdir(parents=True, exist_ok=True)
     app.mount('/storage/images', StaticFiles(directory=str(images_path)), name='images')
+
+    pdfs_path = storage_path / 'pdfs'
+    pdfs_path.mkdir(parents=True, exist_ok=True)
+    app.mount('/storage/pdfs', StaticFiles(directory=str(pdfs_path)), name='pdfs')
 
     return app
 

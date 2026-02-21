@@ -28,6 +28,8 @@ class PageResponse(BaseModel):
     height: int
     image_path: str
     image_url: str = ''
+    pdf_path: str | None = None
+    pdf_url: str = ''
     annotation_data: dict[str, Any]
     auto_extracted_data: dict[str, Any] | None = None
     status: PageStatus
@@ -38,11 +40,14 @@ class PageResponse(BaseModel):
     document_filename: str | None = None
 
     @model_validator(mode='after')
-    def compute_image_url(self) -> 'PageResponse':
-        """Compute image_url from image_path by extracting filename."""
+    def compute_urls(self) -> 'PageResponse':
+        """Compute image_url and pdf_url from their respective paths."""
         if self.image_path and not self.image_url:
             filename = PurePosixPath(self.image_path).name
             object.__setattr__(self, 'image_url', f'/storage/images/{filename}')
+        if self.pdf_path and not self.pdf_url:
+            pdf_filename = PurePosixPath(self.pdf_path).name
+            object.__setattr__(self, 'pdf_url', f'/storage/pdfs/{pdf_filename}')
         return self
 
 

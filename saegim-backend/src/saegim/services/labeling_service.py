@@ -46,6 +46,7 @@ async def get_page_data(pool: asyncpg.Pool, page_id: uuid.UUID) -> dict[str, Any
         'project_id': record['project_id'],
         'project_name': record['project_name'],
         'document_filename': record['document_filename'],
+        'pdf_path': record['pdf_path'],
     }
 
 

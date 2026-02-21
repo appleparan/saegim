@@ -1,6 +1,7 @@
 <script lang="ts">
   import Konva from 'konva'
   import { untrack } from 'svelte'
+  import type { PDFPageProxy } from 'pdfjs-dist'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { isImageBlock } from '$lib/types/element-groups'
@@ -14,14 +15,16 @@
   import BboxLayer from './BboxLayer.svelte'
   import BboxDrawTool from './BboxDrawTool.svelte'
   import TextOverlay from './TextOverlay.svelte'
+  import PdfRenderer from './PdfRenderer.svelte'
 
   interface Props {
-    imageUrl: string
+    pageProxy?: PDFPageProxy
+    imageUrl?: string
     width: number
     height: number
   }
 
-  let { imageUrl, width, height }: Props = $props()
+  let { pageProxy, imageUrl, width, height }: Props = $props()
 
   // --- DOM refs ---
   let containerEl: HTMLDivElement
@@ -70,17 +73,18 @@
     const pointerY = e.clientY - rect.top
 
     const newScale = e.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy
-    canvasStore.setScale(newScale)
+    const clampedScale = Math.max(0.1, Math.min(10, newScale))
 
     const mousePointTo = {
       x: (pointerX - canvasStore.offsetX) / oldScale,
       y: (pointerY - canvasStore.offsetY) / oldScale,
     }
-    const newPos = {
-      x: pointerX - mousePointTo.x * canvasStore.scale,
-      y: pointerY - mousePointTo.y * canvasStore.scale,
-    }
-    canvasStore.setOffset(newPos.x, newPos.y)
+
+    canvasStore.setViewport(
+      clampedScale,
+      pointerX - mousePointTo.x * clampedScale,
+      pointerY - mousePointTo.y * clampedScale,
+    )
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -158,6 +162,7 @@
     containerHeight = rect.height
     stage.width(containerWidth)
     stage.height(containerHeight)
+    canvasStore.fitToContainer(containerWidth, containerHeight)
   }
 
   /** Get image-space pointer position from current stage pointer. */
@@ -232,21 +237,25 @@
   onmousemove={handleMouseMove}
   onmouseup={handleMouseUp}
 >
-  <!-- Layer 1: Background image (z-index: 0) -->
-  <img
-    src={imageUrl}
-    alt="page background"
-    draggable="false"
-    style="
-      position: absolute;
-      transform-origin: 0 0;
-      transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({canvasStore.scale});
-      width: {width}px;
-      height: {height}px;
-      pointer-events: none;
-      user-select: none;
-    "
-  />
+  <!-- Layer 1: Background (z-index: 0) — PDF.js canvas or fallback image -->
+  {#if pageProxy}
+    <PdfRenderer {pageProxy} />
+  {:else if imageUrl}
+    <img
+      src={imageUrl}
+      alt="page background"
+      draggable="false"
+      style="
+        position: absolute;
+        transform-origin: 0 0;
+        transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({canvasStore.scale});
+        width: {width}px;
+        height: {height}px;
+        pointer-events: none;
+        user-select: none;
+      "
+    />
+  {/if}
 
   <!-- Layer 2: Konva canvas for image blocks (z-index: 10) -->
   <div
