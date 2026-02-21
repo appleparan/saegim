@@ -3,10 +3,10 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/svelte";
 import PageNavigator from "$lib/components/panels/PageNavigator.svelte";
 import type { PageSummary } from "$lib/api/types";
 
-// Mock svelte-spa-router push
-const mockPush = vi.fn();
-vi.mock("svelte-spa-router", () => ({
-  push: (...args: unknown[]) => mockPush(...args),
+// Mock $app/navigation goto
+const mockGoto = vi.fn();
+vi.mock("$app/navigation", () => ({
+  goto: (...args: unknown[]) => mockGoto(...args),
 }));
 
 function makePages(count: number): PageSummary[] {
@@ -19,7 +19,7 @@ function makePages(count: number): PageSummary[] {
 
 describe("PageNavigator", () => {
   beforeEach(() => {
-    mockPush.mockClear();
+    mockGoto.mockClear();
   });
 
   afterEach(() => {
@@ -70,7 +70,7 @@ describe("PageNavigator", () => {
     const page2Button = screen.getByText("2");
     await fireEvent.click(page2Button);
 
-    expect(mockPush).toHaveBeenCalledWith("/label/page-2");
+    expect(mockGoto).toHaveBeenCalledWith("/label/page-2");
   });
 
   it("does not navigate when clicking current page", async () => {
@@ -82,7 +82,7 @@ describe("PageNavigator", () => {
     const page1Button = screen.getByText("1");
     await fireEvent.click(page1Button);
 
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockGoto).not.toHaveBeenCalled();
   });
 
   it("disables prev button on first page", () => {
@@ -120,7 +120,7 @@ describe("PageNavigator", () => {
     expect(prevButton.disabled).toBe(false);
 
     await fireEvent.click(prevButton);
-    expect(mockPush).toHaveBeenCalledWith("/label/page-1");
+    expect(mockGoto).toHaveBeenCalledWith("/label/page-1");
   });
 
   it("next button navigates to next page", async () => {
@@ -136,7 +136,7 @@ describe("PageNavigator", () => {
     expect(nextButton.disabled).toBe(false);
 
     await fireEvent.click(nextButton);
-    expect(mockPush).toHaveBeenCalledWith("/label/page-3");
+    expect(mockGoto).toHaveBeenCalledWith("/label/page-3");
   });
 
   it("shows status summary badges", () => {

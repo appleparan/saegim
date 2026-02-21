@@ -140,10 +140,6 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
-#app {
-  height: 100%;
-}
-
 /* Temporary: card utilities (will be replaced by shadcn Card in Stage 3) */
 .card-modern {
   background: var(--card);

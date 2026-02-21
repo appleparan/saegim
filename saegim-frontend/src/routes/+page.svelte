@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { link } from 'svelte-spa-router'
   import Header from '$lib/components/layout/Header.svelte'
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
@@ -116,7 +115,6 @@
             <div class="card-modern card-accent">
               <a
                 href="/projects/{project.id}"
-                use:link
                 class="block p-5"
               >
                 <h3 class="font-semibold text-foreground text-base">{project.name}</h3>

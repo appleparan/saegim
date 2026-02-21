@@ -107,7 +107,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('01 - labeling page loads with 3-layer structure', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Wait for canvas to initialize
@@ -132,7 +132,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('02 - text blocks are selectable via native browser selection', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -156,7 +156,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('03 - tool buttons work correctly', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Select tool should be active by default
@@ -182,7 +182,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('04 - zoom controls work', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -210,7 +210,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('05 - draw tool creates new bounding box', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -241,7 +241,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('06 - keyboard shortcuts work', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Press 'd' for draw mode
@@ -261,7 +261,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('07 - element list shows all elements', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -274,7 +274,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
     // Skip if document has only 1 page
     test.skip(allPageIds.length <= 1, 'Document has only 1 page')
 
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // PageNavigator header should be visible (uppercase "페이지" label)
@@ -300,7 +300,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   test('09 - page navigation via next button', async ({ page }) => {
     test.skip(allPageIds.length <= 1, 'Document has only 1 page')
 
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(1000)
 
@@ -310,7 +310,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
 
     // URL should change to second page
     await page.waitForTimeout(1000)
-    await expect(page).toHaveURL(new RegExp(`#/label/${allPageIds[1]}`))
+    await expect(page).toHaveURL(new RegExp(`/label/${allPageIds[1]}`))
 
     // Page should load (element list visible)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
@@ -320,23 +320,23 @@ test.describe.serial('Hybrid Labeling UX', () => {
     test.skip(allPageIds.length <= 1, 'Document has only 1 page')
 
     // Start on page 2
-    await page.goto(`/#/label/${allPageIds[1]}`)
+    await page.goto(`/label/${allPageIds[1]}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(1000)
 
     // Press '[' to go to previous page
     await page.keyboard.press('[')
     await page.waitForTimeout(1000)
-    await expect(page).toHaveURL(new RegExp(`#/label/${allPageIds[0]}`))
+    await expect(page).toHaveURL(new RegExp(`/label/${allPageIds[0]}`))
 
     // Press ']' to go to next page
     await page.keyboard.press(']')
     await page.waitForTimeout(1000)
-    await expect(page).toHaveURL(new RegExp(`#/label/${allPageIds[1]}`))
+    await expect(page).toHaveURL(new RegExp(`/label/${allPageIds[1]}`))
   })
 
   test('11 - breadcrumb navigation shows document info', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
     // Breadcrumb should show project name, document filename, and page number
@@ -345,7 +345,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('12 - text overlay click selects corresponding element', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
@@ -364,7 +364,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
   })
 
   test('13 - zoom maintains bbox alignment (screenshot comparison)', async ({ page }) => {
-    await page.goto(`/#/label/${pageId}`)
+    await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 

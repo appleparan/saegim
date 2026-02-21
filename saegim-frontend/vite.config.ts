@@ -1,19 +1,24 @@
 import { defineConfig } from "vitest/config";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
-import path from "node:path";
 
 export default defineConfig({
-  plugins: [tailwindcss(), svelte()],
-  resolve: {
-    alias: {
-      $lib: path.resolve("./src/lib"),
-    },
-    conditions: ["browser"],
-  },
+  plugins: [tailwindcss(), sveltekit()],
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "jsdom",
     setupFiles: ["tests/setup.ts"],
+    server: {
+      deps: {
+        inline: [/svelte/],
+      },
+    },
+    alias: {
+      "$app/navigation": "tests/__mocks__/$app/navigation.ts",
+      "$app/state": "tests/__mocks__/$app/state.ts",
+    },
+  },
+  resolve: {
+    conditions: ["browser"],
   },
 });
