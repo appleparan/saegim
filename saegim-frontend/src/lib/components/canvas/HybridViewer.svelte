@@ -70,17 +70,18 @@
     const pointerY = e.clientY - rect.top
 
     const newScale = e.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy
-    canvasStore.setScale(newScale)
+    const clampedScale = Math.max(0.1, Math.min(10, newScale))
 
     const mousePointTo = {
       x: (pointerX - canvasStore.offsetX) / oldScale,
       y: (pointerY - canvasStore.offsetY) / oldScale,
     }
-    const newPos = {
-      x: pointerX - mousePointTo.x * canvasStore.scale,
-      y: pointerY - mousePointTo.y * canvasStore.scale,
-    }
-    canvasStore.setOffset(newPos.x, newPos.y)
+
+    canvasStore.setViewport(
+      clampedScale,
+      pointerX - mousePointTo.x * clampedScale,
+      pointerY - mousePointTo.y * clampedScale,
+    )
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -158,6 +159,7 @@
     containerHeight = rect.height
     stage.width(containerWidth)
     stage.height(containerHeight)
+    canvasStore.fitToContainer(containerWidth, containerHeight)
   }
 
   /** Get image-space pointer position from current stage pointer. */
