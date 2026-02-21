@@ -27,11 +27,11 @@
 
 <div class="flex flex-col gap-1">
   {#if label}
-    <label class="text-xs font-medium text-gray-600" for={selectId}>{label}</label>
+    <label class="text-xs font-medium text-muted-foreground" for={selectId}>{label}</label>
   {/if}
   <select
     id={selectId}
-    class="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+    class="block w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
     {value}
     {disabled}
     onchange={handleChange}

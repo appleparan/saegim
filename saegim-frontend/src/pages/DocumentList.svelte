@@ -1,7 +1,7 @@
 <script lang="ts">
   import { link } from 'svelte-spa-router'
   import Header from '$lib/components/layout/Header.svelte'
-  import Button from '$lib/components/common/Button.svelte'
+  import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import { getProject } from '$lib/api/projects'
   import { listDocuments, uploadDocument, deleteDocument, listPages } from '$lib/api/documents'
@@ -170,7 +170,7 @@
             </svg>
           </a>
           <input type="file" accept=".pdf" class="hidden" bind:this={fileInput} onchange={handleUpload} />
-          <Button variant="primary" disabled={isUploading} onclick={() => fileInput.click()}>
+          <Button variant="default" disabled={isUploading} onclick={() => fileInput.click()}>
             {isUploading ? '업로드 중...' : 'PDF 업로드'}
           </Button>
         </div>
@@ -186,7 +186,7 @@
             </svg>
           </div>
           <p class="text-red-700 mb-4 font-medium">{error}</p>
-          <Button variant="secondary" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>다시 시도</Button>
         </div>
       {:else if documents.length === 0}
         <div class="bg-linear-to-br from-gray-50 to-gray-100/50 border border-gray-200/80 rounded-2xl p-16 text-center">
@@ -197,7 +197,7 @@
           </div>
           <p class="text-gray-600 font-medium text-lg mb-2">아직 문서가 없습니다</p>
           <p class="text-sm text-gray-400 mb-6">PDF 파일을 업로드하여 레이블링을 시작하세요.</p>
-          <Button variant="primary" onclick={() => fileInput.click()}>
+          <Button variant="default" onclick={() => fileInput.click()}>
             PDF 업로드
           </Button>
         </div>

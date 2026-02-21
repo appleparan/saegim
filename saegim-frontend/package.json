@@ -27,6 +27,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "bits-ui": "^2.16.1",
     "clsx": "^2.1.1",
     "konva": "^10.2.0",
     "mode-watcher": "^1.1.0",

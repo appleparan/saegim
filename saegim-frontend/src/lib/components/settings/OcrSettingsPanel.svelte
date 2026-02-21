@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from '$lib/components/common/Button.svelte'
+  import { Button } from '$lib/components/ui/button'
   import type {
     CommercialApiProvider,
     EngineType,
@@ -373,11 +373,11 @@
   <!-- Action Buttons -->
   <div class="flex items-center justify-end gap-2">
     {#if needsConnectionTest}
-      <Button variant="secondary" disabled={!isValid || testing} onclick={handleTest}>
+      <Button variant="outline" disabled={!isValid || testing} onclick={handleTest}>
         {testing ? '테스트 중...' : '연결 테스트'}
       </Button>
     {/if}
-    <Button variant="primary" disabled={!isValid || saving} onclick={handleSave}>
+    <Button variant="default" disabled={!isValid || saving} onclick={handleSave}>
       {saving ? '저장 중...' : '설정 저장'}
     </Button>
   </div>

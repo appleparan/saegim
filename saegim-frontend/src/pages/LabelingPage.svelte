@@ -3,7 +3,7 @@
   import Header from '$lib/components/layout/Header.svelte'
   import Sidebar from '$lib/components/layout/Sidebar.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
-  import Button from '$lib/components/common/Button.svelte'
+  import { Button } from '$lib/components/ui/button'
   import HybridViewer from '$lib/components/canvas/HybridViewer.svelte'
   import ElementList from '$lib/components/panels/ElementList.svelte'
   import ExtractionPreview from '$lib/components/panels/ExtractionPreview.svelte'
@@ -142,7 +142,7 @@
           </svg>
         </div>
         <p class="text-red-700 mb-4 font-medium">{annotationStore.error}</p>
-        <Button variant="secondary" onclick={loadPage}>다시 시도</Button>
+        <Button variant="outline" onclick={loadPage}>다시 시도</Button>
       </div>
     </div>
   {:else}

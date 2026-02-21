@@ -4,7 +4,8 @@
   import type { BlockCategoryType } from '$lib/types/categories'
   import CategorySelect from './CategorySelect.svelte'
   import Select from '$lib/components/common/Select.svelte'
-  import Toggle from '$lib/components/common/Toggle.svelte'
+  import { Switch } from '$lib/components/ui/switch'
+  import { Label } from '$lib/components/ui/label'
 
   let element = $derived(annotationStore.selectedElement)
   let fields = $derived(
@@ -30,10 +31,10 @@
 {#if element}
   <div class="p-3 space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-gray-700">
+      <h3 class="text-sm font-semibold text-foreground">
         요소 #{element.anno_id}
       </h3>
-      <span class="text-xs text-gray-400">순서: {element.order}</span>
+      <span class="text-xs text-muted-foreground">순서: {element.order}</span>
     </div>
 
     <CategorySelect
@@ -41,15 +42,17 @@
       onchange={handleCategoryChange}
     />
 
-    <Toggle
-      label="무시 처리"
-      checked={element.ignore}
-      onchange={handleToggleIgnore}
-    />
+    <div class="flex items-center gap-2">
+      <Switch
+        checked={element.ignore}
+        onCheckedChange={handleToggleIgnore}
+      />
+      <Label class="text-sm">무시 처리</Label>
+    </div>
 
     {#if fields.length > 0}
-      <div class="border-t border-gray-100 pt-3 space-y-3">
-        <h4 class="text-xs font-medium text-gray-500 uppercase">속성</h4>
+      <div class="border-t border-border pt-3 space-y-3">
+        <h4 class="text-xs font-medium text-muted-foreground uppercase">속성</h4>
         {#each fields as field}
           {#if field.type === 'select' && field.options}
             <Select
@@ -59,15 +62,17 @@
               onchange={(v) => handleAttributeChange(field.key, v)}
             />
           {:else if field.type === 'toggle'}
-            <Toggle
-              label={field.label}
-              checked={!!element.attribute?.[field.key]}
-              onchange={() =>
-                handleAttributeChange(
-                  field.key,
-                  !element!.attribute?.[field.key],
-                )}
-            />
+            <div class="flex items-center gap-2">
+              <Switch
+                checked={!!element.attribute?.[field.key]}
+                onCheckedChange={() =>
+                  handleAttributeChange(
+                    field.key,
+                    !element!.attribute?.[field.key],
+                  )}
+              />
+              <Label class="text-sm">{field.label}</Label>
+            </div>
           {/if}
         {/each}
       </div>
@@ -75,6 +80,6 @@
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-sm text-gray-400 py-8">요소를 선택하세요.</p>
+    <p class="text-sm text-muted-foreground py-8">요소를 선택하세요.</p>
   </div>
 {/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { link } from 'svelte-spa-router'
   import Header from '$lib/components/layout/Header.svelte'
-  import Button from '$lib/components/common/Button.svelte'
+  import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import { listProjects, createProject, deleteProject } from '$lib/api/projects'
   import type { ProjectResponse } from '$lib/api/types'
@@ -78,7 +78,7 @@
           <h1 class="text-2xl font-bold text-gray-900">프로젝트</h1>
           <p class="text-sm text-gray-500 mt-1">문서 레이블링 프로젝트를 관리합니다</p>
         </div>
-        <Button variant="primary" onclick={() => (showCreateDialog = true)}>
+        <Button variant="default" onclick={() => (showCreateDialog = true)}>
           새 프로젝트
         </Button>
       </div>
@@ -95,7 +95,7 @@
             </svg>
           </div>
           <p class="text-red-700 mb-4 font-medium">{error}</p>
-          <Button variant="secondary" onclick={loadProjects}>다시 시도</Button>
+          <Button variant="outline" onclick={loadProjects}>다시 시도</Button>
         </div>
       {:else if projects.length === 0}
         <div class="bg-linear-to-br from-gray-50 to-gray-100/50 border border-gray-200/80 rounded-2xl p-16 text-center">
@@ -106,7 +106,7 @@
           </div>
           <p class="text-gray-600 font-medium text-lg mb-2">아직 프로젝트가 없습니다</p>
           <p class="text-sm text-gray-400 mb-6">첫 프로젝트를 만들어 문서 레이블링을 시작하세요.</p>
-          <Button variant="primary" onclick={() => (showCreateDialog = true)}>
+          <Button variant="default" onclick={() => (showCreateDialog = true)}>
             첫 프로젝트 만들기
           </Button>
         </div>
@@ -174,9 +174,9 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-6">
-          <Button variant="secondary" onclick={() => (showCreateDialog = false)}>취소</Button>
+          <Button variant="outline" onclick={() => (showCreateDialog = false)}>취소</Button>
           <Button
-            variant="primary"
+            variant="default"
             disabled={!newProjectName.trim() || isCreating}
             onclick={handleCreateProject}
           >

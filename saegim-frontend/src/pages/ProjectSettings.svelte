@@ -1,7 +1,7 @@
 <script lang="ts">
   import { link } from 'svelte-spa-router'
   import Header from '$lib/components/layout/Header.svelte'
-  import Button from '$lib/components/common/Button.svelte'
+  import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import OcrSettingsPanel from '$lib/components/settings/OcrSettingsPanel.svelte'
   import {
@@ -147,7 +147,7 @@
           class="bg-red-50/80 border border-red-200 rounded-xl p-6 text-center"
         >
           <p class="text-red-700 mb-4 font-medium">{error}</p>
-          <Button variant="secondary" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>다시 시도</Button>
         </div>
       {:else if ocrConfig}
         {#if successMessage}
