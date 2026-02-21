@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { waitForBackendReady, createProject, uploadPdf, listDocuments, listPages, updateAnnotation } from '../helpers/api'
-import { ensureTestPdf, getTestPdfPath } from '../helpers/pdf'
+import { ensureMultipagePdf, getMultipagePdfPath } from '../helpers/pdf'
 
 const PROJECT_NAME = `Hybrid Labeling E2E ${Date.now()}`
 
@@ -12,13 +12,13 @@ let allPageIds: string[] = []
 test.describe.serial('Hybrid Labeling UX', () => {
   test.beforeAll(async () => {
     await waitForBackendReady()
-    await ensureTestPdf()
+    await ensureMultipagePdf()
 
-    // Create project and upload PDF via API for speed
+    // Create project and upload multi-page PDF via API for speed
     const { data: project } = await createProject(PROJECT_NAME, 'E2E hybrid labeling test')
     projectId = project.id
 
-    const { data: doc } = await uploadPdf(projectId, getTestPdfPath())
+    const { data: doc } = await uploadPdf(projectId, getMultipagePdfPath())
     documentId = doc.id
 
     // Wait for processing
