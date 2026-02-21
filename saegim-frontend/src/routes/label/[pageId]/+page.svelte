@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { link, push } from 'svelte-spa-router'
+  import { page } from '$app/state'
+  import { goto } from '$app/navigation'
   import Header from '$lib/components/layout/Header.svelte'
   import Sidebar from '$lib/components/layout/Sidebar.svelte'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
@@ -20,22 +21,21 @@
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
 
-  let { params }: { params: { pageId: string } } = $props()
-
   let pageData = $state<PageResponse | null>(null)
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
   let saving = $state(false)
 
   async function loadPage() {
-    if (!params?.pageId) return
+    const pageId = page.params.pageId
+    if (!pageId) return
     annotationStore.setLoading(true)
     annotationStore.setError(null)
     currentPageProxy = null
     try {
-      const data = await getPage(params.pageId)
+      const data = await getPage(pageId)
       pageData = data
-      annotationStore.load(params.pageId, data.annotation_data)
+      annotationStore.load(pageId, data.annotation_data)
       canvasStore.setImageDimensions(data.width, data.height)
 
       // Load page list for document navigation (non-blocking)
@@ -67,10 +67,11 @@
   }
 
   async function handleSave() {
-    if (!params?.pageId || !annotationStore.annotationData) return
+    const pageId = page.params.pageId
+    if (!pageId || !annotationStore.annotationData) return
     saving = true
     try {
-      await savePage(params.pageId, {
+      await savePage(pageId, {
         annotation_data: annotationStore.annotationData,
       })
       annotationStore.markSaved()
@@ -83,12 +84,13 @@
   }
 
   function navigateToAdjacentPage(direction: -1 | 1): void {
-    if (documentPages.length <= 1 || !params?.pageId) return
-    const currentIndex = documentPages.findIndex((p) => p.id === params.pageId)
+    const pageId = page.params.pageId
+    if (documentPages.length <= 1 || !pageId) return
+    const currentIndex = documentPages.findIndex((p) => p.id === pageId)
     if (currentIndex < 0) return
     const targetIndex = currentIndex + direction
     if (targetIndex >= 0 && targetIndex < documentPages.length) {
-      push(`/label/${documentPages[targetIndex].id}`)
+      goto(`/label/${documentPages[targetIndex].id}`)
     }
   }
 
@@ -120,8 +122,9 @@
   }
 
   function handleExtractionAccepted(data: AnnotationData) {
-    if (params?.pageId) {
-      annotationStore.load(params.pageId, data)
+    const pageId = page.params.pageId
+    if (pageId) {
+      annotationStore.load(pageId, data)
     }
   }
 
@@ -132,7 +135,7 @@
   }
 
   $effect(() => {
-    params.pageId
+    page.params.pageId
     untrack(() => loadPage())
   })
 
@@ -154,7 +157,6 @@
     <nav class="h-9 bg-card border-b border-border px-4 flex items-center text-sm shrink-0">
       <a
         href="/projects/{pageData.project_id}"
-        use:link
         class="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -192,12 +194,12 @@
         {#if documentPages.length > 1}
           <PageNavigator
             pages={documentPages}
-            currentPageId={params.pageId}
+            currentPageId={page.params.pageId!}
           />
         {/if}
         {#if pageData}
           <ExtractionPreview
-            pageId={params.pageId}
+            pageId={page.params.pageId!}
             autoExtractedData={pageData.auto_extracted_data}
             onAccepted={handleExtractionAccepted}
           />

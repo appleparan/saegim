@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { link } from 'svelte-spa-router'
+  import { page } from '$app/state'
   import Header from '$lib/components/layout/Header.svelte'
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
@@ -10,8 +10,6 @@
   import { NetworkError } from '$lib/api/client'
 
   const POLL_INTERVAL_MS = 5000
-
-  let { params }: { params: { id: string } } = $props()
 
   let project = $state<ProjectResponse | null>(null)
   let documents = $state<readonly DocumentResponse[]>([])
@@ -31,9 +29,10 @@
   function startPolling() {
     stopPolling()
     pollTimer = setInterval(async () => {
-      if (!params?.id) return
+      const id = page.params.id
+      if (!id) return
       try {
-        const docs = await listDocuments(params.id)
+        const docs = await listDocuments(id)
         documents = docs
         if (!docs.some((d) => d.status === 'processing' || d.status === 'extracting')) {
           stopPolling()
@@ -59,13 +58,14 @@
   })
 
   async function loadData() {
-    if (!params?.id) return
+    const id = page.params.id
+    if (!id) return
     isLoading = true
     error = null
     try {
       const [proj, docs] = await Promise.all([
-        getProject(params.id),
-        listDocuments(params.id),
+        getProject(id),
+        listDocuments(id),
       ])
       project = proj
       documents = docs
@@ -83,12 +83,13 @@
   async function handleUpload(e: Event) {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
-    if (!file || !params?.id) return
+    const id = page.params.id
+    if (!file || !id) return
 
     isUploading = true
     error = null
     try {
-      const doc = await uploadDocument(params.id, file)
+      const doc = await uploadDocument(id, file)
       documents = [...documents, doc]
     } catch {
       error = 'PDF 업로드에 실패했습니다.'
@@ -129,7 +130,7 @@
   }
 
   $effect(() => {
-    params.id
+    page.params.id
     untrack(() => loadData())
   })
 </script>
@@ -140,7 +141,7 @@
   <div class="flex-1 p-8 overflow-y-auto bg-background">
     <div class="max-w-4xl mx-auto">
       <div class="mb-4">
-        <a href="/" use:link class="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 w-fit">
+        <a href="/" class="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 w-fit">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
@@ -157,8 +158,7 @@
         </div>
         <div class="flex items-center gap-2">
           <a
-            href="/projects/{params.id}/settings"
-            use:link
+            href="/projects/{page.params.id}/settings"
             class="inline-flex items-center justify-center w-9 h-9 rounded-lg
               text-muted-foreground hover:text-accent-foreground hover:bg-accent
               transition-all border border-border"
@@ -247,20 +247,20 @@
                 <div class="border-t border-border p-4 bg-background">
                   {#if documentPages[doc.id]}
                     <div class="grid grid-cols-6 sm:grid-cols-8 gap-2">
-                      {#each documentPages[doc.id] as page}
-                        <a href="/label/{page.id}" use:link
+                      {#each documentPages[doc.id] as docPage}
+                        <a href="/label/{docPage.id}"
                           class="block p-2.5 bg-card border rounded-lg text-center hover:border-primary-300 hover:shadow-sm transition-all
-                            {page.status === 'submitted' ? 'border-l-4 border-l-emerald-400 border-border' :
-                             page.status === 'in_progress' ? 'border-l-4 border-l-blue-400 border-border' :
-                             page.status === 'reviewed' ? 'border-l-4 border-l-violet-400 border-border' :
+                            {docPage.status === 'submitted' ? 'border-l-4 border-l-emerald-400 border-border' :
+                             docPage.status === 'in_progress' ? 'border-l-4 border-l-blue-400 border-border' :
+                             docPage.status === 'reviewed' ? 'border-l-4 border-l-violet-400 border-border' :
                              'border-border'}">
-                          <span class="text-sm font-medium text-foreground">{page.page_no}</span>
+                          <span class="text-sm font-medium text-foreground">{docPage.page_no}</span>
                           <span class="block text-xs mt-0.5
-                            {page.status === 'submitted' ? 'text-emerald-600 dark:text-emerald-400' :
-                             page.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' :
-                             page.status === 'reviewed' ? 'text-violet-600 dark:text-violet-400' :
+                            {docPage.status === 'submitted' ? 'text-emerald-600 dark:text-emerald-400' :
+                             docPage.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' :
+                             docPage.status === 'reviewed' ? 'text-violet-600 dark:text-violet-400' :
                              'text-muted-foreground'}">
-                            {page.status === 'submitted' ? '완료' : page.status === 'in_progress' ? '진행 중' : page.status === 'reviewed' ? '검토됨' : '대기'}
+                            {docPage.status === 'submitted' ? '완료' : docPage.status === 'in_progress' ? '진행 중' : docPage.status === 'reviewed' ? '검토됨' : '대기'}
                           </span>
                         </a>
                       {/each}

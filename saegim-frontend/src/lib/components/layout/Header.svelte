@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { link } from 'svelte-spa-router'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import ThemeToggle from './ThemeToggle.svelte'
@@ -21,7 +20,7 @@
 
 <header class="h-12 bg-zinc-900 dark:bg-zinc-950 flex items-center px-4 shrink-0 shadow-sm">
   <div class="flex items-center gap-4">
-    <a href="/" use:link class="text-base font-bold text-white hover:text-violet-300 transition-colors">
+    <a href="/" class="text-base font-bold text-white hover:text-violet-300 transition-colors">
       {title}
     </a>
   </div>

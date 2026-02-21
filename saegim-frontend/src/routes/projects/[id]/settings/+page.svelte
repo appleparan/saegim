@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { link } from 'svelte-spa-router'
+  import { page } from '$app/state'
   import Header from '$lib/components/layout/Header.svelte'
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
@@ -18,8 +18,6 @@
   import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
 
-  let { params }: { params: { id: string } } = $props()
-
   let project = $state<ProjectResponse | null>(null)
   let ocrConfig = $state<OcrConfigResponse | null>(null)
   let isLoading = $state(true)
@@ -30,13 +28,14 @@
   let successMessage = $state<string | null>(null)
 
   async function loadData() {
-    if (!params?.id) return
+    const id = page.params.id
+    if (!id) return
     isLoading = true
     error = null
     try {
       const [proj, config] = await Promise.all([
-        getProject(params.id),
-        getOcrConfig(params.id),
+        getProject(id),
+        getOcrConfig(id),
       ])
       project = proj
       ocrConfig = config
@@ -52,7 +51,8 @@
   }
 
   async function handleSave(config: OcrConfigResponse) {
-    if (!params?.id) return
+    const id = page.params.id
+    if (!id) return
     isSaving = true
     error = null
     successMessage = null
@@ -61,7 +61,7 @@
     try {
       // For non-pymupdf engines, test connection first
       if (config.engine_type !== 'pymupdf') {
-        const result = await testOcrConnection(params.id, config)
+        const result = await testOcrConnection(id, config)
         testResult = result
         if (!result.success) {
           error = '연결 테스트 실패로 설정이 저장되지 않았습니다.'
@@ -69,7 +69,7 @@
         }
       }
 
-      ocrConfig = await updateOcrConfig(params.id, config)
+      ocrConfig = await updateOcrConfig(id, config)
       successMessage = 'OCR 설정이 저장되었습니다.'
       setTimeout(() => (successMessage = null), 3000)
     } catch {
@@ -80,11 +80,12 @@
   }
 
   async function handleTest(config: OcrConfigResponse) {
-    if (!params?.id) return
+    const id = page.params.id
+    if (!id) return
     isTesting = true
     testResult = null
     try {
-      testResult = await testOcrConnection(params.id, config)
+      testResult = await testOcrConnection(id, config)
     } catch {
       testResult = { success: false, message: '연결 테스트에 실패했습니다.' }
     } finally {
@@ -93,7 +94,7 @@
   }
 
   $effect(() => {
-    params.id
+    page.params.id
     untrack(() => loadData())
   })
 </script>
@@ -104,10 +105,9 @@
   <div class="flex-1 p-8 overflow-y-auto bg-background">
     <div class="max-w-2xl mx-auto">
       <div class="mb-4">
-        {#if params?.id}
+        {#if page.params.id}
           <a
-            href="/projects/{params.id}"
-            use:link
+            href="/projects/{page.params.id}"
             class="text-sm text-muted-foreground hover:text-primary
               transition-colors flex items-center gap-1 w-fit"
           >

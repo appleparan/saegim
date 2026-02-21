@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { push } from 'svelte-spa-router'
+  import { goto } from '$app/navigation'
   import type { PageSummary } from '$lib/api/types'
 
   interface Props {
@@ -16,7 +16,7 @@
 
   function goToPage(pageId: string): void {
     if (pageId !== currentPageId) {
-      push(`/label/${pageId}`)
+      goto(`/label/${pageId}`)
     }
   }
 
