@@ -2,6 +2,7 @@
   import { link } from 'svelte-spa-router'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
+  import ThemeToggle from './ThemeToggle.svelte'
 
   interface Props {
     title?: string
@@ -18,9 +19,9 @@
   }: Props = $props()
 </script>
 
-<header class="h-12 bg-linear-to-r from-slate-900 to-slate-800 flex items-center px-4 shrink-0 shadow-sm">
+<header class="h-12 bg-zinc-900 dark:bg-zinc-950 flex items-center px-4 shrink-0 shadow-sm">
   <div class="flex items-center gap-4">
-    <a href="/" use:link class="text-base font-bold text-white hover:text-primary-300 transition-colors">
+    <a href="/" use:link class="text-base font-bold text-white hover:text-violet-300 transition-colors">
       {title}
     </a>
   </div>
@@ -29,7 +30,7 @@
 
   <div class="flex items-center gap-3">
     {#if annotationStore.isDirty}
-      <span class="badge bg-amber-500/20 text-amber-300 border border-amber-500/30">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
         저장되지 않은 변경
       </span>
     {/if}
@@ -39,23 +40,25 @@
         class="px-3 py-1.5 text-sm font-medium rounded-lg transition-all
           {saving || !annotationStore.isDirty
             ? 'bg-white/10 text-white/40 cursor-not-allowed'
-            : 'bg-primary-500 text-white hover:bg-primary-400 active:bg-primary-600 shadow-sm'}"
+            : 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 shadow-sm'}"
         disabled={saving || !annotationStore.isDirty}
         onclick={onsave}
       >
         {saving ? '저장 중...' : '저장'}
       </button>
     {/if}
+
+    <ThemeToggle />
   </div>
 
   {#if uiStore.notification}
     <div
       class="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm border
         {uiStore.notification.type === 'error'
-          ? 'bg-red-50 text-red-800 border-red-200'
+          ? 'bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800'
           : uiStore.notification.type === 'success'
-            ? 'bg-green-50 text-green-800 border-green-200'
-            : 'bg-blue-50 text-blue-800 border-blue-200'}"
+            ? 'bg-green-50 dark:bg-green-950/50 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800'
+            : 'bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800'}"
     >
       {uiStore.notification.message}
     </div>

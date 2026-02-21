@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ModeWatcher } from 'mode-watcher'
   import Router, { type RouteDefinition } from 'svelte-spa-router'
   import ProjectList from './pages/ProjectList.svelte'
   import DocumentList from './pages/DocumentList.svelte'
@@ -15,6 +16,7 @@
   } as unknown as RouteDefinition
 </script>
 
-<div class="h-full flex flex-col bg-gray-50 text-gray-900">
+<ModeWatcher />
+<div class="h-full flex flex-col bg-background text-foreground">
   <Router {routes} />
 </div>
