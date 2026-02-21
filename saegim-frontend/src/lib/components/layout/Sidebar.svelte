@@ -13,15 +13,15 @@
 </script>
 
 {#if uiStore.sidebarOpen}
-  <div class="w-80 border-l border-gray-200/80 bg-white flex flex-col overflow-hidden">
+  <div class="w-80 border-l border-border bg-card flex flex-col overflow-hidden">
     <!-- Tab navigation -->
-    <div class="flex border-b border-gray-100 bg-gray-50/50 px-1 pt-1">
+    <div class="flex border-b border-border bg-muted px-1 pt-1">
       {#each tabs as tab}
         <button
           class="flex-1 px-3 py-2 text-xs font-medium transition-all rounded-t-lg
             {uiStore.activePanel === tab.key
-              ? 'text-primary-600 bg-white border-b-2 border-primary-500 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}"
+              ? 'text-primary bg-card border-b-2 border-primary shadow-sm'
+              : 'text-muted-foreground hover:text-accent-foreground hover:bg-accent'}"
           onclick={() => uiStore.setActivePanel(tab.key)}
         >
           {tab.label}

@@ -152,19 +152,19 @@
 <div class="space-y-6">
   <!-- Engine Type Selection -->
   <div>
-    <h3 class="text-sm font-semibold text-gray-700 mb-3">OCR 엔진 타입</h3>
+    <h3 class="text-sm font-semibold text-foreground mb-3">OCR 엔진 타입</h3>
     <div class="grid grid-cols-2 gap-3">
       {#each engineTypes as e}
         <button
           type="button"
           class="text-left p-3 rounded-lg border-2 transition-all
             {engineType === e.value
-            ? 'border-primary-500 bg-primary-50/50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'}"
+            ? 'border-primary bg-primary/10'
+            : 'border-border hover:border-border bg-card'}"
           onclick={() => (engineType = e.value)}
         >
-          <div class="font-medium text-sm text-gray-900">{e.label}</div>
-          <div class="text-xs text-gray-500 mt-0.5">{e.description}</div>
+          <div class="font-medium text-sm text-foreground">{e.label}</div>
+          <div class="text-xs text-muted-foreground mt-0.5">{e.description}</div>
         </button>
       {/each}
     </div>
@@ -172,29 +172,29 @@
 
   <!-- Commercial API Config -->
   {#if engineType === 'commercial_api'}
-    <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h4 class="text-sm font-medium text-gray-700">Google Gemini</h4>
+    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
+      <h4 class="text-sm font-medium text-foreground">Google Gemini</h4>
 
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-api-key">
+        <label class="block text-xs font-medium text-muted-foreground mb-1" for="ca-api-key">
           API Key
         </label>
         <input
           id="ca-api-key"
           type="password"
-          class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-            focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+            focus:border-ring focus:ring-1 focus:ring-ring"
           placeholder="Google Gemini API Key"
           bind:value={caApiKey}
         />
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1" for="ca-model">모델</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1" for="ca-model">모델</label>
         <select
           id="ca-model"
-          class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-            focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+            focus:border-ring focus:ring-1 focus:ring-ring"
           bind:value={caModel}
         >
           <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
@@ -207,27 +207,27 @@
 
   <!-- Integrated Server Config -->
   {#if engineType === 'integrated_server'}
-    <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h4 class="text-sm font-medium text-gray-700">통합 파이프라인 서버</h4>
+    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
+      <h4 class="text-sm font-medium text-foreground">통합 파이프라인 서버</h4>
       <div class="grid grid-cols-3 gap-3">
         <div class="col-span-2">
-          <label class="block text-xs font-medium text-gray-600 mb-1" for="is-host">호스트</label>
+          <label class="block text-xs font-medium text-muted-foreground mb-1" for="is-host">호스트</label>
           <input
             id="is-host"
             type="text"
-            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-              focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+              focus:border-ring focus:ring-1 focus:ring-ring"
             placeholder="localhost"
             bind:value={isHost}
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1" for="is-port">포트</label>
+          <label class="block text-xs font-medium text-muted-foreground mb-1" for="is-port">포트</label>
           <input
             id="is-port"
             type="number"
-            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-              focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+              focus:border-ring focus:ring-1 focus:ring-ring"
             placeholder="8000"
             min="1"
             max="65535"
@@ -236,12 +236,12 @@
         </div>
       </div>
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1" for="is-model">모델</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1" for="is-model">모델</label>
         <input
           id="is-model"
           type="text"
-          class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-            focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+            focus:border-ring focus:ring-1 focus:ring-ring"
           placeholder="datalab-to/chandra"
           bind:value={isModel}
         />
@@ -251,58 +251,58 @@
 
   <!-- Split Pipeline Config -->
   {#if engineType === 'split_pipeline'}
-    <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h4 class="text-sm font-medium text-gray-700">레이아웃 서버</h4>
+    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
+      <h4 class="text-sm font-medium text-foreground">레이아웃 서버</h4>
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1" for="sp-layout-url">
+        <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-layout-url">
           레이아웃 서버 URL
         </label>
         <input
           id="sp-layout-url"
           type="text"
-          class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-            focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+            focus:border-ring focus:ring-1 focus:ring-ring"
           placeholder="http://localhost:18811"
           bind:value={spLayoutUrl}
         />
       </div>
     </div>
 
-    <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h4 class="text-sm font-medium text-gray-700">OCR 프로바이더</h4>
+    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
+      <h4 class="text-sm font-medium text-foreground">OCR 프로바이더</h4>
       <div class="grid grid-cols-2 gap-3 mb-3">
         <button
           type="button"
           class="text-left p-2 rounded-lg border-2 transition-all
             {spOcrProvider === 'gemini'
-            ? 'border-primary-500 bg-primary-50/50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'}"
+            ? 'border-primary bg-primary/10'
+            : 'border-border hover:border-border bg-card'}"
           onclick={() => (spOcrProvider = 'gemini')}
         >
-          <div class="font-medium text-sm text-gray-900">Google Gemini</div>
+          <div class="font-medium text-sm text-foreground">Google Gemini</div>
         </button>
         <button
           type="button"
           class="text-left p-2 rounded-lg border-2 transition-all
             {spOcrProvider === 'vllm'
-            ? 'border-primary-500 bg-primary-50/50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'}"
+            ? 'border-primary bg-primary/10'
+            : 'border-border hover:border-border bg-card'}"
           onclick={() => (spOcrProvider = 'vllm')}
         >
-          <div class="font-medium text-sm text-gray-900">vLLM</div>
+          <div class="font-medium text-sm text-foreground">vLLM</div>
         </button>
       </div>
 
       {#if spOcrProvider === 'gemini'}
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1" for="sp-ocr-api-key">
+          <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-api-key">
             API Key
           </label>
           <input
             id="sp-ocr-api-key"
             type="password"
-            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-              focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+              focus:border-ring focus:ring-1 focus:ring-ring"
             placeholder="Google Gemini API Key"
             bind:value={spOcrApiKey}
           />
@@ -312,27 +312,27 @@
       {#if spOcrProvider === 'vllm'}
         <div class="grid grid-cols-3 gap-3">
           <div class="col-span-2">
-            <label class="block text-xs font-medium text-gray-600 mb-1" for="sp-ocr-host">
+            <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-host">
               호스트
             </label>
             <input
               id="sp-ocr-host"
               type="text"
-              class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-                focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+              class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+                focus:border-ring focus:ring-1 focus:ring-ring"
               placeholder="localhost"
               bind:value={spOcrHost}
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1" for="sp-ocr-port">
+            <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-port">
               포트
             </label>
             <input
               id="sp-ocr-port"
               type="number"
-              class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-                focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+              class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+                focus:border-ring focus:ring-1 focus:ring-ring"
               placeholder="8000"
               min="1"
               max="65535"
@@ -343,14 +343,14 @@
       {/if}
 
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1" for="sp-ocr-model">
+        <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-model">
           모델
         </label>
         <input
           id="sp-ocr-model"
           type="text"
-          class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-            focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
+            focus:border-ring focus:ring-1 focus:ring-ring"
           placeholder="gemini-3-flash-preview"
           bind:value={spOcrModel}
         />
@@ -363,8 +363,8 @@
     <div
       class="p-3 rounded-lg text-sm border
         {testResult.success
-        ? 'bg-green-50 border-green-200 text-green-700'
-        : 'bg-red-50 border-red-200 text-red-700'}"
+        ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+        : 'bg-destructive/10 dark:bg-destructive/20 border-destructive/30 text-destructive'}"
     >
       {testResult.message}
     </div>

@@ -29,15 +29,15 @@
 
 {#if element}
   <div class="p-3 space-y-3">
-    <h3 class="text-sm font-semibold text-gray-700">텍스트 편집</h3>
+    <h3 class="text-sm font-semibold text-foreground">텍스트 편집</h3>
 
-    <div class="flex border-b border-gray-200">
+    <div class="flex border-b border-border">
       {#each tabs as tab}
         <button
           class="px-3 py-1.5 text-xs font-medium transition-colors
             {activeTab === tab.key
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'}"
+              ? 'text-primary border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-accent-foreground'}"
           onclick={() => (activeTab = tab.key)}
         >
           {tab.label}
@@ -46,7 +46,7 @@
     </div>
 
     <textarea
-      class="block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y"
+      class="block w-full rounded-md border border-input bg-background text-foreground px-2 py-1.5 text-sm font-mono focus:border-ring focus:ring-1 focus:ring-ring resize-y"
       rows="8"
       value={currentValue}
       oninput={handleTextChange}
@@ -59,6 +59,6 @@
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-sm text-gray-400 py-8">요소를 선택하면 텍스트를 편집할 수 있습니다.</p>
+    <p class="text-sm text-muted-foreground py-8">요소를 선택하면 텍스트를 편집할 수 있습니다.</p>
   </div>
 {/if}
