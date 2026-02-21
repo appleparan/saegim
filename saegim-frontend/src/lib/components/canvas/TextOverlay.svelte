@@ -2,8 +2,9 @@
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { isTextBlock } from '$lib/types/element-groups'
-  import { polyToRect } from '$lib/utils/bbox'
+  import { polyToRect, rectToPoly } from '$lib/utils/bbox'
   import { estimateFontSize } from '$lib/utils/text-layout'
+  import { findOverlappingBbox, selectionToImageRect } from '$lib/utils/text-selection'
 
   interface Props {
     /** Controls whether the text overlay accepts pointer events. */
@@ -13,6 +14,71 @@
   let { pointerEvents }: Props = $props()
 
   let textElements = $derived(annotationStore.elements.filter(isTextBlock))
+
+  // --- Text selection → bbox mapping ---
+  let transformContainerEl: HTMLDivElement
+  let showCreateBbox = $state(false)
+  let createBboxRect = $state<{ x: number; y: number; width: number; height: number } | null>(null)
+
+  function handleSelectionChange(): void {
+    const selection = document.getSelection()
+    if (!selection || !transformContainerEl) {
+      showCreateBbox = false
+      createBboxRect = null
+      return
+    }
+
+    const imageRect = selectionToImageRect(
+      selection,
+      transformContainerEl,
+      canvasStore.offsetX,
+      canvasStore.offsetY,
+      canvasStore.scale,
+    )
+
+    if (!imageRect) {
+      showCreateBbox = false
+      createBboxRect = null
+      return
+    }
+
+    // Try to find an overlapping existing bbox
+    const matchedId = findOverlappingBbox(imageRect, annotationStore.elements)
+    if (matchedId !== null) {
+      annotationStore.selectElement(matchedId)
+      showCreateBbox = false
+      createBboxRect = null
+    } else {
+      // Show "create bbox" option
+      createBboxRect = imageRect
+      showCreateBbox = true
+    }
+  }
+
+  function handleCreateBbox(): void {
+    if (!createBboxRect) return
+    const poly = rectToPoly(createBboxRect)
+    const selectedText = document.getSelection()?.toString() ?? ''
+    const annoId = annotationStore.addElement('text_block', poly)
+    if (annoId >= 0 && selectedText) {
+      annotationStore.updateElement(annoId, { text: selectedText })
+    }
+    showCreateBbox = false
+    createBboxRect = null
+    document.getSelection()?.removeAllRanges()
+  }
+
+  function dismissCreateBbox(): void {
+    showCreateBbox = false
+    createBboxRect = null
+  }
+
+  $effect(() => {
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange)
+    }
+  })
 </script>
 
 <div
@@ -20,6 +86,7 @@
   style="z-index: 20; pointer-events: {pointerEvents};"
 >
   <div
+    bind:this={transformContainerEl}
     style="
       transform-origin: 0 0;
       transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({canvasStore.scale});
@@ -61,4 +128,29 @@
       </div>
     {/each}
   </div>
+
+  <!-- Floating "create bbox" button when text is selected without matching bbox -->
+  {#if showCreateBbox && createBboxRect}
+    {@const screenX = createBboxRect.x * canvasStore.scale + canvasStore.offsetX}
+    {@const screenY = (createBboxRect.y + createBboxRect.height) * canvasStore.scale + canvasStore.offsetY}
+    <div
+      class="absolute z-30 flex gap-1"
+      style="left: {screenX}px; top: {screenY + 4}px;"
+    >
+      <button
+        class="px-2 py-1 text-xs font-medium bg-primary-500 text-white rounded shadow-lg
+          hover:bg-primary-600 transition-colors"
+        onclick={handleCreateBbox}
+      >
+        새 bbox 생성
+      </button>
+      <button
+        class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded shadow-lg
+          hover:bg-gray-200 transition-colors"
+        onclick={dismissCreateBbox}
+      >
+        취소
+      </button>
+    </div>
+  {/if}
 </div>
