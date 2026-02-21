@@ -55,6 +55,7 @@ def _make_page_record(
         record['project_id'] = uuid.uuid4()
         record['project_name'] = 'Test Project'
         record['document_filename'] = 'test.pdf'
+        record['pdf_path'] = '/storage/pdfs/test.pdf'
     return record
 
 
