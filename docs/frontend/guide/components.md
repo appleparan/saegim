@@ -53,24 +53,62 @@
 
 ---
 
-## Common Components (`src/lib/components/common/`)
+## UI Components (`src/lib/components/ui/`) — shadcn-svelte
 
-### Button
+shadcn-svelte 기반 컴포넌트. bits-ui 헤드리스 프리미티브 + Tailwind CSS v4 스타일.
+전체 목록: button, badge, card, dialog, input, label, select, separator, switch, tabs, textarea.
+
+### Button (`ui/button`)
 
 ```svelte
-<Button variant="primary" size="sm" active={true} onclick={fn}>텍스트</Button>
+<script>
+  import { Button } from '$lib/components/ui/button'
+</script>
+<Button variant="default" size="sm" onclick={fn}>텍스트</Button>
 ```
 
-| Prop | Type | Default | 설명 |
-| ------ | ------ | --------- | ------ |
-| `variant` | `'primary' \| 'secondary' \| 'danger' \| 'ghost'` | `'secondary'` | 스타일 변형 |
-| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | 크기 |
-| `disabled` | `boolean` | `false` | 비활성화 |
-| `active` | `boolean` | `false` | 활성 상태 (ring 표시) |
-| `onclick` | `(e: MouseEvent) => void` | - | 클릭 핸들러 |
-| `children` | `Snippet` | - | 버튼 내용 |
+| Variant | 용도 |
+| ------ | ------ |
+| `default` | 주요 액션 (violet primary) |
+| `destructive` | 삭제 등 위험 액션 |
+| `outline` | 보조 액션 |
+| `secondary` | 부차적 액션 |
+| `ghost` | 배경 없는 투명 버튼 |
+| `link` | 링크 스타일 |
 
-### Select
+크기: `default`, `sm`, `lg`, `icon`, `icon-sm`, `icon-lg`
+
+### Switch (`ui/switch`)
+
+Toggle 대체. `checked` → `onCheckedChange` 패턴.
+
+```svelte
+<script>
+  import { Switch } from '$lib/components/ui/switch'
+  import { Label } from '$lib/components/ui/label'
+</script>
+<div class="flex items-center gap-2">
+  <Switch id="watermark" checked={value} onCheckedChange={(v) => handleChange(v)} />
+  <Label for="watermark">워터마크</Label>
+</div>
+```
+
+### 기타 shadcn 컴포넌트
+
+- **Badge**: 상태 표시 (`default`, `secondary`, `destructive`, `outline`)
+- **Card**: 카드 레이아웃 (Card, CardHeader, CardTitle, CardContent)
+- **Dialog**: 모달 (DialogTrigger, DialogContent, DialogHeader, DialogFooter)
+- **Input / Textarea**: 폼 입력 (자동 테마 적용)
+- **Label**: 폼 라벨
+- **Select**: 드롭다운 (SelectTrigger, SelectContent, SelectItem)
+- **Separator**: 구분선
+- **Tabs**: 탭 네비게이션 (TabsList, TabsTrigger, TabsContent)
+
+## Common Components (`src/lib/components/common/`)
+
+### Select (네이티브)
+
+네이티브 `<select>` 래퍼. 간단한 옵션 목록에 사용 (shadcn Select는 compound component).
 
 ```svelte
 <Select label="언어" value="ko" options={PAGE_LANGUAGES} labels={PAGE_LANGUAGE_LABELS} onchange={fn} />
@@ -85,19 +123,6 @@
 | `disabled` | `boolean` | `false` | 비활성화 |
 | `onchange` | `(value: string) => void` | - | 변경 핸들러 |
 
-### Toggle
-
-```svelte
-<Toggle label="워터마크" checked={false} onchange={fn} />
-```
-
-| Prop | Type | Default | 설명 |
-| ------ | ------ | --------- | ------ |
-| `label` | `string?` | - | 라벨 텍스트 |
-| `checked` | `boolean` | - | 토글 상태 |
-| `disabled` | `boolean` | `false` | 비활성화 |
-| `onchange` | `(checked: boolean) => void` | - | 변경 핸들러 |
-
 ### LoadingSpinner
 
 ```svelte
@@ -107,7 +132,7 @@
 | Prop | Type | Default | 설명 |
 | ------ | ------ | --------- | ------ |
 | `message` | `string?` | - | 로딩 메시지 |
-| `size` | `'sm' \| 'md'` | `'md'` | 스피너 크기 |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | 스피너 크기 |
 
 ---
 
@@ -115,7 +140,7 @@
 
 ### Header
 
-상단 네비게이션 바 (h-14). 좌측 타이틀 + 우측 저장 상태/버튼.
+상단 네비게이션 바 (h-14). 좌측 타이틀 + 우측 ThemeToggle + 저장 상태/버튼.
 
 | Prop | Type | Default | 설명 |
 | ------ | ------ | --------- | ------ |
@@ -125,6 +150,11 @@
 | `saving` | `boolean` | `false` | 저장 중 상태 |
 
 알림 토스트도 Header 내에서 렌더링 (`uiStore.notification`).
+
+### ThemeToggle
+
+다크모드 토글 버튼. `mode-watcher`의 `toggleMode()`를 사용.
+Sun/Moon 아이콘 전환 애니메이션. Header에 포함.
 
 ### Sidebar
 
