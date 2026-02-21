@@ -10,6 +10,7 @@ celery_app = Celery(
     'saegim',
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
+    include=['saegim.tasks.ocr_extraction_task'],
 )
 
 celery_app.conf.update(
@@ -26,6 +27,3 @@ celery_app.conf.update(
     task_soft_time_limit=1800,  # 30 minutes soft limit
     task_time_limit=3600,  # 1 hour hard limit
 )
-
-# Auto-discover tasks from the tasks package
-celery_app.autodiscover_tasks(['saegim.tasks'])

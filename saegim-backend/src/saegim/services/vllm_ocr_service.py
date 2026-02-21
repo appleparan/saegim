@@ -114,6 +114,27 @@ class VllmOcrProvider:
         return build_omnidocbench_page(elements)
 
 
+def _loads_lenient(text: str) -> Any:
+    """Parse JSON with lenient handling of LLM output quirks.
+
+    Tries strict parsing first, then falls back to allowing control
+    characters (tabs, newlines inside strings) that vLLM models often emit.
+
+    Args:
+        text: Raw JSON string from LLM.
+
+    Returns:
+        Parsed JSON value.
+
+    Raises:
+        json.JSONDecodeError: If text cannot be parsed even leniently.
+    """
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return json.loads(text, strict=False)
+
+
 def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
     """Parse vLLM OpenAI-compatible response to extract layout elements.
 
@@ -140,7 +161,7 @@ def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
             lines = text.split('\n')
             text = '\n'.join(lines[1:-1]) if len(lines) > 2 else text
 
-        elements = json.loads(text)
+        elements = _loads_lenient(text)
         if not isinstance(elements, list):
             logger.warning('vLLM response is not a list: %s', type(elements))
             return []
