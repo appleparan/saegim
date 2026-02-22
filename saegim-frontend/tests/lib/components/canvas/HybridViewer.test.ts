@@ -78,6 +78,18 @@ vi.mock("konva", () => {
 vi.mock("pdfjs-dist", () => ({
   getDocument: vi.fn(),
   GlobalWorkerOptions: { workerSrc: "" },
+  TextLayer: class {
+    render() {
+      return Promise.resolve();
+    }
+    cancel() {}
+    get textDivs() {
+      return [];
+    }
+    get textContentItemsStr() {
+      return [];
+    }
+  },
 }));
 
 const HybridViewer = (
@@ -92,6 +104,9 @@ function makeMockPageProxy() {
       promise: Promise.resolve(),
       cancel: vi.fn(),
     })),
+    getTextContent: vi.fn(() =>
+      Promise.resolve({ items: [], styles: {} }),
+    ),
   } as unknown as import("pdfjs-dist").PDFPageProxy;
 }
 
@@ -211,5 +226,49 @@ describe("HybridViewer", () => {
 
     const konvaDiv = container.querySelector('[style*="z-index: 10"]');
     expect(konvaDiv).toBeTruthy();
+  });
+
+  it("hides OCR TextOverlay when pageProxy is provided (PDF.js TextLayer handles text)", () => {
+    const pageProxy = makeMockPageProxy();
+    const { container } = render(HybridViewer, {
+      props: {
+        pageProxy,
+        imageUrl: "/fallback.png",
+        width: 1190,
+        height: 1684,
+      },
+    });
+
+    // TextOverlay uses z-index: 20 — should NOT be present when PDF.js is active
+    const textOverlay = container.querySelector('[style*="z-index: 20"]');
+    expect(textOverlay).toBeNull();
+  });
+
+  it("shows OCR TextOverlay when only imageUrl is provided (no PDF.js)", () => {
+    const { container } = render(HybridViewer, {
+      props: {
+        imageUrl: "/test.png",
+        width: 1190,
+        height: 1684,
+      },
+    });
+
+    // TextOverlay uses z-index: 20 — should be present for image fallback
+    const textOverlay = container.querySelector('[style*="z-index: 20"]');
+    expect(textOverlay).toBeTruthy();
+  });
+
+  it("renders PDF.js TextLayer div when pageProxy is provided", () => {
+    const pageProxy = makeMockPageProxy();
+    const { container } = render(HybridViewer, {
+      props: {
+        pageProxy,
+        width: 1190,
+        height: 1684,
+      },
+    });
+
+    const textLayerDiv = container.querySelector("[data-text-layer]");
+    expect(textLayerDiv).toBeTruthy();
   });
 });

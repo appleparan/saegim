@@ -275,6 +275,8 @@
     {/if}
   {/if}
 
-  <!-- Layer 3: Text overlay (z-index: 20) -->
-  <TextOverlay pointerEvents={textPointerEvents} />
+  <!-- Layer 3: Text overlay (z-index: 20) — only for image fallback mode -->
+  {#if !pageProxy}
+    <TextOverlay pointerEvents={textPointerEvents} />
+  {/if}
 </div>

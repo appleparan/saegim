@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import type { PDFPageProxy } from 'pdfjs-dist'
+  import { TextLayer } from 'pdfjs-dist'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { PDF_BASE_SCALE } from '$lib/stores/pdf.svelte'
 
@@ -11,9 +12,11 @@
   let { pageProxy }: Props = $props()
 
   let canvasEl: HTMLCanvasElement
+  let textLayerEl: HTMLDivElement
   let renderingScale = $state(PDF_BASE_SCALE)
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let renderTask: ReturnType<PDFPageProxy['render']> | null = null
+  let textLayerInstance: TextLayer | null = null
 
   /** Render the PDF page to canvas at the given scale. */
   async function renderPage(page: PDFPageProxy, scale: number): Promise<void> {
@@ -36,12 +39,47 @@
       renderTask = page.render({ canvasContext: ctx, viewport, canvas: canvasEl })
       await renderTask.promise
       renderingScale = scale
+
+      // Render text layer for text selection
+      await renderTextLayer(page, viewport)
     } catch (e) {
       // RenderingCancelledException is expected when re-rendering during zoom
       if (e instanceof Error && e.message.includes('cancelled')) return
       throw e
     } finally {
       renderTask = null
+    }
+  }
+
+  /** Render the PDF.js TextLayer for native text selection. */
+  async function renderTextLayer(
+    page: PDFPageProxy,
+    viewport: import('pdfjs-dist').PageViewport,
+  ): Promise<void> {
+    if (!textLayerEl) return
+
+    // Cancel previous text layer
+    if (textLayerInstance) {
+      textLayerInstance.cancel()
+      textLayerInstance = null
+    }
+
+    // Clear previous text layer content
+    textLayerEl.innerHTML = ''
+    textLayerEl.style.width = `${viewport.width}px`
+    textLayerEl.style.height = `${viewport.height}px`
+
+    try {
+      const textContent = await page.getTextContent()
+      textLayerInstance = new TextLayer({
+        textContentSource: textContent,
+        container: textLayerEl,
+        viewport,
+      })
+      await textLayerInstance.render()
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('cancelled')) return
+      console.warn('[saegim] TextLayer render failed:', e)
     }
   }
 
@@ -76,6 +114,7 @@
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer)
       if (renderTask) renderTask.cancel()
+      if (textLayerInstance) textLayerInstance.cancel()
     }
   })
 
@@ -83,6 +122,7 @@
   let cssScale = $derived((canvasStore.scale * PDF_BASE_SCALE) / renderingScale)
 </script>
 
+<!-- PDF canvas layer -->
 <canvas
   bind:this={canvasEl}
   data-pdf-renderer
@@ -94,3 +134,56 @@
     user-select: none;
   "
 ></canvas>
+
+<!-- Text layer for native text selection -->
+<div
+  bind:this={textLayerEl}
+  data-text-layer
+  class="textLayer"
+  style="
+    position: absolute;
+    transform-origin: 0 0;
+    transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({cssScale});
+    z-index: 1;
+  "
+></div>
+
+<style>
+  /* PDF.js TextLayer styles for text selection */
+  :global(.textLayer) {
+    opacity: 0.3;
+    line-height: 1;
+    pointer-events: auto;
+  }
+
+  :global(.textLayer span),
+  :global(.textLayer br) {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    transform-origin: 0% 0%;
+    pointer-events: all;
+  }
+
+  :global(.textLayer span::selection) {
+    background: rgba(0, 0, 255, 0.3);
+  }
+
+  :global(.textLayer .markedContent) {
+    top: 0;
+    height: 0;
+  }
+
+  :global(.textLayer .endOfContent) {
+    display: block;
+    position: absolute;
+    inset: 100% 0 0;
+    z-index: -1;
+    cursor: default;
+    user-select: none;
+  }
+
+  :global(.textLayer .endOfContent.active) {
+    top: 0;
+  }
+</style>
