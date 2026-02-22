@@ -23,7 +23,7 @@
 </div>
 
 <div class="flex-1 overflow-y-auto p-1.5">
-  {#each annotationStore.elements as element}
+  {#each annotationStore.elements as element (element.anno_id)}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

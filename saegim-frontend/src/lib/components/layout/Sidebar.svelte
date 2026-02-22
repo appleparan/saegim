@@ -16,7 +16,7 @@
   <div class="border-border bg-card flex w-80 flex-col overflow-hidden border-l">
     <!-- Tab navigation -->
     <div class="border-border bg-muted flex border-b px-1 pt-1">
-      {#each tabs as tab}
+      {#each tabs as tab (tab.key)}
         <button
           class="flex-1 rounded-t-lg px-3 py-2 text-xs font-medium transition-all
             {uiStore.activePanel === tab.key

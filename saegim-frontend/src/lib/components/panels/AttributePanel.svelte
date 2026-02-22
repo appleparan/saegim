@@ -1,6 +1,6 @@
 <script lang="ts">
   import { annotationStore } from '$lib/stores/annotation.svelte'
-  import { CATEGORY_ATTRIBUTES, CATEGORY_LABELS } from '$lib/types/categories'
+  import { CATEGORY_ATTRIBUTES } from '$lib/types/categories'
   import type { BlockCategoryType } from '$lib/types/categories'
   import CategorySelect from './CategorySelect.svelte'
   import Select from '$lib/components/common/Select.svelte'
@@ -45,7 +45,7 @@
     {#if fields.length > 0}
       <div class="border-border space-y-3 border-t pt-3">
         <h4 class="text-muted-foreground text-xs font-medium uppercase">속성</h4>
-        {#each fields as field}
+        {#each fields as field (field.key)}
           {#if field.type === 'select' && field.options}
             <Select
               label={field.label}

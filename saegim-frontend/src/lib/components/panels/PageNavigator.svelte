@@ -107,7 +107,7 @@
 
     {#if pages.length > 0}
       <div class="flex flex-wrap gap-1 px-3 pb-2">
-        {#each ['pending', 'in_progress', 'submitted', 'reviewed'] as status}
+        {#each ['pending', 'in_progress', 'submitted', 'reviewed'] as status (status)}
           {@const count = pages.filter((p) => p.status === status).length}
           {#if count > 0}
             <span class="rounded-full px-1.5 py-0.5 text-[10px] {statusColors[status]}">

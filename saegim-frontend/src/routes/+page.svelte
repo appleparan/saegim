@@ -137,7 +137,7 @@
         </div>
       {:else}
         <div class="grid gap-4 sm:grid-cols-2">
-          {#each projects as project}
+          {#each projects as project (project.id)}
             <div class="card-modern card-accent">
               <a href="/projects/{project.id}" class="block p-5">
                 <h3 class="text-foreground text-base font-semibold">{project.name}</h3>

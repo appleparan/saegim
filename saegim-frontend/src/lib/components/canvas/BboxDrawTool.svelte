@@ -32,7 +32,7 @@
     stage.on('mouseup.draw', handleMouseUp)
   }
 
-  function getImagePoint(e: Konva.KonvaEventObject<MouseEvent>): { x: number; y: number } {
+  function getImagePoint(_e: Konva.KonvaEventObject<MouseEvent>): { x: number; y: number } {
     const pointer = stage.getPointerPosition()
     if (!pointer) return { x: 0, y: 0 }
     return {

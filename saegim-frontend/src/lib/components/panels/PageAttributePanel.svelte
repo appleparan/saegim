@@ -8,7 +8,6 @@
     PAGE_LAYOUTS,
     PAGE_LAYOUT_LABELS,
   } from '$lib/types/categories'
-  import type { DataSource, PageLanguage, PageLayout } from '$lib/types/categories'
   import Select from '$lib/components/common/Select.svelte'
   import { Switch } from '$lib/components/ui/switch'
   import { Label } from '$lib/components/ui/label'

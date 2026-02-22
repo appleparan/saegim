@@ -32,7 +32,7 @@
     <h3 class="text-foreground text-sm font-semibold">텍스트 편집</h3>
 
     <div class="border-border flex border-b">
-      {#each tabs as tab}
+      {#each tabs as tab (tab.key)}
         <button
           class="px-3 py-1.5 text-xs font-medium transition-colors
             {activeTab === tab.key

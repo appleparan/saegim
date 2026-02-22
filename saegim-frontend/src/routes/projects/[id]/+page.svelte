@@ -255,7 +255,7 @@
         </div>
       {:else}
         <div class="space-y-3">
-          {#each documents as doc}
+          {#each documents as doc (doc.id)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="card-modern overflow-hidden">
@@ -321,7 +321,7 @@
                 <div class="border-border bg-background border-t p-4">
                   {#if documentPages[doc.id]}
                     <div class="grid grid-cols-6 gap-2 sm:grid-cols-8">
-                      {#each documentPages[doc.id] as docPage}
+                      {#each documentPages[doc.id] as docPage (docPage.id)}
                         <a
                           href="/label/{docPage.id}"
                           class="bg-card hover:border-primary-300 block rounded-lg border p-2.5 text-center transition-all hover:shadow-sm

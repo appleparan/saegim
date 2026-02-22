@@ -1,7 +1,6 @@
 <script lang="ts">
   import { BLOCK_CATEGORIES, CATEGORY_LABELS } from '$lib/types/categories'
   import type { BlockCategoryType } from '$lib/types/categories'
-  import { getCategoryColor } from '$lib/utils/color'
 
   interface Props {
     value: BlockCategoryType
@@ -21,7 +20,7 @@
     {value}
     onchange={(e) => onchange((e.target as HTMLSelectElement).value as BlockCategoryType)}
   >
-    {#each BLOCK_CATEGORIES as cat}
+    {#each BLOCK_CATEGORIES as cat (cat)}
       <option value={cat}>
         {CATEGORY_LABELS[cat]}
       </option>

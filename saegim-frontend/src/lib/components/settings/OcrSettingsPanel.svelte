@@ -154,7 +154,7 @@
   <div>
     <h3 class="text-foreground mb-3 text-sm font-semibold">OCR 엔진 타입</h3>
     <div class="grid grid-cols-2 gap-3">
-      {#each engineTypes as e}
+      {#each engineTypes as e (e.value)}
         <button
           type="button"
           class="rounded-lg border-2 p-3 text-left transition-all
