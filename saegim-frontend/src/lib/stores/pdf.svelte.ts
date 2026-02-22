@@ -17,7 +17,7 @@ if (!GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = workerSrc
 }
 
-/** Base render scale matching PyMuPDF Matrix(2.0, 2.0) for coordinate compatibility. */
+/** Base render scale matching pypdfium2 render(scale=2.0) for coordinate compatibility. */
 export const PDF_BASE_SCALE = 2.0
 
 class PdfStore {

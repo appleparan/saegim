@@ -20,7 +20,12 @@ export interface CreateProjectRequest {
 
 // --- OCR Config (engine_type based) ---
 
-export type EngineType = 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pymupdf'
+export type EngineType =
+  | 'commercial_api'
+  | 'integrated_server'
+  | 'split_pipeline'
+  | 'pdfminer'
+  | 'pymupdf'
 export type CommercialApiProvider = 'gemini' | 'vllm'
 export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 
