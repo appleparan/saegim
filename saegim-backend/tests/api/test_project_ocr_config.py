@@ -20,9 +20,9 @@ class TestGetOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['engine_type'] == 'pymupdf'
+        assert data['engine_type'] == 'pdfminer'
 
-    def test_get_config_without_engine_type_falls_back_to_pymupdf(
+    def test_get_config_without_engine_type_falls_back_to_pdfminer(
         self,
         client: TestClient,
         sample_project_record,
@@ -37,7 +37,7 @@ class TestGetOcrConfig:
             response = client.get(f'/api/v1/projects/{project_id}/ocr-config')
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['engine_type'] == 'pymupdf'
+        assert response.json()['engine_type'] == 'pdfminer'
 
     def test_get_existing_commercial_api_config(
         self,

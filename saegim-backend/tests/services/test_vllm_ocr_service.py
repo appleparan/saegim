@@ -73,11 +73,7 @@ class TestParseVllmResponse:
 
     def test_parse_missing_comma(self):
         """Missing comma in JSON should be repaired by partialjson."""
-        raw = (
-            '[{"category_type": "title"'
-            ' "bbox": [0,0,100,50],'
-            ' "text": "Hi", "order": 0}]'
-        )
+        raw = '[{"category_type": "title" "bbox": [0,0,100,50], "text": "Hi", "order": 0}]'
         response = {'choices': [{'message': {'content': raw}}]}
         result = _parse_vllm_response(response)
         assert len(result) >= 1

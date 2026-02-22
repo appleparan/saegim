@@ -111,7 +111,7 @@ async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
     if not config or 'engine_type' not in config:
-        return OcrConfigResponse(engine_type='pymupdf')
+        return OcrConfigResponse(engine_type='pdfminer')
     return OcrConfigResponse(**config)
 
 

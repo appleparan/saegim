@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import asyncpg
-import fitz
+import pypdfium2 as pdfium
 
 from saegim.repositories import document_repo, page_repo, project_repo
 from saegim.services import extraction_service
@@ -25,11 +25,11 @@ async def upload_and_convert(
 ) -> dict:
     """Upload a PDF and convert each page to an image.
 
-    Renders page images at 2x scale. Extraction backend is determined
-    by the project's ``engine_type`` setting.
+    Renders page images at 2x scale using pypdfium2. Extraction backend
+    is determined by the project's ``engine_type`` setting.
 
     Engine types:
-    - 'pymupdf': Synchronous extraction via PyMuPDF (default fallback)
+    - 'pdfminer' / 'pymupdf' (legacy): Synchronous extraction via pdfminer.six
     - Others: Background asyncio task for OCR extraction
 
     Args:
@@ -50,7 +50,7 @@ async def upload_and_convert(
 
     # Resolve extraction engine from project config
     ocr_config = await _resolve_ocr_config(pool, project_id)
-    engine_type = ocr_config.get('engine_type', 'pymupdf')
+    engine_type = ocr_config.get('engine_type', 'pdfminer')
 
     doc_id = uuid.uuid4()
     safe_name = f'{doc_id}_{filename}'
@@ -67,44 +67,50 @@ async def upload_and_convert(
     document_id = doc_record['id']
 
     try:
-        pdf_doc = fitz.open(str(pdf_path))
+        pdf_doc = pdfium.PdfDocument(str(pdf_path))
         total_pages = len(pdf_doc)
 
-        use_pymupdf = engine_type == 'pymupdf'
+        use_pdfminer = engine_type in ('pdfminer', 'pymupdf')
         page_info_list: list[dict] = []
 
         for page_no in range(total_pages):
             page = pdf_doc[page_no]
-            mat = fitz.Matrix(2.0, 2.0)
-            pix = page.get_pixmap(matrix=mat)
+            bitmap = page.render(scale=2.0)
+            pil_image = bitmap.to_pil()
 
             image_filename = f'{document_id}_p{page_no + 1}.png'
             image_path = images_dir / image_filename
-            pix.save(str(image_path))
+            pil_image.save(str(image_path))
 
-            # PyMuPDF fallback: synchronous extraction
+            width, height = pil_image.size
+
+            # pdfminer fallback: synchronous extraction
             extracted = None
-            if use_pymupdf:
-                extracted = extraction_service.extract_page_elements(page, scale=2.0)
+            if use_pdfminer:
+                extracted = extraction_service.extract_page_elements(
+                    pdf_path,
+                    page_no=page_no,
+                    scale=2.0,
+                )
 
             page_record = await page_repo.create(
                 pool,
                 document_id=document_id,
                 page_no=page_no + 1,
-                width=pix.width,
-                height=pix.height,
+                width=width,
+                height=height,
                 image_path=str(image_path),
                 auto_extracted_data=extracted,
             )
 
             # Collect page info for async extraction
-            if not use_pymupdf:
+            if not use_pdfminer:
                 page_info_list.append(
                     {
                         'page_id': str(page_record['id']),
                         'page_idx': page_no,
-                        'width': pix.width,
-                        'height': pix.height,
+                        'width': width,
+                        'height': height,
                         'image_path': str(image_path),
                     }
                 )
@@ -112,7 +118,7 @@ async def upload_and_convert(
         pdf_doc.close()
 
         # Dispatch based on extraction provider
-        if use_pymupdf:
+        if use_pdfminer:
             await document_repo.update_status(
                 pool,
                 document_id=document_id,
@@ -173,7 +179,7 @@ async def _resolve_ocr_config(
     config = await project_repo.get_ocr_config(pool, project_id)
     if config and config.get('engine_type'):
         return config
-    return {'engine_type': 'pymupdf'}
+    return {'engine_type': 'pdfminer'}
 
 
 async def _run_ocr_extraction_background(

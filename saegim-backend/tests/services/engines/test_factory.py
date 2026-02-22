@@ -10,11 +10,17 @@ _MODULE = 'saegim.services.engines.factory'
 
 
 class TestBuildEngine:
-    def test_pymupdf_engine(self):
-        engine = build_engine({'engine_type': 'pymupdf'})
-        from saegim.services.engines.pymupdf_engine import PyMuPDFEngine
+    def test_pdfminer_engine(self):
+        engine = build_engine({'engine_type': 'pdfminer'})
+        from saegim.services.engines.pdfminer_engine import PdfminerEngine
 
-        assert isinstance(engine, PyMuPDFEngine)
+        assert isinstance(engine, PdfminerEngine)
+
+    def test_pymupdf_legacy_alias(self):
+        engine = build_engine({'engine_type': 'pymupdf'})
+        from saegim.services.engines.pdfminer_engine import PdfminerEngine
+
+        assert isinstance(engine, PdfminerEngine)
 
     def test_commercial_api_gemini(self):
         config = {
