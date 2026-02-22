@@ -118,6 +118,28 @@ async def list_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> list[a
     )
 
 
+async def count_processed_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> int:
+    """Count pages that already have auto extraction data.
+
+    Args:
+        pool: Database connection pool.
+        document_id: Parent document UUID.
+
+    Returns:
+        int: Number of pages with auto_extracted_data populated.
+    """
+    count = await pool.fetchval(
+        """
+        SELECT COUNT(*)
+        FROM pages
+        WHERE document_id = $1
+          AND auto_extracted_data IS NOT NULL
+        """,
+        document_id,
+    )
+    return int(count or 0)
+
+
 async def update_annotation(
     pool: asyncpg.Pool,
     page_id: uuid.UUID,

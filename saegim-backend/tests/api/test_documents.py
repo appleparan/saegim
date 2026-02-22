@@ -34,6 +34,40 @@ class TestDocumentEndpoints:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_get_document_status(self, client: TestClient, sample_document_record):
+        doc_id = sample_document_record['id']
+        with (
+            patch(
+                'saegim.repositories.document_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_document_record,
+            ),
+            patch(
+                'saegim.repositories.page_repo.count_processed_by_document',
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+        ):
+            response = client.get(f'/api/v1/documents/{doc_id}/status')
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['id'] == str(doc_id)
+        assert data['status'] == 'ready'
+        assert data['total_pages'] == 5
+        # ready 상태에서는 total_pages로 보정된다.
+        assert data['processed_pages'] == 5
+
+    def test_get_document_status_not_found(self, client: TestClient):
+        with patch(
+            'saegim.repositories.document_repo.get_by_id',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.get('/api/v1/documents/00000000-0000-0000-0000-000000000000/status')
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
     def test_upload_document_project_not_found(self, client: TestClient):
         with patch(
             'saegim.repositories.project_repo.get_by_id',

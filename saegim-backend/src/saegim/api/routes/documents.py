@@ -6,8 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import get_pool
-from saegim.repositories import document_repo, project_repo
-from saegim.schemas.document import DocumentListResponse, DocumentResponse, DocumentUploadResponse
+from saegim.repositories import document_repo, page_repo, project_repo
+from saegim.schemas.document import (
+    DocumentListResponse,
+    DocumentResponse,
+    DocumentStatusResponse,
+    DocumentUploadResponse,
+)
 from saegim.schemas.page import PageListResponse
 
 router = APIRouter()
@@ -129,6 +134,40 @@ async def get_document(document_id: uuid.UUID) -> DocumentResponse:
     return DocumentResponse(**dict(record))
 
 
+@router.get('/documents/{document_id}/status', response_model=DocumentStatusResponse)
+async def get_document_status(document_id: uuid.UUID) -> DocumentStatusResponse:
+    """Get document processing/extraction progress.
+
+    Args:
+        document_id: Document UUID.
+
+    Returns:
+        DocumentStatusResponse: Document status with processed page count.
+
+    Raises:
+        HTTPException: If document not found.
+    """
+    pool = get_pool()
+    record = await document_repo.get_by_id(pool, document_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
+
+    total_pages = int(record['total_pages'] or 0)
+    status_value = record['status']
+    processed_pages = await page_repo.count_processed_by_document(pool, document_id)
+
+    # For terminal states, expose full progress for stable UI behavior.
+    if status_value in {'ready', 'error', 'extraction_failed'} and total_pages > 0:
+        processed_pages = total_pages
+
+    return DocumentStatusResponse(
+        id=record['id'],
+        status=status_value,
+        total_pages=total_pages,
+        processed_pages=min(processed_pages, total_pages) if total_pages > 0 else processed_pages,
+    )
+
+
 @router.get(
     '/documents/{document_id}/pages',
     response_model=list[PageListResponse],
@@ -149,8 +188,6 @@ async def list_document_pages(document_id: uuid.UUID) -> list[PageListResponse]:
     doc = await document_repo.get_by_id(pool, document_id)
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
-
-    from saegim.repositories import page_repo
 
     pages = await page_repo.list_by_document(pool, document_id)
     return [PageListResponse(**dict(r)) for r in pages]
