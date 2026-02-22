@@ -269,7 +269,7 @@
   ></div>
 
   {#if stage}
-    <BboxLayer {stage} filter={isImageBlock} {interactionMode} />
+    <BboxLayer {stage} filter={(el) => isImageBlock(el) || el.anno_id === annotationStore.selectedElementId} {interactionMode} />
     {#if canvasStore.toolMode === 'draw'}
       <BboxDrawTool {stage} />
     {/if}

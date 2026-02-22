@@ -15,15 +15,16 @@
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
   import { getPage, savePage } from '$lib/api/pages'
-  import { listPages } from '$lib/api/documents'
+  import { listPages, getDocumentStatus } from '$lib/api/documents'
   import { API_BASE, NetworkError } from '$lib/api/client'
-  import type { PageResponse, PageSummary } from '$lib/api/types'
+  import type { DocumentStatus, PageResponse, PageSummary } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
 
   let pageData = $state<PageResponse | null>(null)
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
+  let documentStatus = $state<DocumentStatus | undefined>(undefined)
   let saving = $state(false)
 
   let renderMode = $derived<'pdfjs' | 'image' | 'none'>(
@@ -42,11 +43,16 @@
       annotationStore.load(pageId, data.annotation_data)
       canvasStore.setImageDimensions(data.width, data.height)
 
-      // Load page list for document navigation (non-blocking)
+      // Load page list and document status (non-blocking)
       listPages(data.document_id).then((pages) => {
         documentPages = pages
       }).catch(() => {
         documentPages = []
+      })
+      getDocumentStatus(data.document_id).then((status) => {
+        documentStatus = status.status
+      }).catch(() => {
+        documentStatus = undefined
       })
 
       // Load PDF for vector rendering if available
@@ -207,6 +213,7 @@
           <ExtractionPreview
             pageId={page.params.pageId!}
             autoExtractedData={pageData.auto_extracted_data}
+            {documentStatus}
             onAccepted={handleExtractionAccepted}
           />
         {/if}

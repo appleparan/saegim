@@ -31,6 +31,10 @@
 
   let visible = $derived((hasAutoData && annotationEmpty && !dismissed) || isExtracting)
 
+  let showNoDataHint = $derived(
+    !hasAutoData && annotationEmpty && !isExtracting && documentStatus !== undefined && documentStatus !== 'extracting' && !dismissed,
+  )
+
   let textCount = $derived(
     autoExtractedData?.layout_dets?.filter((el) => isTextBlock(el)) .length ?? 0,
   )
@@ -72,6 +76,32 @@
         <p class="text-sm font-medium text-amber-900 dark:text-amber-200">OCR 추출 진행 중...</p>
         <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">구조 분석이 완료되면 자동으로 결과가 표시됩니다.</p>
       </div>
+    </div>
+  </div>
+{:else if showNoDataHint}
+  <div
+    class="mx-3 mt-3 p-3 rounded-lg border border-border bg-muted/50"
+  >
+    <div class="flex items-start gap-2">
+      <svg class="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <p class="text-xs text-muted-foreground">
+          자동 추출 결과가 없습니다.
+        </p>
+        <p class="text-xs text-muted-foreground mt-0.5">
+          그리기 도구로 직접 영역을 추가하거나, <a href="/settings" class="text-primary hover:underline">OCR 설정</a>을 확인하세요.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground text-lg leading-none p-0.5 shrink-0"
+        onclick={handleDismiss}
+        aria-label="닫기"
+      >
+        &times;
+      </button>
     </div>
   </div>
 {:else if visible}
