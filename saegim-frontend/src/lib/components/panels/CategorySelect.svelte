@@ -1,7 +1,6 @@
 <script lang="ts">
   import { BLOCK_CATEGORIES, CATEGORY_LABELS } from '$lib/types/categories'
   import type { BlockCategoryType } from '$lib/types/categories'
-  import { getCategoryColor } from '$lib/utils/color'
 
   interface Props {
     value: BlockCategoryType
@@ -12,14 +11,16 @@
 </script>
 
 <div>
-  <label class="block text-xs font-medium text-muted-foreground mb-1" for="category-select">카테고리</label>
+  <label class="text-muted-foreground mb-1 block text-xs font-medium" for="category-select"
+    >카테고리</label
+  >
   <select
     id="category-select"
-    class="block w-full rounded-md border border-input bg-background text-foreground px-2 py-1.5 text-sm focus:border-ring focus:ring-1 focus:ring-ring"
-    value={value}
+    class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-2 py-1.5 text-sm focus:ring-1"
+    {value}
     onchange={(e) => onchange((e.target as HTMLSelectElement).value as BlockCategoryType)}
   >
-    {#each BLOCK_CATEGORIES as cat}
+    {#each BLOCK_CATEGORIES as cat (cat)}
       <option value={cat}>
         {CATEGORY_LABELS[cat]}
       </option>

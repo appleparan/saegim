@@ -81,10 +81,7 @@
   })
 </script>
 
-<div
-  class="absolute inset-0 overflow-hidden"
-  style="z-index: 20; pointer-events: {pointerEvents};"
->
+<div class="absolute inset-0 overflow-hidden" style="z-index: 20; pointer-events: {pointerEvents};">
   <div
     bind:this={transformContainerEl}
     style="
@@ -132,21 +129,19 @@
   <!-- Floating "create bbox" button when text is selected without matching bbox -->
   {#if showCreateBbox && createBboxRect}
     {@const screenX = createBboxRect.x * canvasStore.scale + canvasStore.offsetX}
-    {@const screenY = (createBboxRect.y + createBboxRect.height) * canvasStore.scale + canvasStore.offsetY}
-    <div
-      class="absolute z-30 flex gap-1"
-      style="left: {screenX}px; top: {screenY + 4}px;"
-    >
+    {@const screenY =
+      (createBboxRect.y + createBboxRect.height) * canvasStore.scale + canvasStore.offsetY}
+    <div class="absolute z-30 flex gap-1" style="left: {screenX}px; top: {screenY + 4}px;">
       <button
-        class="px-2 py-1 text-xs font-medium bg-primary-500 text-white rounded shadow-lg
-          hover:bg-primary-600 transition-colors"
+        class="bg-primary-500 hover:bg-primary-600 rounded px-2 py-1 text-xs font-medium text-white
+          shadow-lg transition-colors"
         onclick={handleCreateBbox}
       >
         새 bbox 생성
       </button>
       <button
-        class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded shadow-lg
-          hover:bg-gray-200 transition-colors"
+        class="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 shadow-lg
+          transition-colors hover:bg-gray-200"
         onclick={dismissCreateBbox}
       >
         취소

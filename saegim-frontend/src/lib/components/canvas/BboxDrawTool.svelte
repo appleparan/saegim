@@ -7,9 +7,11 @@
 
   interface Props {
     stage: Konva.Stage
+    /** Called after a new element is drawn with its anno_id. */
+    onDrawComplete?: (annoId: number) => void
   }
 
-  let { stage }: Props = $props()
+  let { stage, onDrawComplete }: Props = $props()
 
   let drawLayer: Konva.Layer | null = null
   let drawRect: Konva.Rect | null = null
@@ -30,7 +32,7 @@
     stage.on('mouseup.draw', handleMouseUp)
   }
 
-  function getImagePoint(e: Konva.KonvaEventObject<MouseEvent>): { x: number; y: number } {
+  function getImagePoint(_e: Konva.KonvaEventObject<MouseEvent>): { x: number; y: number } {
     const pointer = stage.getPointerPosition()
     if (!pointer) return { x: 0, y: 0 }
     return {
@@ -97,6 +99,7 @@
     if (annoId >= 0) {
       annotationStore.selectElement(annoId)
       canvasStore.setTool('select')
+      onDrawComplete?.(annoId)
     }
   }
 

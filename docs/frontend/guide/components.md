@@ -2,26 +2,26 @@
 
 ## Pages
 
-### ProjectList (`src/pages/ProjectList.svelte`)
+### ProjectList (`src/routes/+page.svelte`)
 
-프로젝트 목록 페이지. Route: `#/`
+프로젝트 목록 페이지. Route: `/`
 
 - 프로젝트 CRUD (목록 조회 + 생성 다이얼로그)
 - 로딩/에러/빈 상태 UI
-- 각 프로젝트 카드 클릭 시 `#/projects/:id`로 이동
+- 각 프로젝트 카드 클릭 시 `/projects/:id`로 이동
 
-### DocumentList (`src/pages/DocumentList.svelte`)
+### DocumentList (`src/routes/projects/[id]/+page.svelte`)
 
-문서 목록 페이지. Route: `#/projects/:id`
+문서 목록 페이지. Route: `/projects/:id`
 
 - 프로젝트 내 문서 목록 + PDF 업로드 (`<input type="file" accept=".pdf">`)
 - 문서 클릭 시 페이지 목록 확장 (accordion)
 - 페이지별 상태 뱃지 (대기/진행 중/완료/검토됨)
-- 페이지 클릭 시 `#/label/:pageId`로 이동
+- 페이지 클릭 시 `/label/:pageId`로 이동
 
-### ProjectSettings (`src/pages/ProjectSettings.svelte`)
+### ProjectSettings (`src/routes/projects/[id]/settings/+page.svelte`)
 
-프로젝트 설정 페이지. Route: `#/projects/:id/settings`
+프로젝트 설정 페이지. Route: `/projects/:id/settings`
 
 - `engine_type` 기반 OCR 엔진 선택 (카드 UI)
   - `commercial_api`: Gemini/vLLM full-page VLM (API key, model)
@@ -32,24 +32,30 @@
 - 연결 테스트 버튼 (`build_engine → test_connection`)
 - 문서 목록에서 톱니바퀴 아이콘으로 진입
 
-### LabelingPage (`src/pages/LabelingPage.svelte`)
+### LabelingPage (`src/routes/label/[pageId]/+page.svelte`)
 
-3패널 레이블링 화면. Route: `#/label/:pageId`
+3패널 레이블링 화면. Route: `/label/:pageId`
 
 ```text
-┌──────────────────────────────────────────────────┐
-│                    Header (저장 버튼)              │
-├──────────┬──────────────────────┬─────────────────┤
-│          │                      │  요소 | 속성 | 텍스트 │
-│  요소 목록 │   Canvas (Konva.js)  │                 │
-│  (w-64)  │   + 툴바             │   사이드바        │
-│          │                      │   (w-80)        │
-└──────────┴──────────────────────┴─────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  Header (프로젝트명 / 저장 버튼)                        │
+├──────────────────────────────────────────────────────┤
+│  Breadcrumb (프로젝트 > 문서 > 페이지 N)                │
+├───────────┬──────────────────────┬───────────────────┤
+│           │  아이콘 툴바          │  요소 | 속성 | 텍스트 │
+│ PageNav   │  (S/D/H + 줌 ±%)    │                   │
+│ Extraction│  ┌────────────────┐  │   사이드바          │
+│ Preview   │  │  HybridViewer  │  │   (w-80)          │
+│ 요소 목록  │  │  (3-layer)     │  │                   │
+│  (w-64)   │  └────────────────┘  │                   │
+│           │  [PDF.js / Image]    │                   │
+└───────────┴──────────────────────┴───────────────────┘
 ```
 
-- 좌측: ElementList (요소 목록 + 색상 인디케이터)
-- 중앙: ImageViewer + 툴바 (선택/그리기/이동 + 줌)
+- 좌측: PageNavigator (페이지 이동) + ExtractionPreview (OCR 결과/상태) + ElementList (요소 목록)
+- 중앙: 아이콘 기반 컴팩트 툴바 (선택/그리기/이동 + 줌 퍼센트) + HybridViewer (3-layer 하이브리드 뷰어)
 - 우측: Sidebar (탭: 요소 속성 / 페이지 속성 / 텍스트 편집)
+- 하단 우측: 렌더링 모드 표시기 (PDF.js / Image)
 
 ---
 
@@ -170,26 +176,57 @@ Sun/Moon 아이콘 전환 애니메이션. Header에 포함.
 
 ## Canvas Components (`src/lib/components/canvas/`)
 
-### ImageViewer
+3-layer 하이브리드 렌더링 아키텍처:
 
-Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), 팬(드래그/중간버튼), 리사이즈 대응.
+```text
+Layer 1 (z-index: 0)  — 배경: PDF.js <canvas> 또는 <img> 폴백
+Layer 2 (z-index: 10) — Konva.js: 이미지 블록 bbox + 선택된 요소 bbox
+Layer 3 (z-index: 20) — DOM TextOverlay: 텍스트 블록 위치에 선택 가능한 텍스트 (이미지 폴백 모드만)
+```
+
+### HybridViewer
+
+3-layer 하이브리드 뷰어 컨테이너. Konva Stage + PDF.js/이미지 배경 + TextOverlay를 통합 관리한다.
 
 | Prop | Type | 설명 |
 | ------ | ------ | ------ |
-| `imageUrl` | `string` | 이미지 URL |
+| `pageProxy` | `PDFPageProxy?` | PDF.js 페이지 (있으면 벡터 렌더링) |
+| `imageUrl` | `string?` | 이미지 URL (PDF.js 폴백) |
 | `width` | `number` | 이미지 너비 (px) |
 | `height` | `number` | 이미지 높이 (px) |
 
-내부적으로 BboxLayer와 BboxDrawTool을 자식으로 마운트한다.
+내부 상태 머신:
+
+- `interactionMode`: `'browse'` (기본) → `'edit'` (요소 선택 시)
+- browse 모드: 텍스트 선택 가능, bbox는 호버 시만 표시
+- edit 모드: bbox 편집 가능, 텍스트 오버레이 비활성화
+
+### PdfRenderer
+
+PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(2.0)로 고해상도 렌더링 후 CSS transform으로 표시.
+
+| Prop | Type | 설명 |
+| ------ | ------ | ------ |
+| `pageProxy` | `PDFPageProxy` | PDF.js 페이지 프록시 |
 
 ### BboxLayer
 
 `annotationStore.elements`를 Konva Rect로 동기화한다.
 
+| Prop | Type | 설명 |
+| ------ | ------ | ------ |
+| `stage` | `Konva.Stage` | Konva 스테이지 |
+| `filter` | `(el: LayoutElement) => boolean` | 렌더링 필터 (선택적) |
+| `interactionMode` | `'browse' \| 'edit'` | 인터랙션 모드 (선택적) |
+
+동작:
+
 - 각 요소를 카테고리 색상으로 렌더링
+- browse 모드에서 비선택 요소는 투명 (호버 시 반투명)
 - 선택된 요소에 Konva Transformer (리사이즈 핸들) 표시
 - 드래그/리사이즈 완료 시 `annotationStore.updateElement()` 호출
 - 빈 영역 클릭 시 선택 해제
+- 이미지 블록 + 현재 선택된 요소를 렌더링 (텍스트 블록은 TextOverlay가 담당)
 
 ### BboxDrawTool
 
@@ -199,6 +236,14 @@ Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), �
 - 5px 미만 드래그는 무시 (실수 클릭 방지)
 - 생성 후 자동으로 `select` 모드로 전환
 - 기본 카테고리: `text_block`
+
+### TextOverlay
+
+텍스트 블록 요소를 DOM 오버레이로 렌더링한다. 이미지 폴백 모드에서만 활성화 (PDF.js 모드에서는 PDF 자체 텍스트 레이어 사용).
+
+- 텍스트 선택/복사 지원
+- 요소 클릭 시 `annotationStore.selectElement()` 호출
+- `pointerEvents` prop으로 인터랙션 모드에 따라 활성/비활성
 
 ---
 
@@ -239,11 +284,30 @@ Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), �
 - 레이아웃 (5개 항목)
 - 워터마크/흐린 스캔/컬러 배경 토글
 
+### PageNavigator
+
+다중 페이지 문서에서 페이지 간 이동을 지원하는 컴팩트 네비게이터.
+
+| Prop | Type | 설명 |
+| ------ | ------ | ------ |
+| `pages` | `readonly PageSummary[]` | 페이지 목록 |
+| `currentPageId` | `string` | 현재 페이지 ID |
+
+- 좌/우 화살표로 이전/다음 페이지 이동
+- 현재 위치 표시 (N / M)
+- 페이지 상태 뱃지 (대기/진행 중/제출/검토)
+- 시맨틱 테마 토큰 사용 (다크모드 호환)
+
 ### ExtractionPreview
 
-자동 추출 결과 프리뷰 배너. LabelingPage 좌측 상단에 표시.
+자동 추출 결과 프리뷰 배너. LabelingPage 좌측에 표시.
 
-- `auto_extracted_data`가 있고 `annotation_data.layout_dets`가 비어있을 때만 표시
+3가지 상태:
+
+1. **추출 중** (`documentStatus === 'extracting'`): 스피너 + "OCR 추출 진행 중..." 메시지
+2. **결과 없음** (auto_extracted_data 없고 어노테이션도 비어있을 때): "자동 추출 결과가 없습니다" + OCR 설정 링크
+3. **결과 있음** (auto_extracted_data 있고 어노테이션 비어있을 때): 요소 수 표시 + 수락/무시 버튼
+
 - 추출된 요소 수 표시 (텍스트 N개, 이미지 N개 — 총 N개 요소)
 - "수락" 버튼 → `acceptExtraction()` API 호출 → 어노테이션 갱신
 - "무시" 버튼 → 배너 닫기 (세션 내 `dismissed` 상태)
@@ -253,6 +317,7 @@ Konva.js Stage를 생성하고 이미지를 로드한다. 줌(마우스 휠), �
 | ------ | ------ | ------ |
 | `pageId` | `string` | 페이지 UUID |
 | `autoExtractedData` | `AnnotationData \| null` | 자동 추출 데이터 |
+| `documentStatus` | `DocumentStatus?` | 문서 처리 상태 |
 | `onAccepted` | `(data: AnnotationData) => void` | 수락 후 콜백 |
 
 ### TextEditor

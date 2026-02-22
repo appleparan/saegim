@@ -241,7 +241,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 
 | 계층 | 기술 | 이유 |
 | ------ | ------ | ------ |
-| **프론트엔드** | Svelte 5 + TypeScript + Vite 7 (SPA) | Svelte 5 runes($state, $derived)로 상태 관리. shadcn-svelte (bits-ui) + Tailwind CSS v4 + violet 테마 + 다크모드 (mode-watcher). Canvas: Konva.js |
+| **프론트엔드** | Svelte 5 + TypeScript + Vite 7 (SPA) | Svelte 5 runes($state, $derived)로 상태 관리. shadcn-svelte (bits-ui) + Tailwind CSS v4 + violet 테마 + 다크모드 (mode-watcher). Canvas: Konva.js. PDF 렌더링: pdfjs-dist (PDF.js) |
 | **백엔드** | FastAPI (Python) | 자동 추출 파이프라인(PyTorch 모델)과 자연스러운 통합. 프론트엔드와는 HTTP/JSON API로만 통신 |
 | **DB 드라이버** | asyncpg (raw SQL) | 비동기 PostgreSQL 드라이버. ORM 없이 raw SQL + Repository 패턴으로 JSONB 직접 제어 |
 | **DB** | PostgreSQL 15+ | 2~5명 동시 접속 + JSONB 지원 (아래 3.3 상세 설명) |
@@ -262,7 +262,7 @@ Svelte 5 (:5173)             FastAPI (:5000)             PostgreSQL (:5432)
 ┌────────────────────┐       ┌────────────────────┐      ┌──────────────┐
 │ UI + Canvas        │       │ Routes / Services  │      │              │
 │ $state annotation  │◄JSON─►│ PDF extraction     │◄SQL─►│ JSONB tables │
-│ Konva.js + DOM     │       │ Repository pattern │      │              │
+│ PDF.js+Konva+DOM   │       │ Repository pattern │      │              │
 └────────────────────┘       └────────────────────┘      └──────────────┘
 ```
 
@@ -428,8 +428,14 @@ saegim/
 
 #### C. Labeling Web Interface (핵심)
 
-- 이미지 뷰어 + 오버레이 bbox 편집기
+- **3-layer 하이브리드 뷰어** (HybridViewer):
+  - Layer 1: PDF.js `<canvas>` 벡터 렌더링 (폴백: `<img>` 래스터 이미지)
+  - Layer 2: Konva.js 캔버스 (이미지 블록 bbox + 선택된 요소)
+  - Layer 3: DOM TextOverlay (텍스트 블록 — 이미지 폴백 모드만)
+- **아이콘 기반 컴팩트 툴바**: 선택(S)/그리기(D)/이동(H) + 줌 퍼센트 표시
 - 사이드 패널: 선택한 요소의 category, attribute, text/latex/html 편집
+- PageNavigator: 다중 페이지 문서에서 `[`/`]` 키 또는 화살표로 페이지 이동
+- ExtractionPreview: OCR 추출 상태 표시 + 결과 수락/무시
 - 읽기 순서 드래그 & 드롭 편집
 - Relation 연결 도구 (캡션 ↔ 본체 등)
 
@@ -893,7 +899,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 #### 구현 완료 기능
 
 - PDF → 이미지 변환 파이프라인 (PyMuPDF 2x 렌더링)
-- 3-layer 하이브리드 레이블링 UI (배경 이미지 → Konva bbox → DOM TextOverlay)
+- 3-layer 하이브리드 레이블링 UI (PDF.js 벡터 렌더링 / 이미지 폴백 → Konva bbox → DOM TextOverlay)
 - Category 선택 UI (드롭다운)
 - Page/Block Attribute 입력 UI
 - Text/LaTeX/HTML 편집 패널

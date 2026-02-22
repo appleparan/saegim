@@ -67,19 +67,17 @@
   })
 </script>
 
-<div class="h-full flex flex-col">
+<div class="flex h-full flex-col">
   <Header title="saegim" />
 
-  <div class="flex-1 p-8 overflow-y-auto bg-background">
-    <div class="max-w-4xl mx-auto">
-      <div class="flex items-center justify-between mb-8">
+  <div class="bg-background flex-1 overflow-y-auto p-8">
+    <div class="mx-auto max-w-4xl">
+      <div class="mb-8 flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-foreground">프로젝트</h1>
-          <p class="text-sm text-muted-foreground mt-1">문서 레이블링 프로젝트를 관리합니다</p>
+          <h1 class="text-foreground text-2xl font-bold">프로젝트</h1>
+          <p class="text-muted-foreground mt-1 text-sm">문서 레이블링 프로젝트를 관리합니다</p>
         </div>
-        <Button variant="default" onclick={() => (showCreateDialog = true)}>
-          새 프로젝트
-        </Button>
+        <Button variant="default" onclick={() => (showCreateDialog = true)}>새 프로젝트</Button>
       </div>
 
       {#if isLoading}
@@ -87,41 +85,68 @@
           <LoadingSpinner message="프로젝트 불러오는 중..." />
         </div>
       {:else if error}
-        <div class="bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 rounded-xl p-6 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/20 flex items-center justify-center">
-            <svg class="w-6 h-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        <div
+          class="bg-destructive/10 dark:bg-destructive/20 border-destructive/30 rounded-xl border p-6 text-center"
+        >
+          <div
+            class="bg-destructive/20 mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl"
+          >
+            <svg
+              class="text-destructive h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
             </svg>
           </div>
           <p class="text-destructive mb-4 font-medium">{error}</p>
           <Button variant="outline" onclick={loadProjects}>다시 시도</Button>
         </div>
       {:else if projects.length === 0}
-        <div class="bg-muted border border-border rounded-2xl p-16 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <svg class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.06-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+        <div class="bg-muted border-border rounded-2xl border p-16 text-center">
+          <div
+            class="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+          >
+            <svg
+              class="text-primary h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.06-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+              />
             </svg>
           </div>
-          <p class="text-muted-foreground font-medium text-lg mb-2">아직 프로젝트가 없습니다</p>
-          <p class="text-sm text-muted-foreground mb-6">첫 프로젝트를 만들어 문서 레이블링을 시작하세요.</p>
+          <p class="text-muted-foreground mb-2 text-lg font-medium">아직 프로젝트가 없습니다</p>
+          <p class="text-muted-foreground mb-6 text-sm">
+            첫 프로젝트를 만들어 문서 레이블링을 시작하세요.
+          </p>
           <Button variant="default" onclick={() => (showCreateDialog = true)}>
             첫 프로젝트 만들기
           </Button>
         </div>
       {:else}
         <div class="grid gap-4 sm:grid-cols-2">
-          {#each projects as project}
+          {#each projects as project (project.id)}
             <div class="card-modern card-accent">
-              <a
-                href="/projects/{project.id}"
-                class="block p-5"
-              >
-                <h3 class="font-semibold text-foreground text-base">{project.name}</h3>
+              <a href="/projects/{project.id}" class="block p-5">
+                <h3 class="text-foreground text-base font-semibold">{project.name}</h3>
                 {#if project.description}
-                  <p class="text-sm text-muted-foreground mt-1.5 line-clamp-2">{project.description}</p>
+                  <p class="text-muted-foreground mt-1.5 line-clamp-2 text-sm">
+                    {project.description}
+                  </p>
                 {/if}
-                <p class="text-xs text-muted-foreground mt-3">
+                <p class="text-muted-foreground mt-3 text-xs">
                   {new Date(project.created_at).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -129,9 +154,9 @@
                   })}
                 </p>
               </a>
-              <div class="border-t border-border px-5 py-2 flex justify-end">
+              <div class="border-border flex justify-end border-t px-5 py-2">
                 <button
-                  class="text-xs text-destructive/70 hover:text-destructive transition-colors"
+                  class="text-muted-foreground hover:text-destructive text-xs transition-colors"
                   onclick={(e) => handleDeleteProject(e, project.id)}
                 >
                   삭제
@@ -145,33 +170,38 @@
   </div>
 
   {#if showCreateDialog}
-    <div class="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
-      <div class="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-border">
-        <h2 class="text-lg font-semibold text-foreground mb-1">새 프로젝트 만들기</h2>
-        <p class="text-sm text-muted-foreground mb-5">프로젝트 정보를 입력하세요.</p>
+    <div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
+      <div class="bg-card border-border mx-4 w-full max-w-md rounded-2xl border p-6 shadow-2xl">
+        <h2 class="text-foreground mb-1 text-lg font-semibold">새 프로젝트 만들기</h2>
+        <p class="text-muted-foreground mb-5 text-sm">프로젝트 정보를 입력하세요.</p>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5" for="project-name">프로젝트 이름</label>
+            <label class="text-foreground mb-1.5 block text-sm font-medium" for="project-name"
+              >프로젝트 이름</label
+            >
             <input
               id="project-name"
               type="text"
-              class="block w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all outline-none bg-background text-foreground"
+              class="border-border focus:border-ring focus:ring-ring/20 bg-background text-foreground block w-full rounded-lg border px-3 py-2.5 text-sm transition-all outline-none focus:ring-2"
               bind:value={newProjectName}
               placeholder="프로젝트 이름을 입력하세요"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1.5" for="project-description">설명 (선택)</label>
+            <label
+              class="text-foreground mb-1.5 block text-sm font-medium"
+              for="project-description">설명 (선택)</label
+            >
             <textarea
               id="project-description"
-              class="block w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all outline-none resize-none bg-background text-foreground"
+              class="border-border focus:border-ring focus:ring-ring/20 bg-background text-foreground block w-full resize-none rounded-lg border px-3 py-2.5 text-sm transition-all outline-none focus:ring-2"
               bind:value={newProjectDescription}
               placeholder="프로젝트에 대한 설명을 입력하세요"
               rows="3"
             ></textarea>
           </div>
         </div>
-        <div class="flex justify-end gap-2 mt-6">
+        <div class="mt-6 flex justify-end gap-2">
           <Button variant="outline" onclick={() => (showCreateDialog = false)}>취소</Button>
           <Button
             variant="default"

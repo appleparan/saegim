@@ -48,3 +48,12 @@ class DocumentUploadResponse(BaseModel):
     total_pages: int
     status: DocumentStatus
     message: str = Field(default='Document uploaded successfully')
+
+
+class DocumentStatusResponse(BaseModel):
+    """Schema for document extraction/processing status."""
+
+    id: uuid.UUID
+    status: DocumentStatus
+    total_pages: int
+    processed_pages: int

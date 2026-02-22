@@ -4,6 +4,7 @@
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { polyToRect, rectToPoly, clampRect } from '$lib/utils/bbox'
   import { getCategoryColor } from '$lib/utils/color'
+  import { SvelteMap } from 'svelte/reactivity'
   import type { LayoutElement } from '$lib/types/omnidocbench'
 
   interface Props {
@@ -18,20 +19,29 @@
 
   let bboxLayer: Konva.Layer | null = null
   let transformer: Konva.Transformer | null = null
-  let rects = new Map<number, Konva.Rect>()
+  let rects = new SvelteMap<number, Konva.Rect>()
 
   function init() {
     if (bboxLayer) return
     bboxLayer = new Konva.Layer()
     stage.add(bboxLayer)
 
+    // Apply current viewport transform so bboxes align immediately
+    bboxLayer.position({ x: canvasStore.offsetX, y: canvasStore.offsetY })
+    bboxLayer.scale({ x: canvasStore.scale, y: canvasStore.scale })
+
     transformer = new Konva.Transformer({
       rotateEnabled: false,
       keepRatio: false,
       enabledAnchors: [
-        'top-left', 'top-center', 'top-right',
-        'middle-left', 'middle-right',
-        'bottom-left', 'bottom-center', 'bottom-right',
+        'top-left',
+        'top-center',
+        'top-right',
+        'middle-left',
+        'middle-right',
+        'bottom-left',
+        'bottom-center',
+        'bottom-right',
       ],
       borderStroke: '#2563eb',
       borderStrokeWidth: 2,

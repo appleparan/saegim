@@ -97,6 +97,50 @@ Canvas 뷰포트 상태를 관리한다.
 
 ---
 
+## PdfStore (`src/lib/stores/pdf.svelte.ts`)
+
+PDF.js 문서 로딩과 페이지 캐싱을 관리한다. `pdfjs-dist`의 `PDFDocumentProxy`/`PDFPageProxy`를 래핑한다.
+
+### 상수
+
+| 이름 | 값 | 설명 |
+| ------ | ------ | ------ |
+| `PDF_BASE_SCALE` | `2.0` | PyMuPDF `Matrix(2.0, 2.0)` 호환 렌더링 스케일 |
+
+### State
+
+| 필드 | 타입 | 기본값 | 설명 |
+| ------ | ------ | -------- | ------ |
+| `pdfDoc` | `PDFDocumentProxy \| null` | `null` | 로드된 PDF 문서 |
+| `currentPageNo` | `number` | `1` | 현재 페이지 번호 (1-based) |
+| `totalPages` | `number` | `0` | 전체 페이지 수 |
+| `isLoading` | `boolean` | `false` | 로딩 상태 |
+| `error` | `string \| null` | `null` | 에러 메시지 |
+
+### Methods
+
+| 메서드 | 설명 |
+| -------- | ------ |
+| `loadDocument(url)` | URL에서 PDF 로드 (동일 URL 캐싱) |
+| `getPage(pageNo)` | 페이지 프록시 반환 (캐싱) |
+| `setCurrentPage(pageNo)` | 현재 페이지 변경 |
+| `nextPage()` | 다음 페이지 |
+| `prevPage()` | 이전 페이지 |
+| `destroy()` | 리소스 정리 (캐시, 문서 해제) |
+
+### PDF.js Worker 설정
+
+Worker URL은 `import.meta.url` 기반으로 자동 resolve된다:
+
+```typescript
+GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString()
+```
+
+---
+
 ## UiStore (`src/lib/stores/ui.svelte.ts`)
 
 UI 상태 (사이드바, 알림)를 관리한다.
