@@ -215,27 +215,69 @@
 
       <!-- Center: Canvas area -->
       <div class="flex-1 relative bg-muted">
-        <div class="absolute top-3 left-3 z-30 flex gap-2">
-          <!-- Tool group -->
-          <div class="flex bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border p-1 gap-0.5">
-            <button class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all
-              {canvasStore.toolMode === 'select' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
-              onclick={() => canvasStore.setTool('select')}>선택</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all
-              {canvasStore.toolMode === 'draw' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
-              onclick={() => canvasStore.setTool('draw')}>그리기</button>
-            <button class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all
-              {canvasStore.toolMode === 'pan' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
-              onclick={() => canvasStore.setTool('pan')}>이동</button>
-          </div>
-          <!-- Zoom group -->
-          <div class="flex bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border p-1 gap-0.5">
-            <button class="px-2.5 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:bg-accent transition-all"
-              onclick={() => canvasStore.zoomIn()}>+</button>
-            <button class="px-2.5 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:bg-accent transition-all"
-              onclick={() => canvasStore.zoomOut()}>-</button>
-            <button class="px-2.5 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:bg-accent transition-all"
-              onclick={() => canvasStore.resetView()}>1:1</button>
+        <div class="absolute top-3 left-3 z-30 flex">
+          <div class="flex items-center bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border p-1 gap-0.5">
+            <!-- Tool buttons -->
+            <button
+              class="p-1.5 rounded-lg transition-all
+                {canvasStore.toolMode === 'select' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
+              onclick={() => canvasStore.setTool('select')}
+              title="선택 (S)"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+              </svg>
+            </button>
+            <button
+              class="p-1.5 rounded-lg transition-all
+                {canvasStore.toolMode === 'draw' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
+              onclick={() => canvasStore.setTool('draw')}
+              title="그리기 (D)"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </button>
+            <button
+              class="p-1.5 rounded-lg transition-all
+                {canvasStore.toolMode === 'pan' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
+              onclick={() => canvasStore.setTool('pan')}
+              title="이동 (H)"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.05 4.575a1.575 1.575 0 10-3.15 0v3.15m3.15-3.15v-1.5a1.575 1.575 0 013.15 0v1.5m-3.15 0l-.075 5.925m3.225-5.925a1.575 1.575 0 013.15 0v1.5m-3.15-1.5v5.925m0-5.925a1.575 1.575 0 013.15 0v5.925m-3.15 0a7.007 7.007 0 01-.088.967m.088-.967a7.032 7.032 0 01-3.225 4.672l-.26.163a3.375 3.375 0 01-4.476-1.123l-.04-.068a6.685 6.685 0 01-.932-3.569V6.75a1.575 1.575 0 013.15 0v4.125" />
+              </svg>
+            </button>
+
+            <!-- Separator -->
+            <div class="w-px h-5 bg-border mx-0.5"></div>
+
+            <!-- Zoom controls -->
+            <button
+              class="p-1.5 rounded-lg text-muted-foreground hover:bg-accent transition-all"
+              onclick={() => canvasStore.zoomOut()}
+              title="축소"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" />
+              </svg>
+            </button>
+            <button
+              class="px-1.5 py-1 text-[11px] font-mono font-medium rounded-lg text-muted-foreground hover:bg-accent transition-all min-w-[3rem] text-center"
+              onclick={() => canvasStore.resetView()}
+              title="1:1 보기로 리셋"
+            >
+              {Math.round(canvasStore.scale * 100)}%
+            </button>
+            <button
+              class="p-1.5 rounded-lg text-muted-foreground hover:bg-accent transition-all"
+              onclick={() => canvasStore.zoomIn()}
+              title="확대"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
           </div>
         </div>
 
