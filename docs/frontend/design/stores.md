@@ -105,7 +105,7 @@ PDF.js 문서 로딩과 페이지 캐싱을 관리한다. `pdfjs-dist`의 `PDFDo
 
 | 이름 | 값 | 설명 |
 | ------ | ------ | ------ |
-| `PDF_BASE_SCALE` | `2.0` | PyMuPDF `Matrix(2.0, 2.0)` 호환 렌더링 스케일 |
+| `PDF_BASE_SCALE` | `2.0` | pypdfium2 `render(scale=2.0)` 호환 렌더링 스케일 |
 
 ### State
 

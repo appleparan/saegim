@@ -78,7 +78,7 @@ tests/
 │   ├── engines/                    # OCR 엔진 테스트
 │   │   ├── test_base.py            # BaseOCREngine ABC
 │   │   ├── test_factory.py         # build_engine() 팩토리
-│   │   ├── test_pymupdf_engine.py
+│   │   ├── test_pdfminer_engine.py
 │   │   ├── test_commercial_api_engine.py
 │   │   ├── test_integrated_server_engine.py
 │   │   └── test_split_pipeline_engine.py

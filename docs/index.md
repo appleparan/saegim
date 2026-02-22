@@ -46,7 +46,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js, PDF.js |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
-| **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
+| **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
 | **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
@@ -61,7 +61,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | `commercial_api` | Gemini/vLLM full-page VLM 분석 | Gemini API 또는 vLLM 서버 |
 | `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 또는 vLLM (모델명 기반 자동 분기) |
 | `split_pipeline` | PP-StructureV3 레이아웃 + 외부 OCR | PP-StructureV3 + Gemini/vLLM |
-| `pymupdf` | PyMuPDF 기본 추출 (GPU 불필요) | 없음 |
+| `pdfminer` | pdfminer.six 기본 추출 (GPU 불필요) | 없음 |
 
 ## 프로젝트 구조
 
@@ -74,7 +74,7 @@ saegim/
 │   │   ├── services/
 │   │   │   ├── engines/      # OCR 엔진 Strategy 패턴
 │   │   │   │   ├── base.py, factory.py
-│   │   │   │   ├── pymupdf_engine.py
+│   │   │   │   ├── pdfminer_engine.py
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── integrated_server_engine.py
 │   │   │   │   └── split_pipeline_engine.py
