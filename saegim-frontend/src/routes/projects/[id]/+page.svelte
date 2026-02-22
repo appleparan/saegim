@@ -21,6 +21,8 @@
   let pollTimer = $state<ReturnType<typeof setInterval> | null>(null)
 
   let fileInput: HTMLInputElement
+  let isDragOver = $state(false)
+  let dragCounter = $state(0)
 
   let hasPendingDocs = $derived(
     documents.some((d) => d.status === 'processing' || d.status === 'extracting'),
@@ -96,6 +98,60 @@
     }
   }
 
+  function handleDragEnter(e: DragEvent) {
+    e.preventDefault()
+    dragCounter += 1
+    if (e.dataTransfer?.types.includes('Files')) {
+      isDragOver = true
+    }
+  }
+
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    e.preventDefault()
+    dragCounter -= 1
+    if (dragCounter <= 0) {
+      dragCounter = 0
+      isDragOver = false
+    }
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault()
+    dragCounter = 0
+    isDragOver = false
+
+    const id = page.params.id
+    if (!id || isUploading) return
+
+    const files = e.dataTransfer?.files
+    if (!files || files.length === 0) return
+
+    const file = files[0]
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      error = 'PDF 파일만 업로드할 수 있습니다.'
+      return
+    }
+
+    isUploading = true
+    error = null
+    try {
+      const doc = await uploadDocument(id, file)
+      documents = [...documents, doc]
+    } catch {
+      error = 'PDF 업로드에 실패했습니다.'
+    } finally {
+      isUploading = false
+    }
+  }
+
   async function toggleDocPages(docId: string) {
     if (expandedDoc === docId) {
       expandedDoc = null
@@ -130,13 +186,63 @@
     page.params.id
     untrack(() => loadData())
   })
+
+  $effect(() => {
+    function preventDefaultDrop(e: DragEvent) {
+      if (e.target instanceof HTMLElement && !e.target.closest('[data-dropzone]')) {
+        e.preventDefault()
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = 'none'
+        }
+      }
+    }
+    window.addEventListener('dragover', preventDefaultDrop)
+    window.addEventListener('drop', preventDefaultDrop)
+    return () => {
+      window.removeEventListener('dragover', preventDefaultDrop)
+      window.removeEventListener('drop', preventDefaultDrop)
+    }
+  })
 </script>
 
 <div class="flex h-full flex-col">
   <Header title={project?.name ?? 'saegim'} />
 
   <div class="bg-background flex-1 overflow-y-auto p-8">
-    <div class="mx-auto max-w-4xl">
+    <div
+      class="relative mx-auto max-w-4xl"
+      data-dropzone
+      role="region"
+      aria-label="PDF 업로드 영역"
+      ondragenter={handleDragEnter}
+      ondragover={handleDragOver}
+      ondragleave={handleDragLeave}
+      ondrop={handleDrop}
+    >
+      {#if isDragOver}
+        <div
+          class="border-primary/50 bg-primary/5 pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed"
+        >
+          <div class="bg-primary/10 mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
+            <svg
+              class="text-primary h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
+            </svg>
+          </div>
+          <p class="text-primary text-lg font-medium">PDF 파일을 여기에 놓으세요</p>
+          <p class="text-muted-foreground mt-1 text-sm">파일을 놓으면 바로 업로드됩니다</p>
+        </div>
+      {/if}
+
       <div class="mb-4">
         <a
           href="/"
