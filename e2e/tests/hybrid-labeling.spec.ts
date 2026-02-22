@@ -389,6 +389,27 @@ test.describe.serial('Hybrid Labeling UX', () => {
     expect(afterZoom).toBeTruthy()
   })
 
+  test('10 - page navigator is collapsible and shows extraction preview', async ({ page }) => {
+    await page.goto(`/label/${pageId}`)
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
+
+    // Page navigator header should be visible
+    const toggleBtn = page.locator('button[title*="페이지 목록"]')
+    await expect(toggleBtn).toBeVisible()
+
+    // Page grid should be collapsed by default
+    const pageGrid = page.locator('.max-h-48')
+    await expect(pageGrid).not.toBeVisible()
+
+    // Expand page grid
+    await toggleBtn.click()
+    await expect(pageGrid).toBeVisible()
+
+    // Collapse page grid
+    await toggleBtn.click()
+    await expect(pageGrid).not.toBeVisible()
+  })
+
   test.afterAll(async () => {
     // Clean up: delete project
     try {

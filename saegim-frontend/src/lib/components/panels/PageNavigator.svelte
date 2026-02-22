@@ -14,6 +14,8 @@
   let hasPrev = $derived(currentIndex > 0)
   let hasNext = $derived(currentIndex < pages.length - 1)
 
+  let expanded = $state(false)
+
   function goToPage(pageId: string): void {
     if (pageId !== currentPageId) {
       goto(`/label/${pageId}`)
@@ -42,7 +44,22 @@
 
 <div class="border-border bg-muted/50 border-b">
   <div class="flex items-center justify-between px-3 py-2">
-    <span class="text-muted-foreground text-xs font-medium tracking-wider uppercase">페이지</span>
+    <button
+      class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium tracking-wider uppercase transition-colors"
+      onclick={() => (expanded = !expanded)}
+      title={expanded ? '페이지 목록 접기' : '페이지 목록 펼치기'}
+    >
+      <svg
+        class="h-3 w-3 transition-transform {expanded ? 'rotate-90' : ''}"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+      페이지
+    </button>
     <div class="flex items-center gap-1">
       <button
         class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
@@ -70,40 +87,42 @@
     </div>
   </div>
 
-  <div class="max-h-48 overflow-y-auto px-2 pb-2">
-    <div class="flex flex-wrap gap-1">
-      {#each pages as page (page.id)}
-        <button
-          class="min-w-[2rem] rounded px-1.5 py-0.5 text-xs transition-all
-            {page.id === currentPageId
-            ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-            : 'bg-card border-border text-foreground hover:border-primary/30 hover:bg-primary/10 border'}"
-          onclick={() => goToPage(page.id)}
-          title="페이지 {page.page_no} ({page.status})"
-        >
-          {page.page_no}
-        </button>
-      {/each}
+  {#if expanded}
+    <div class="max-h-48 overflow-y-auto px-2 pb-2">
+      <div class="flex flex-wrap gap-1">
+        {#each pages as page (page.id)}
+          <button
+            class="min-w-[2rem] rounded px-1.5 py-0.5 text-xs transition-all
+              {page.id === currentPageId
+              ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+              : 'bg-card border-border text-foreground hover:border-primary/30 hover:bg-primary/10 border'}"
+            onclick={() => goToPage(page.id)}
+            title="페이지 {page.page_no} ({page.status})"
+          >
+            {page.page_no}
+          </button>
+        {/each}
+      </div>
     </div>
-  </div>
 
-  {#if pages.length > 0}
-    <div class="flex flex-wrap gap-1 px-3 pb-2">
-      {#each ['pending', 'in_progress', 'submitted', 'reviewed'] as status}
-        {@const count = pages.filter((p) => p.status === status).length}
-        {#if count > 0}
-          <span class="rounded-full px-1.5 py-0.5 text-[10px] {statusColors[status]}">
-            {status === 'in_progress'
-              ? '진행중'
-              : status === 'pending'
-                ? '대기'
-                : status === 'submitted'
-                  ? '제출'
-                  : '검토완료'}
-            {count}
-          </span>
-        {/if}
-      {/each}
-    </div>
+    {#if pages.length > 0}
+      <div class="flex flex-wrap gap-1 px-3 pb-2">
+        {#each ['pending', 'in_progress', 'submitted', 'reviewed'] as status}
+          {@const count = pages.filter((p) => p.status === status).length}
+          {#if count > 0}
+            <span class="rounded-full px-1.5 py-0.5 text-[10px] {statusColors[status]}">
+              {status === 'in_progress'
+                ? '진행중'
+                : status === 'pending'
+                  ? '대기'
+                  : status === 'submitted'
+                    ? '제출'
+                    : '검토완료'}
+              {count}
+            </span>
+          {/if}
+        {/each}
+      </div>
+    {/if}
   {/if}
 </div>

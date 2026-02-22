@@ -17,6 +17,13 @@ function makePages(count: number): PageSummary[] {
   })) as PageSummary[]
 }
 
+async function expandNavigator(container: HTMLElement) {
+  const toggleBtn = container.querySelector('button[title*="페이지 목록"]') as HTMLButtonElement
+  if (toggleBtn) {
+    await fireEvent.click(toggleBtn)
+  }
+}
+
 describe('PageNavigator', () => {
   beforeEach(() => {
     mockGoto.mockClear()
@@ -26,12 +33,19 @@ describe('PageNavigator', () => {
     cleanup()
   })
 
-  it('renders page buttons for each page', () => {
+  it('renders collapsed by default, shows page grid when expanded', async () => {
     const pages = makePages(5)
-    render(PageNavigator, {
+    const { container } = render(PageNavigator, {
       props: { pages, currentPageId: 'page-1' },
     })
 
+    // Page buttons should not be visible when collapsed
+    expect(screen.queryByText('2')).toBeNull()
+
+    // Expand
+    await expandNavigator(container)
+
+    // Now page buttons should be visible
     for (let i = 1; i <= 5; i++) {
       expect(screen.getByText(String(i))).toBeTruthy()
     }
@@ -46,14 +60,15 @@ describe('PageNavigator', () => {
     expect(screen.getByText('3 / 5')).toBeTruthy()
   })
 
-  it('highlights current page button', () => {
+  it('highlights current page button when expanded', async () => {
     const pages = makePages(3)
     const { container } = render(PageNavigator, {
       props: { pages, currentPageId: 'page-2' },
     })
 
+    await expandNavigator(container)
+
     const buttons = container.querySelectorAll('button')
-    // Find the page-2 button (button with text "2")
     const page2Button = Array.from(buttons).find((b) => b.textContent?.trim() === '2')
     expect(page2Button).toBeTruthy()
     expect(page2Button?.className).toContain('bg-primary')
@@ -61,9 +76,11 @@ describe('PageNavigator', () => {
 
   it('navigates to a different page on click', async () => {
     const pages = makePages(3)
-    render(PageNavigator, {
+    const { container } = render(PageNavigator, {
       props: { pages, currentPageId: 'page-1' },
     })
+
+    await expandNavigator(container)
 
     const page2Button = screen.getByText('2')
     await fireEvent.click(page2Button)
@@ -73,9 +90,11 @@ describe('PageNavigator', () => {
 
   it('does not navigate when clicking current page', async () => {
     const pages = makePages(3)
-    render(PageNavigator, {
+    const { container } = render(PageNavigator, {
       props: { pages, currentPageId: 'page-1' },
     })
+
+    await expandNavigator(container)
 
     const page1Button = screen.getByText('1')
     await fireEvent.click(page1Button)
@@ -89,7 +108,6 @@ describe('PageNavigator', () => {
       props: { pages, currentPageId: 'page-1' },
     })
 
-    // Prev button is the first nav button (has the left arrow SVG)
     const prevButton = container.querySelector('button[disabled]')
     expect(prevButton).toBeTruthy()
   })
@@ -110,7 +128,6 @@ describe('PageNavigator', () => {
       props: { pages, currentPageId: 'page-2' },
     })
 
-    // The prev button has title containing "이전"
     const prevButton = container.querySelector('button[title*="이전"]') as HTMLButtonElement
     expect(prevButton).toBeTruthy()
     expect(prevButton.disabled).toBe(false)
@@ -133,13 +150,14 @@ describe('PageNavigator', () => {
     expect(mockGoto).toHaveBeenCalledWith('/label/page-3')
   })
 
-  it('shows status summary badges', () => {
+  it('shows status summary badges when expanded', async () => {
     const pages = makePages(5)
     const { container } = render(PageNavigator, {
       props: { pages, currentPageId: 'page-1' },
     })
 
-    // Should have status badges for non-zero counts
+    await expandNavigator(container)
+
     const badges = container.querySelectorAll('span.text-\\[10px\\]')
     expect(badges.length).toBeGreaterThan(0)
   })
