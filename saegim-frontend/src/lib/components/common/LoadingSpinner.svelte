@@ -15,18 +15,12 @@
 
 <div class="flex flex-col items-center justify-center gap-2">
   <svg
-    class="animate-spin text-primary {sizeClasses[size]}"
+    class="text-primary animate-spin {sizeClasses[size]}"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
   >
-    <circle
-      class="opacity-25"
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      stroke-width="4"
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
     ></circle>
     <path
       class="opacity-75"
@@ -35,6 +29,6 @@
     ></path>
   </svg>
   {#if message}
-    <p class="text-sm text-muted-foreground">{message}</p>
+    <p class="text-muted-foreground text-sm">{message}</p>
   {/if}
 </div>

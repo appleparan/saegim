@@ -4,12 +4,12 @@
  * Extracted from HybridViewer.svelte for testability.
  */
 
-import type { LayoutElement } from "$lib/types/omnidocbench";
-import type { Point, Rect } from "$lib/types/canvas";
-import { isImageBlock } from "$lib/types/element-groups";
-import { polyToRect, pointInRect, screenToImage } from "./bbox";
+import type { LayoutElement } from '$lib/types/omnidocbench'
+import type { Point, Rect } from '$lib/types/canvas'
+import { isImageBlock } from '$lib/types/element-groups'
+import { polyToRect, pointInRect, screenToImage } from './bbox'
 
-export type InteractionMode = "browse" | "edit";
+export type InteractionMode = 'browse' | 'edit'
 
 /**
  * Determine pointer-events for the Konva container.
@@ -21,15 +21,11 @@ export function computeKonvaPointerEvents(
   toolMode: string,
   interactionMode: InteractionMode,
   hoveredImageBlockId: number | null,
-): "auto" | "none" {
-  if (
-    toolMode === "draw" ||
-    interactionMode === "edit" ||
-    hoveredImageBlockId !== null
-  ) {
-    return "auto";
+): 'auto' | 'none' {
+  if (toolMode === 'draw' || interactionMode === 'edit' || hoveredImageBlockId !== null) {
+    return 'auto'
   }
-  return "none";
+  return 'none'
 }
 
 /**
@@ -42,15 +38,11 @@ export function computeTextPointerEvents(
   toolMode: string,
   interactionMode: InteractionMode,
   hoveredImageBlockId: number | null,
-): "auto" | "none" {
-  if (
-    toolMode === "draw" ||
-    interactionMode === "edit" ||
-    hoveredImageBlockId !== null
-  ) {
-    return "none";
+): 'auto' | 'none' {
+  if (toolMode === 'draw' || interactionMode === 'edit' || hoveredImageBlockId !== null) {
+    return 'none'
   }
-  return "auto";
+  return 'auto'
 }
 
 /**
@@ -74,15 +66,15 @@ export function findHoveredImageBlock(
     offsetX,
     offsetY,
     scale,
-  );
+  )
 
   for (const el of elements) {
-    if (!isImageBlock(el)) continue;
+    if (!isImageBlock(el)) continue
     if (pointInRect(imagePoint, polyToRect(el.poly))) {
-      return el.anno_id;
+      return el.anno_id
     }
   }
-  return null;
+  return null
 }
 
 /**
@@ -95,11 +87,11 @@ export function resolveInteractionMode(
 ): InteractionMode {
   // Enter edit mode when an image block is selected
   if (selectedElement && isImageBlock(selectedElement)) {
-    return "edit";
+    return 'edit'
   }
   // Exit edit mode when selection is cleared
-  if (selectedElementId === null && currentMode === "edit") {
-    return "browse";
+  if (selectedElementId === null && currentMode === 'edit') {
+    return 'browse'
   }
-  return currentMode;
+  return currentMode
 }

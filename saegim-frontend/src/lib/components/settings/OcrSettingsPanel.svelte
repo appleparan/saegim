@@ -152,19 +152,19 @@
 <div class="space-y-6">
   <!-- Engine Type Selection -->
   <div>
-    <h3 class="text-sm font-semibold text-foreground mb-3">OCR 엔진 타입</h3>
+    <h3 class="text-foreground mb-3 text-sm font-semibold">OCR 엔진 타입</h3>
     <div class="grid grid-cols-2 gap-3">
       {#each engineTypes as e}
         <button
           type="button"
-          class="text-left p-3 rounded-lg border-2 transition-all
+          class="rounded-lg border-2 p-3 text-left transition-all
             {engineType === e.value
             ? 'border-primary bg-primary/10'
             : 'border-border hover:border-border bg-card'}"
           onclick={() => (engineType = e.value)}
         >
-          <div class="font-medium text-sm text-foreground">{e.label}</div>
-          <div class="text-xs text-muted-foreground mt-0.5">{e.description}</div>
+          <div class="text-foreground text-sm font-medium">{e.label}</div>
+          <div class="text-muted-foreground mt-0.5 text-xs">{e.description}</div>
         </button>
       {/each}
     </div>
@@ -172,29 +172,31 @@
 
   <!-- Commercial API Config -->
   {#if engineType === 'commercial_api'}
-    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
-      <h4 class="text-sm font-medium text-foreground">Google Gemini</h4>
+    <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
+      <h4 class="text-foreground text-sm font-medium">Google Gemini</h4>
 
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1" for="ca-api-key">
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="ca-api-key">
           API Key
         </label>
         <input
           id="ca-api-key"
           type="password"
-          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-            focus:border-ring focus:ring-1 focus:ring-ring"
+          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+            py-2 text-sm focus:ring-1"
           placeholder="Google Gemini API Key"
           bind:value={caApiKey}
         />
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1" for="ca-model">모델</label>
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="ca-model"
+          >모델</label
+        >
         <select
           id="ca-model"
-          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-            focus:border-ring focus:ring-1 focus:ring-ring"
+          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+            py-2 text-sm focus:ring-1"
           bind:value={caModel}
         >
           <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
@@ -207,27 +209,31 @@
 
   <!-- Integrated Server Config -->
   {#if engineType === 'integrated_server'}
-    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
-      <h4 class="text-sm font-medium text-foreground">통합 파이프라인 서버</h4>
+    <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
+      <h4 class="text-foreground text-sm font-medium">통합 파이프라인 서버</h4>
       <div class="grid grid-cols-3 gap-3">
         <div class="col-span-2">
-          <label class="block text-xs font-medium text-muted-foreground mb-1" for="is-host">호스트</label>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="is-host"
+            >호스트</label
+          >
           <input
             id="is-host"
             type="text"
-            class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-              focus:border-ring focus:ring-1 focus:ring-ring"
+            class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+              py-2 text-sm focus:ring-1"
             placeholder="localhost"
             bind:value={isHost}
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-muted-foreground mb-1" for="is-port">포트</label>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="is-port"
+            >포트</label
+          >
           <input
             id="is-port"
             type="number"
-            class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-              focus:border-ring focus:ring-1 focus:ring-ring"
+            class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+              py-2 text-sm focus:ring-1"
             placeholder="8000"
             min="1"
             max="65535"
@@ -236,12 +242,14 @@
         </div>
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1" for="is-model">모델</label>
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="is-model"
+          >모델</label
+        >
         <input
           id="is-model"
           type="text"
-          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-            focus:border-ring focus:ring-1 focus:ring-ring"
+          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+            py-2 text-sm focus:ring-1"
           placeholder="datalab-to/chandra"
           bind:value={isModel}
         />
@@ -251,58 +259,58 @@
 
   <!-- Split Pipeline Config -->
   {#if engineType === 'split_pipeline'}
-    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
-      <h4 class="text-sm font-medium text-foreground">레이아웃 서버</h4>
+    <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
+      <h4 class="text-foreground text-sm font-medium">레이아웃 서버</h4>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-layout-url">
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-layout-url">
           레이아웃 서버 URL
         </label>
         <input
           id="sp-layout-url"
           type="text"
-          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-            focus:border-ring focus:ring-1 focus:ring-ring"
+          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+            py-2 text-sm focus:ring-1"
           placeholder="http://localhost:18811"
           bind:value={spLayoutUrl}
         />
       </div>
     </div>
 
-    <div class="space-y-3 p-4 bg-muted rounded-lg border border-border">
-      <h4 class="text-sm font-medium text-foreground">OCR 프로바이더</h4>
-      <div class="grid grid-cols-2 gap-3 mb-3">
+    <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
+      <h4 class="text-foreground text-sm font-medium">OCR 프로바이더</h4>
+      <div class="mb-3 grid grid-cols-2 gap-3">
         <button
           type="button"
-          class="text-left p-2 rounded-lg border-2 transition-all
+          class="rounded-lg border-2 p-2 text-left transition-all
             {spOcrProvider === 'gemini'
             ? 'border-primary bg-primary/10'
             : 'border-border hover:border-border bg-card'}"
           onclick={() => (spOcrProvider = 'gemini')}
         >
-          <div class="font-medium text-sm text-foreground">Google Gemini</div>
+          <div class="text-foreground text-sm font-medium">Google Gemini</div>
         </button>
         <button
           type="button"
-          class="text-left p-2 rounded-lg border-2 transition-all
+          class="rounded-lg border-2 p-2 text-left transition-all
             {spOcrProvider === 'vllm'
             ? 'border-primary bg-primary/10'
             : 'border-border hover:border-border bg-card'}"
           onclick={() => (spOcrProvider = 'vllm')}
         >
-          <div class="font-medium text-sm text-foreground">vLLM</div>
+          <div class="text-foreground text-sm font-medium">vLLM</div>
         </button>
       </div>
 
       {#if spOcrProvider === 'gemini'}
         <div>
-          <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-api-key">
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-ocr-api-key">
             API Key
           </label>
           <input
             id="sp-ocr-api-key"
             type="password"
-            class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-              focus:border-ring focus:ring-1 focus:ring-ring"
+            class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+              py-2 text-sm focus:ring-1"
             placeholder="Google Gemini API Key"
             bind:value={spOcrApiKey}
           />
@@ -312,27 +320,27 @@
       {#if spOcrProvider === 'vllm'}
         <div class="grid grid-cols-3 gap-3">
           <div class="col-span-2">
-            <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-host">
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-ocr-host">
               호스트
             </label>
             <input
               id="sp-ocr-host"
               type="text"
-              class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-                focus:border-ring focus:ring-1 focus:ring-ring"
+              class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+                py-2 text-sm focus:ring-1"
               placeholder="localhost"
               bind:value={spOcrHost}
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-port">
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-ocr-port">
               포트
             </label>
             <input
               id="sp-ocr-port"
               type="number"
-              class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-                focus:border-ring focus:ring-1 focus:ring-ring"
+              class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+                py-2 text-sm focus:ring-1"
               placeholder="8000"
               min="1"
               max="65535"
@@ -343,14 +351,14 @@
       {/if}
 
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1" for="sp-ocr-model">
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-ocr-model">
           모델
         </label>
         <input
           id="sp-ocr-model"
           type="text"
-          class="block w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm
-            focus:border-ring focus:ring-1 focus:ring-ring"
+          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+            py-2 text-sm focus:ring-1"
           placeholder="gemini-3-flash-preview"
           bind:value={spOcrModel}
         />
@@ -361,9 +369,9 @@
   <!-- Connection Test Result -->
   {#if testResult}
     <div
-      class="p-3 rounded-lg text-sm border
+      class="rounded-lg border p-3 text-sm
         {testResult.success
-        ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
         : 'bg-destructive/10 dark:bg-destructive/20 border-destructive/30 text-destructive'}"
     >
       {testResult.message}

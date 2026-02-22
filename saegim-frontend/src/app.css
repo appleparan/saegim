@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -136,8 +136,7 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Temporary: card utilities (will be replaced by shadcn Card in Stage 3) */
@@ -167,7 +166,7 @@ body {
 }
 
 .card-accent::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;

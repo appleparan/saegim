@@ -8,9 +8,7 @@
   import { Label } from '$lib/components/ui/label'
 
   let element = $derived(annotationStore.selectedElement)
-  let fields = $derived(
-    element ? CATEGORY_ATTRIBUTES[element.category_type] ?? [] : [],
-  )
+  let fields = $derived(element ? (CATEGORY_ATTRIBUTES[element.category_type] ?? []) : [])
 
   function handleCategoryChange(category: BlockCategoryType) {
     if (!element) return
@@ -29,30 +27,24 @@
 </script>
 
 {#if element}
-  <div class="p-3 space-y-4">
+  <div class="space-y-4 p-3">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-foreground">
+      <h3 class="text-foreground text-sm font-semibold">
         요소 #{element.anno_id}
       </h3>
-      <span class="text-xs text-muted-foreground">순서: {element.order}</span>
+      <span class="text-muted-foreground text-xs">순서: {element.order}</span>
     </div>
 
-    <CategorySelect
-      value={element.category_type}
-      onchange={handleCategoryChange}
-    />
+    <CategorySelect value={element.category_type} onchange={handleCategoryChange} />
 
     <div class="flex items-center gap-2">
-      <Switch
-        checked={element.ignore}
-        onCheckedChange={handleToggleIgnore}
-      />
+      <Switch checked={element.ignore} onCheckedChange={handleToggleIgnore} />
       <Label class="text-sm">무시 처리</Label>
     </div>
 
     {#if fields.length > 0}
-      <div class="border-t border-border pt-3 space-y-3">
-        <h4 class="text-xs font-medium text-muted-foreground uppercase">속성</h4>
+      <div class="border-border space-y-3 border-t pt-3">
+        <h4 class="text-muted-foreground text-xs font-medium uppercase">속성</h4>
         {#each fields as field}
           {#if field.type === 'select' && field.options}
             <Select
@@ -66,10 +58,7 @@
               <Switch
                 checked={!!element.attribute?.[field.key]}
                 onCheckedChange={() =>
-                  handleAttributeChange(
-                    field.key,
-                    !element!.attribute?.[field.key],
-                  )}
+                  handleAttributeChange(field.key, !element!.attribute?.[field.key])}
               />
               <Label class="text-sm">{field.label}</Label>
             </div>
@@ -80,6 +69,6 @@
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-sm text-muted-foreground py-8">요소를 선택하세요.</p>
+    <p class="text-muted-foreground py-8 text-sm">요소를 선택하세요.</p>
   </div>
 {/if}

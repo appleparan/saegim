@@ -13,39 +13,39 @@
   }
 </script>
 
-<div class="p-3 border-b border-border flex items-center justify-between bg-muted">
+<div class="border-border bg-muted flex items-center justify-between border-b p-3">
   <div>
-    <h3 class="text-sm font-semibold text-foreground">요소 목록</h3>
-    <p class="text-xs text-muted-foreground mt-0.5">
+    <h3 class="text-foreground text-sm font-semibold">요소 목록</h3>
+    <p class="text-muted-foreground mt-0.5 text-xs">
       {annotationStore.elements.length}개 요소
     </p>
   </div>
 </div>
 
-<div class="p-1.5 overflow-y-auto flex-1">
+<div class="flex-1 overflow-y-auto p-1.5">
   {#each annotationStore.elements as element}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="w-full text-left px-2.5 py-2 rounded-lg text-sm transition-all flex items-center gap-2.5 group cursor-pointer mb-0.5
+      class="group mb-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-all
         {annotationStore.selectedElementId === element.anno_id
-          ? 'bg-primary/10 text-primary shadow-sm border border-primary/30'
-          : 'hover:bg-accent text-foreground border border-transparent'}"
+        ? 'bg-primary/10 text-primary border-primary/30 border shadow-sm'
+        : 'hover:bg-accent text-foreground border border-transparent'}"
       onclick={() => annotationStore.selectElement(element.anno_id)}
     >
       <span
-        class="w-3 h-3 rounded-sm shrink-0 shadow-sm"
+        class="h-3 w-3 shrink-0 rounded-sm shadow-sm"
         style="background-color: {getCategoryColor(element.category_type)}"
       ></span>
       <span class="flex-1 truncate">
-        <span class="font-medium text-muted-foreground mr-0.5">{element.order}.</span>
+        <span class="text-muted-foreground mr-0.5 font-medium">{element.order}.</span>
         {getLabel(element.category_type)}
         {#if element.ignore}
-          <span class="text-xs text-muted-foreground italic">(무시)</span>
+          <span class="text-muted-foreground text-xs italic">(무시)</span>
         {/if}
       </span>
       <button
-        class="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive px-1 transition-all"
+        class="text-muted-foreground hover:text-destructive px-1 opacity-0 transition-all group-hover:opacity-100"
         onclick={(e) => handleDelete(e, element.anno_id)}
         aria-label="삭제"
       >
@@ -54,8 +54,8 @@
     </div>
   {/each}
   {#if annotationStore.elements.length === 0}
-    <p class="text-xs text-muted-foreground text-center py-8">
-      요소가 없습니다.<br/>그리기 도구로 추가하세요.
+    <p class="text-muted-foreground py-8 text-center text-xs">
+      요소가 없습니다.<br />그리기 도구로 추가하세요.
     </p>
   {/if}
 </div>

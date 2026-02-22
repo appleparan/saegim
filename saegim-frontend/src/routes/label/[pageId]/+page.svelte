@@ -44,16 +44,20 @@
       canvasStore.setImageDimensions(data.width, data.height)
 
       // Load page list and document status (non-blocking)
-      listPages(data.document_id).then((pages) => {
-        documentPages = pages
-      }).catch(() => {
-        documentPages = []
-      })
-      getDocumentStatus(data.document_id).then((status) => {
-        documentStatus = status.status
-      }).catch(() => {
-        documentStatus = undefined
-      })
+      listPages(data.document_id)
+        .then((pages) => {
+          documentPages = pages
+        })
+        .catch(() => {
+          documentPages = []
+        })
+      getDocumentStatus(data.document_id)
+        .then((status) => {
+          documentStatus = status.status
+        })
+        .catch(() => {
+          documentStatus = undefined
+        })
 
       // Load PDF for vector rendering if available
       if (data.pdf_url && data.pdf_url.length > 0) {
@@ -162,37 +166,51 @@
   })
 </script>
 
-<div class="h-full flex flex-col">
+<div class="flex h-full flex-col">
   <Header title={pageData?.project_name ?? '레이블링'} showSave onsave={handleSave} {saving} />
 
   {#if pageData?.project_id}
-    <nav class="h-9 bg-card border-b border-border px-4 flex items-center text-sm shrink-0">
+    <nav class="bg-card border-border flex h-9 shrink-0 items-center border-b px-4 text-sm">
       <a
         href="/projects/{pageData.project_id}"
-        class="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+        class="text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
         {pageData.project_name ?? '프로젝트'}
       </a>
-      <span class="mx-2 text-muted-foreground">/</span>
+      <span class="text-muted-foreground mx-2">/</span>
       <span class="text-muted-foreground">{pageData.document_filename ?? '문서'}</span>
-      <span class="mx-2 text-muted-foreground">/</span>
+      <span class="text-muted-foreground mx-2">/</span>
       <span class="text-foreground font-medium">페이지 {pageData.page_no}</span>
     </nav>
   {/if}
 
   {#if annotationStore.isLoading}
-    <div class="flex-1 flex items-center justify-center">
+    <div class="flex flex-1 items-center justify-center">
       <LoadingSpinner message="페이지 불러오는 중..." />
     </div>
   {:else if annotationStore.error}
-    <div class="flex-1 flex items-center justify-center">
-      <div class="bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 rounded-xl p-6 text-center max-w-md">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-destructive/20 flex items-center justify-center">
-          <svg class="w-6 h-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    <div class="flex flex-1 items-center justify-center">
+      <div
+        class="bg-destructive/10 dark:bg-destructive/20 border-destructive/30 max-w-md rounded-xl border p-6 text-center"
+      >
+        <div
+          class="bg-destructive/20 mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl"
+        >
+          <svg
+            class="text-destructive h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+            />
           </svg>
         </div>
         <p class="text-destructive mb-4 font-medium">{annotationStore.error}</p>
@@ -200,14 +218,11 @@
       </div>
     </div>
   {:else}
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex flex-1 overflow-hidden">
       <!-- Left panel: Page navigator + Element list + extraction preview -->
-      <div class="w-64 border-r border-border bg-card overflow-y-auto flex flex-col shadow-sm">
+      <div class="border-border bg-card flex w-64 flex-col overflow-y-auto border-r shadow-sm">
         {#if documentPages.length > 1}
-          <PageNavigator
-            pages={documentPages}
-            currentPageId={page.params.pageId!}
-          />
+          <PageNavigator pages={documentPages} currentPageId={page.params.pageId!} />
         {/if}
         {#if pageData}
           <ExtractionPreview
@@ -221,67 +236,117 @@
       </div>
 
       <!-- Center: Canvas area -->
-      <div class="flex-1 relative bg-muted">
+      <div class="bg-muted relative flex-1">
         <div class="absolute top-3 left-3 z-30 flex">
-          <div class="flex items-center bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border p-1 gap-0.5">
+          <div
+            class="bg-card/95 border-border flex items-center gap-0.5 rounded-xl border p-1 shadow-md backdrop-blur-sm"
+          >
             <!-- Tool buttons -->
             <button
-              class="p-1.5 rounded-lg transition-all
-                {canvasStore.toolMode === 'select' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
+              class="rounded-lg p-1.5 transition-all
+                {canvasStore.toolMode === 'select'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('select')}
               title="선택 (S)"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"
+                />
               </svg>
             </button>
             <button
-              class="p-1.5 rounded-lg transition-all
-                {canvasStore.toolMode === 'draw' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
+              class="rounded-lg p-1.5 transition-all
+                {canvasStore.toolMode === 'draw'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('draw')}
               title="그리기 (D)"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                />
               </svg>
             </button>
             <button
-              class="p-1.5 rounded-lg transition-all
-                {canvasStore.toolMode === 'pan' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent'}"
+              class="rounded-lg p-1.5 transition-all
+                {canvasStore.toolMode === 'pan'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('pan')}
               title="이동 (H)"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.05 4.575a1.575 1.575 0 10-3.15 0v3.15m3.15-3.15v-1.5a1.575 1.575 0 013.15 0v1.5m-3.15 0l-.075 5.925m3.225-5.925a1.575 1.575 0 013.15 0v1.5m-3.15-1.5v5.925m0-5.925a1.575 1.575 0 013.15 0v5.925m-3.15 0a7.007 7.007 0 01-.088.967m.088-.967a7.032 7.032 0 01-3.225 4.672l-.26.163a3.375 3.375 0 01-4.476-1.123l-.04-.068a6.685 6.685 0 01-.932-3.569V6.75a1.575 1.575 0 013.15 0v4.125" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.05 4.575a1.575 1.575 0 10-3.15 0v3.15m3.15-3.15v-1.5a1.575 1.575 0 013.15 0v1.5m-3.15 0l-.075 5.925m3.225-5.925a1.575 1.575 0 013.15 0v1.5m-3.15-1.5v5.925m0-5.925a1.575 1.575 0 013.15 0v5.925m-3.15 0a7.007 7.007 0 01-.088.967m.088-.967a7.032 7.032 0 01-3.225 4.672l-.26.163a3.375 3.375 0 01-4.476-1.123l-.04-.068a6.685 6.685 0 01-.932-3.569V6.75a1.575 1.575 0 013.15 0v4.125"
+                />
               </svg>
             </button>
 
             <!-- Separator -->
-            <div class="w-px h-5 bg-border mx-0.5"></div>
+            <div class="bg-border mx-0.5 h-5 w-px"></div>
 
             <!-- Zoom controls -->
             <button
-              class="p-1.5 rounded-lg text-muted-foreground hover:bg-accent transition-all"
+              class="text-muted-foreground hover:bg-accent rounded-lg p-1.5 transition-all"
               onclick={() => canvasStore.zoomOut()}
               title="축소"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" />
               </svg>
             </button>
             <button
-              class="px-1.5 py-1 text-[11px] font-mono font-medium rounded-lg text-muted-foreground hover:bg-accent transition-all min-w-[3rem] text-center"
+              class="text-muted-foreground hover:bg-accent min-w-[3rem] rounded-lg px-1.5 py-1 text-center font-mono text-[11px] font-medium transition-all"
               onclick={() => canvasStore.resetView()}
               title="1:1 보기로 리셋"
             >
               {Math.round(canvasStore.scale * 100)}%
             </button>
             <button
-              class="p-1.5 rounded-lg text-muted-foreground hover:bg-accent transition-all"
+              class="text-muted-foreground hover:bg-accent rounded-lg p-1.5 transition-all"
               onclick={() => canvasStore.zoomIn()}
               title="확대"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
             </button>
@@ -304,10 +369,10 @@
         <!-- Render mode indicator (dev) -->
         {#if renderMode !== 'none'}
           <div
-            class="absolute bottom-3 right-3 z-30 px-2 py-1 text-[10px] font-mono rounded-md shadow-sm border
+            class="absolute right-3 bottom-3 z-30 rounded-md border px-2 py-1 font-mono text-[10px] shadow-sm
               {renderMode === 'pdfjs'
-                ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
-                : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700'}"
+              ? 'border-green-300 bg-green-100 text-green-700 dark:border-green-700 dark:bg-green-900/50 dark:text-green-300'
+              : 'border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-300'}"
           >
             {renderMode === 'pdfjs' ? 'PDF.js' : 'Image'}
           </div>

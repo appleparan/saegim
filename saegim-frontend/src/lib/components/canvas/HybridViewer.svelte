@@ -47,19 +47,11 @@
 
   // --- Derived pointer-events ---
   let konvaPointerEvents = $derived(
-    computeKonvaPointerEvents(
-      canvasStore.toolMode,
-      interactionMode,
-      hoveredImageBlockId,
-    ),
+    computeKonvaPointerEvents(canvasStore.toolMode, interactionMode, hoveredImageBlockId),
   )
 
   let textPointerEvents = $derived(
-    computeTextPointerEvents(
-      canvasStore.toolMode,
-      interactionMode,
-      hoveredImageBlockId,
-    ),
+    computeTextPointerEvents(canvasStore.toolMode, interactionMode, hoveredImageBlockId),
   )
 
   // --- Zoom/Pan (container-level DOM events) ---
@@ -101,10 +93,7 @@
 
   function handleMouseMove(e: MouseEvent) {
     if (isPanning) {
-      canvasStore.setOffset(
-        e.clientX - panStart.x,
-        e.clientY - panStart.y,
-      )
+      canvasStore.setOffset(e.clientX - panStart.x, e.clientY - panStart.y)
       return
     }
 
@@ -118,8 +107,7 @@
     if (isPanning) {
       isPanning = false
       if (containerEl) {
-        containerEl.style.cursor =
-          canvasStore.toolMode === 'pan' ? 'grab' : 'default'
+        containerEl.style.cursor = canvasStore.toolMode === 'pan' ? 'grab' : 'default'
       }
     }
   }
@@ -269,7 +257,11 @@
   ></div>
 
   {#if stage}
-    <BboxLayer {stage} filter={(el) => isImageBlock(el) || el.anno_id === annotationStore.selectedElementId} {interactionMode} />
+    <BboxLayer
+      {stage}
+      filter={(el) => isImageBlock(el) || el.anno_id === annotationStore.selectedElementId}
+      {interactionMode}
+    />
     {#if canvasStore.toolMode === 'draw'}
       <BboxDrawTool {stage} />
     {/if}

@@ -40,30 +40,30 @@
   }
 </script>
 
-<div class="border-b border-border bg-muted/50">
+<div class="border-border bg-muted/50 border-b">
   <div class="flex items-center justify-between px-3 py-2">
-    <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">페이지</span>
+    <span class="text-muted-foreground text-xs font-medium tracking-wider uppercase">페이지</span>
     <div class="flex items-center gap-1">
       <button
-        class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         disabled={!hasPrev}
         onclick={prevPage}
         title="이전 페이지 ([)"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
-      <span class="text-xs text-muted-foreground min-w-[3rem] text-center">
+      <span class="text-muted-foreground min-w-[3rem] text-center text-xs">
         {currentIndex + 1} / {pages.length}
       </span>
       <button
-        class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         disabled={!hasNext}
         onclick={nextPage}
         title="다음 페이지 (])"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -74,10 +74,10 @@
     <div class="flex flex-wrap gap-1">
       {#each pages as page (page.id)}
         <button
-          class="min-w-[2rem] px-1.5 py-0.5 text-xs rounded transition-all
+          class="min-w-[2rem] rounded px-1.5 py-0.5 text-xs transition-all
             {page.id === currentPageId
-              ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-              : 'bg-card border border-border text-foreground hover:border-primary/30 hover:bg-primary/10'}"
+            ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+            : 'bg-card border-border text-foreground hover:border-primary/30 hover:bg-primary/10 border'}"
           onclick={() => goToPage(page.id)}
           title="페이지 {page.page_no} ({page.status})"
         >
@@ -88,12 +88,19 @@
   </div>
 
   {#if pages.length > 0}
-    <div class="px-3 pb-2 flex gap-1 flex-wrap">
+    <div class="flex flex-wrap gap-1 px-3 pb-2">
       {#each ['pending', 'in_progress', 'submitted', 'reviewed'] as status}
         {@const count = pages.filter((p) => p.status === status).length}
         {#if count > 0}
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full {statusColors[status]}">
-            {status === 'in_progress' ? '진행중' : status === 'pending' ? '대기' : status === 'submitted' ? '제출' : '검토완료'} {count}
+          <span class="rounded-full px-1.5 py-0.5 text-[10px] {statusColors[status]}">
+            {status === 'in_progress'
+              ? '진행중'
+              : status === 'pending'
+                ? '대기'
+                : status === 'submitted'
+                  ? '제출'
+                  : '검토완료'}
+            {count}
           </span>
         {/if}
       {/each}

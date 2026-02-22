@@ -6,6 +6,6 @@
 </script>
 
 <ModeWatcher />
-<div class="h-full flex flex-col bg-background text-foreground">
+<div class="bg-background text-foreground flex h-full flex-col">
   {@render children()}
 </div>

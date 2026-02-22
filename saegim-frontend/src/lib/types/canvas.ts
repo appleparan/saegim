@@ -3,21 +3,21 @@
  */
 
 export interface Point {
-  readonly x: number;
-  readonly y: number;
+  readonly x: number
+  readonly y: number
 }
 
 export interface Rect {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
 }
 
-export type ToolMode = "select" | "draw" | "pan";
+export type ToolMode = 'select' | 'draw' | 'pan'
 
 export interface ViewportState {
-  readonly scale: number;
-  readonly offsetX: number;
-  readonly offsetY: number;
+  readonly scale: number
+  readonly offsetX: number
+  readonly offsetY: number
 }

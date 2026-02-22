@@ -4,12 +4,7 @@
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import OcrSettingsPanel from '$lib/components/settings/OcrSettingsPanel.svelte'
-  import {
-    getProject,
-    getOcrConfig,
-    updateOcrConfig,
-    testOcrConnection,
-  } from '$lib/api/projects'
+  import { getProject, getOcrConfig, updateOcrConfig, testOcrConnection } from '$lib/api/projects'
   import type {
     ProjectResponse,
     OcrConfigResponse,
@@ -33,10 +28,7 @@
     isLoading = true
     error = null
     try {
-      const [proj, config] = await Promise.all([
-        getProject(id),
-        getOcrConfig(id),
-      ])
+      const [proj, config] = await Promise.all([getProject(id), getOcrConfig(id)])
       project = proj
       ocrConfig = config
     } catch (e) {
@@ -99,41 +91,37 @@
   })
 </script>
 
-<div class="h-full flex flex-col">
+<div class="flex h-full flex-col">
   <Header title={project?.name ?? 'saegim'} />
 
-  <div class="flex-1 p-8 overflow-y-auto bg-background">
-    <div class="max-w-2xl mx-auto">
+  <div class="bg-background flex-1 overflow-y-auto p-8">
+    <div class="mx-auto max-w-2xl">
       <div class="mb-4">
         {#if page.params.id}
           <a
             href="/projects/{page.params.id}"
-            class="text-sm text-muted-foreground hover:text-primary
-              transition-colors flex items-center gap-1 w-fit"
+            class="text-muted-foreground hover:text-primary flex
+              w-fit items-center gap-1 text-sm transition-colors"
           >
             <svg
-              class="w-4 h-4"
+              class="h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
               stroke-width="2"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
             문서 목록
           </a>
         {/if}
       </div>
 
-      <div class="flex items-center justify-between mb-6">
+      <div class="mb-6 flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-foreground">프로젝트 설정</h1>
+          <h1 class="text-foreground text-2xl font-bold">프로젝트 설정</h1>
           {#if project}
-            <p class="text-sm text-muted-foreground mt-1">{project.name}</p>
+            <p class="text-muted-foreground mt-1 text-sm">{project.name}</p>
           {/if}
         </div>
       </div>
@@ -144,7 +132,7 @@
         </div>
       {:else if error}
         <div
-          class="bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 rounded-xl p-6 text-center"
+          class="bg-destructive/10 dark:bg-destructive/20 border-destructive/30 rounded-xl border p-6 text-center"
         >
           <p class="text-destructive mb-4 font-medium">{error}</p>
           <Button variant="outline" onclick={loadData}>다시 시도</Button>
@@ -152,8 +140,8 @@
       {:else if ocrConfig}
         {#if successMessage}
           <div
-            class="mb-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800
-              rounded-lg p-3 text-sm text-emerald-700 dark:text-emerald-300"
+            class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3
+              text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
           >
             {successMessage}
           </div>
