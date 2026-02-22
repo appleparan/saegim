@@ -176,26 +176,16 @@ test.describe.serial('PDF Text/Image Extraction', () => {
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Check which rendering mode is active
-    const pdfCanvas = page.locator('canvas[data-pdf-renderer]')
-    const hasPdfCanvas = await pdfCanvas.isVisible().catch(() => false)
+    // Selectable text should exist (PDF.js text layer spans or TextOverlay textbox elements)
+    const textElements = page.locator('[data-text-layer] span, [role="textbox"]')
+    await expect(textElements.first()).toBeAttached({ timeout: 5_000 })
 
-    if (hasPdfCanvas) {
-      // PDF.js mode: text layer provides selectable text
-      const textLayer = page.locator('[data-text-layer]')
-      await expect(textLayer).toBeAttached()
-    } else {
-      // Image fallback mode: TextOverlay renders [role="textbox"] elements
-      const textOverlays = page.locator('[role="textbox"]')
-      const textCount = await textOverlays.count()
-      expect(textCount).toBeGreaterThan(0)
-
-      const firstOverlay = textOverlays.first()
-      const userSelect = await firstOverlay.evaluate(
-        (el) => window.getComputedStyle(el).userSelect,
-      )
-      expect(userSelect).toBe('text')
-    }
+    // Text should support native selection (user-select is not 'none')
+    const firstText = textElements.first()
+    const userSelect = await firstText.evaluate(
+      (el) => window.getComputedStyle(el).userSelect,
+    )
+    expect(userSelect).not.toBe('none')
   })
 
   test('09 - extracted elements have correct coordinate scaling', async () => {
