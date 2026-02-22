@@ -58,7 +58,7 @@ describe("PageNavigator", () => {
       (b) => b.textContent?.trim() === "2",
     );
     expect(page2Button).toBeTruthy();
-    expect(page2Button?.className).toContain("bg-primary-500");
+    expect(page2Button?.className).toContain("bg-primary");
   });
 
   it("navigates to a different page on click", async () => {

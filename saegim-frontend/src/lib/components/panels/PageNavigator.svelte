@@ -33,19 +33,19 @@
   }
 
   const statusColors: Record<string, string> = {
-    pending: 'bg-gray-200 text-gray-600',
-    in_progress: 'bg-blue-100 text-blue-700',
-    submitted: 'bg-yellow-100 text-yellow-700',
-    reviewed: 'bg-green-100 text-green-700',
+    pending: 'bg-muted text-muted-foreground',
+    in_progress: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+    submitted: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300',
+    reviewed: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
   }
 </script>
 
-<div class="border-b border-gray-200 bg-gray-50/50">
+<div class="border-b border-border bg-muted/50">
   <div class="flex items-center justify-between px-3 py-2">
-    <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">페이지</span>
+    <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">페이지</span>
     <div class="flex items-center gap-1">
       <button
-        class="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         disabled={!hasPrev}
         onclick={prevPage}
         title="이전 페이지 ([)"
@@ -54,11 +54,11 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
-      <span class="text-xs text-gray-500 min-w-[3rem] text-center">
+      <span class="text-xs text-muted-foreground min-w-[3rem] text-center">
         {currentIndex + 1} / {pages.length}
       </span>
       <button
-        class="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         disabled={!hasNext}
         onclick={nextPage}
         title="다음 페이지 (])"
@@ -76,8 +76,8 @@
         <button
           class="min-w-[2rem] px-1.5 py-0.5 text-xs rounded transition-all
             {page.id === currentPageId
-              ? 'bg-primary-500 text-white font-medium shadow-sm'
-              : 'bg-white border border-gray-200 text-gray-600 hover:border-primary-300 hover:bg-primary-50'}"
+              ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+              : 'bg-card border border-border text-foreground hover:border-primary/30 hover:bg-primary/10'}"
           onclick={() => goToPage(page.id)}
           title="페이지 {page.page_no} ({page.status})"
         >
