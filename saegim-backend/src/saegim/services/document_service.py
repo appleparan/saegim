@@ -29,7 +29,7 @@ async def upload_and_convert(
     is determined by the project's ``engine_type`` setting.
 
     Engine types:
-    - 'pdfminer' / 'pymupdf' (legacy): Synchronous extraction via pdfminer.six
+    - 'pdfminer': Synchronous extraction via pdfminer.six
     - Others: Background asyncio task for OCR extraction
 
     Args:
@@ -70,7 +70,7 @@ async def upload_and_convert(
         pdf_doc = pdfium.PdfDocument(str(pdf_path))
         total_pages = len(pdf_doc)
 
-        use_pdfminer = engine_type in ('pdfminer', 'pymupdf')
+        use_pdfminer = engine_type == 'pdfminer'
         page_info_list: list[dict] = []
 
         for page_no in range(total_pages):

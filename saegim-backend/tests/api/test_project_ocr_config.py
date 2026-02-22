@@ -82,7 +82,7 @@ class TestGetOcrConfig:
 class TestUpdateOcrConfig:
     """Test PUT /projects/{id}/ocr-config."""
 
-    def test_update_pymupdf_config(self, client: TestClient, sample_project_record):
+    def test_update_pdfminer_config(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -98,11 +98,11 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
-                json={'engine_type': 'pymupdf'},
+                json={'engine_type': 'pdfminer'},
             )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()['engine_type'] == 'pymupdf'
+        assert response.json()['engine_type'] == 'pdfminer'
 
     def test_update_commercial_api_gemini(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
@@ -248,7 +248,7 @@ class TestUpdateOcrConfig:
         ):
             response = client.put(
                 '/api/v1/projects/00000000-0000-0000-0000-000000000000/ocr-config',
-                json={'engine_type': 'pymupdf'},
+                json={'engine_type': 'pdfminer'},
             )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND

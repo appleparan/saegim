@@ -248,7 +248,8 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 | **파일 저장** | 로컬 파일시스템 (→ 추후 MinIO/S3) | PDF 원본, 페이지 이미지 등 바이너리 파일 |
 | **레이아웃 감지** | PP-StructureV3 (PaddleX HTTP 서비스) | 2단계 파이프라인 1단계: bbox + category 감지. Docker profile로 선택적 실행 |
 | **텍스트 OCR** | Gemini API, OlmOCR (vLLM), PP-OCRv5 (내장) | 2단계 파이프라인 2단계: 크롭 영역 텍스트 추출. 프로젝트별 설정 |
-| **PDF 추출 (폴백)** | PyMuPDF | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
+| **PDF 렌더링** | pypdfium2 (Apache 2.0) | PDF → PNG 페이지 이미지 변환 (2x scale) |
+| **PDF 추출 (폴백)** | pdfminer.six (MIT) | CI/테스트용 동기 추출 폴백 (text_block + figure만 지원) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 | asyncio.create_task + asyncio.to_thread로 OCR 비동기 추출 |
 | **배포** | Docker Compose | 로컬/서버 동일 환경. 배포 환경 미정이어도 유연하게 대응 |
 
@@ -589,7 +590,7 @@ ocr_config.engine_type
   ├── commercial_api     → VLM API (Gemini/vLLM) full-page 분석
   ├── integrated_server  → PP-StructureV3 + PP-OCR 내장 파이프라인
   ├── split_pipeline     → PP-StructureV3 레이아웃 + 외부 OCR (Gemini/vLLM)
-  └── pymupdf            → PyMuPDF 폴백 (GPU 불필요)
+  └── pdfminer           → pdfminer.six 폴백 (GPU 불필요)
 ```
 
 | Engine Type | 설명 | 외부 서비스 | 사용 시나리오 |
@@ -597,18 +598,17 @@ ocr_config.engine_type
 | `commercial_api` | 상업용 VLM API (Gemini, vLLM) | Gemini API 또는 vLLM 서버 | 고품질 full-page OCR |
 | `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 Docker 또는 vLLM 서버 | 레이아웃+OCR 일체형 (모델명으로 자동 분기) |
 | `split_pipeline` | 분리 파이프라인 (Layout + OCR) | PP-StructureV3 + Gemini/vLLM | 레이아웃은 PP, OCR은 VLM |
-| `pymupdf` | PyMuPDF 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
+| `pdfminer` | pdfminer.six 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
 
-#### 5.0.1 PyMuPDF 폴백 (`engine_type: pymupdf`)
+#### 5.0.1 pdfminer.six 폴백 (`engine_type: pdfminer`)
 
 ```text
 PDF 업로드
-  → PyMuPDF 페이지 렌더링 (2x scale PNG)
-  → page.get_text("dict") → blocks 배열 (동기)
-     ├── type=0 (텍스트) → category_type: "text_block", spans의 text 합침
-     └── type=1 (이미지) → category_type: "figure"
-  → page.get_images() + get_image_bbox() → 임베디드 이미지 추출
-  → 좌표 스케일링: PyMuPDF 72 DPI × 2.0 = 이미지 픽셀 좌표
+  → pypdfium2 페이지 렌더링 (2x scale PNG)
+  → pdfminer.six extract_pages() → LTPage 트리 (동기)
+     ├── LTTextBox → category_type: "text_block", get_text() 추출
+     └── LTFigure/LTImage → category_type: "figure"
+  → 좌표 변환: pdfminer 좌하단 원점 → 좌상단 원점 (y-flip) × 2.0 = 이미지 픽셀 좌표
   → auto_extracted_data JSONB에 OmniDocBench 형식으로 저장
   → document status: processing → ready (즉시)
   → 프론트엔드에서 "수락" → annotation_data로 복사
@@ -616,8 +616,8 @@ PDF 업로드
 
 구현 파일:
 
-- `services/engines/pymupdf_engine.py`: `PyMuPDFEngine` (`BaseOCREngine` 구현)
-- `services/extraction_service.py`: PyMuPDF 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
+- `services/engines/pdfminer_engine.py`: `PdfminerEngine` (`BaseOCREngine` 구현)
+- `services/extraction_service.py`: pdfminer.six 폴백 (`extract_page_elements()`, `bbox_to_poly()`)
 - `services/document_service.py`: 업로드 시 `engine_type` 분기 + asyncio 백그라운드 태스크 디스패치
 - `page_repo.py`: `create()`, `accept_auto_extracted()`, `update_auto_extracted_data()`
 - `labeling_service.py`: `accept_auto_extraction()`
@@ -627,7 +627,7 @@ PDF 업로드
 
 ```text
 PDF 업로드
-  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → pypdfium2 페이지 렌더링 (2x scale PNG)
   → asyncio 백그라운드 태스크 디스패치
      → 페이지별:
         1. VLM API에 full-page 이미지 전송
@@ -647,7 +647,7 @@ PDF 업로드
 
 ```text
 PDF 업로드
-  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → pypdfium2 페이지 렌더링 (2x scale PNG)
   → asyncio 백그라운드 태스크 디스패치
      → 페이지별 (PP-StructureV3 모드):
         1. PpstructureClient.detect_layout(image_path)
@@ -668,7 +668,7 @@ PDF 업로드
 
 ```text
 PDF 업로드
-  → PyMuPDF 페이지 렌더링 (2x scale PNG)
+  → pypdfium2 페이지 렌더링 (2x scale PNG)
   → asyncio 백그라운드 태스크 디스패치
      → 페이지별:
         1. PpstructureClient.detect_layout(image_path)
@@ -719,8 +719,8 @@ PDF 업로드
   }
 }
 
-// pymupdf (fallback)
-{ "engine_type": "pymupdf" }
+// pdfminer (fallback)
+{ "engine_type": "pdfminer" }
 ```
 
 #### Engine 아키텍처 구현 파일
@@ -729,7 +729,7 @@ PDF 업로드
 
 - `services/engines/base.py`: `BaseOCREngine` ABC (`extract_page()`, `test_connection()`)
 - `services/engines/factory.py`: `build_engine(ocr_config)` 팩토리 (`engine_type` 분기)
-- `services/engines/pymupdf_engine.py`: `PyMuPDFEngine`
+- `services/engines/pdfminer_engine.py`: `PdfminerEngine`
 - `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
 - `services/engines/integrated_server_engine.py`: `IntegratedServerEngine` (PP-StructureV3 또는 vLLM, 모델명 기반 자동 분기)
 - `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (Layout + 외부 OCR)
@@ -742,7 +742,7 @@ PDF 업로드
 - `services/gemini_ocr_service.py`: `GeminiOcrProvider`, `GeminiTextOcrProvider`
 - `services/vllm_ocr_service.py`: `VllmOcrProvider`, `VllmTextOcrProvider`
 - `services/ocr_connection_test.py`: 개별 연결 테스트 (`check_ppstructure_connection`, `check_gemini_connection`, `check_vllm_connection`)
-- `services/extraction_service.py`: PyMuPDF 폴백 추출
+- `services/extraction_service.py`: pdfminer.six 폴백 추출
 
 통합:
 
@@ -764,8 +764,8 @@ PDF 업로드
 **현재**: `engine_type` 기반 단일 선택 아키텍처로 리팩토링 완료.
 `BaseOCREngine` ABC + Strategy 패턴으로 4가지 엔진 타입 지원:
 commercial_api (Gemini/vLLM full-page), integrated_server (PP-StructureV3+PP-OCR),
-split_pipeline (PP-StructureV3+외부 OCR), pymupdf (폴백).
-MinerU는 AGPL 라이선스 이슈로 제거됨. PyMuPDF는 GPU 없는 환경의 폴백으로 유지.
+split_pipeline (PP-StructureV3+외부 OCR), pdfminer (폴백).
+MinerU와 PyMuPDF는 AGPL 라이선스 이슈로 제거됨. pdfminer.six + pypdfium2가 허용적 라이선스 대안으로 교체.
 자동 추출은 "초안" 역할이므로 완벽할 필요 없이 사람 검수 부하를 줄이는 것이 목표.
 
 ### 5.2 자동 Attribute 분류 전략
@@ -898,7 +898,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 
 #### 구현 완료 기능
 
-- PDF → 이미지 변환 파이프라인 (PyMuPDF 2x 렌더링)
+- PDF → 이미지 변환 파이프라인 (pypdfium2 2x 렌더링)
 - 3-layer 하이브리드 레이블링 UI (PDF.js 벡터 렌더링 / 이미지 폴백 → Konva bbox → DOM TextOverlay)
 - Category 선택 UI (드롭다운)
 - Page/Block Attribute 입력 UI
@@ -913,8 +913,8 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 
 #### 구현 완료 (Stage 1~3, PR #4)
 
-- **PyMuPDF 텍스트/이미지 자동 추출**: PDF 업로드 시 `page.get_text("dict")`로 텍스트 블록과 이미지 위치를 추출하여 `auto_extracted_data` JSONB에 저장
-- **좌표 스케일링**: PyMuPDF 72 DPI × 2.0 = 이미지 픽셀 좌표로 변환
+- **pdfminer.six 텍스트/이미지 자동 추출**: PDF 업로드 시 `extract_pages()`로 텍스트 블록과 이미지 위치를 추출하여 `auto_extracted_data` JSONB에 저장
+- **좌표 스케일링**: pdfminer 좌하단 원점 → 좌상단 원점 (y-flip) × 2.0 = 이미지 픽셀 좌표로 변환
 - **accept-extraction API**: 프론트에서 "수락" 버튼 → `auto_extracted_data`를 `annotation_data`로 복사
 - **ExtractionPreview UI**: 자동 추출 결과 프리뷰 배너 + 수락/무시 버튼
 - **TextOverlay 연동**: 수락 후 텍스트 블록의 text가 투명 오버레이로 렌더링 → 드래그 선택 가능
@@ -933,7 +933,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 
 #### 미구현 (후속 PR)
 
-- PaddleOCR 연동 — PyMuPDF로 텍스트 추출 안 되는 영역에 OCR 수행
+- PaddleOCR 연동 — pdfminer로 텍스트 추출 안 되는 영역에 OCR 수행
 - 자동 Attribute 분류기 추가
 - 읽기 순서 에디터
 - Relation 연결 도구
@@ -986,7 +986,7 @@ Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부�
 
 ```text
 PDF 업로드
-  → 이미지 변환 (PyMuPDF)
+  → 이미지 변환 (pypdfium2)
   → 레이아웃 자동 추출 (PP-StructureV3)   ← Phase 2에서 구현
   → AI 의미 추출 (VLM API 호출)          ← Phase 4a에서 추가
       ├── Overview 추출

@@ -16,12 +16,6 @@ class TestBuildEngine:
 
         assert isinstance(engine, PdfminerEngine)
 
-    def test_pymupdf_legacy_alias(self):
-        engine = build_engine({'engine_type': 'pymupdf'})
-        from saegim.services.engines.pdfminer_engine import PdfminerEngine
-
-        assert isinstance(engine, PdfminerEngine)
-
     def test_commercial_api_gemini(self):
         config = {
             'engine_type': 'commercial_api',

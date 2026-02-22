@@ -25,7 +25,7 @@ def build_engine(ocr_config: dict[str, Any]) -> BaseOCREngine:
     """
     engine_type = ocr_config.get('engine_type', '')
 
-    if engine_type in ('pdfminer', 'pymupdf'):
+    if engine_type == 'pdfminer':
         return _build_pdfminer()
 
     if engine_type == 'commercial_api':

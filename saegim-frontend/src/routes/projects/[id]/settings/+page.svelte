@@ -52,7 +52,7 @@
 
     try {
       // For non-pdfminer engines, test connection first
-      if (config.engine_type !== 'pdfminer' && config.engine_type !== 'pymupdf') {
+      if (config.engine_type !== 'pdfminer') {
         const result = await testOcrConnection(id, config)
         testResult = result
         if (!result.success) {

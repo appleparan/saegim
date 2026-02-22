@@ -49,8 +49,7 @@
   let spOcrModel = $state('gemini-3-flash-preview')
 
   $effect(() => {
-    // Normalize legacy 'pymupdf' to 'pdfminer'
-    engineType = config.engine_type === 'pymupdf' ? 'pdfminer' : config.engine_type
+    engineType = config.engine_type
     // Commercial API
     caProvider = config.commercial_api?.provider ?? 'gemini'
     caApiKey = config.commercial_api?.api_key ?? ''

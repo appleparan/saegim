@@ -25,7 +25,6 @@ export type EngineType =
   | 'integrated_server'
   | 'split_pipeline'
   | 'pdfminer'
-  | 'pymupdf'
 export type CommercialApiProvider = 'gemini' | 'vllm'
 export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 
