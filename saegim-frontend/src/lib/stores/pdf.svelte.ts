@@ -47,8 +47,10 @@ class PdfStore {
       this.currentPageNo = 1;
       this.currentUrl = url;
     } catch (e) {
-      this.error =
+      const msg =
         e instanceof Error ? e.message : "PDF 문서를 불러올 수 없습니다.";
+      console.warn("[saegim] PDF store loadDocument failed:", msg, "url:", url);
+      this.error = msg;
       this.pdfDoc = null;
       this.totalPages = 0;
     } finally {

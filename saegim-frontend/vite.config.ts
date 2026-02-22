@@ -18,6 +18,9 @@ export default defineConfig({
       "$app/state": "tests/__mocks__/$app/state.ts",
     },
   },
+  optimizeDeps: {
+    include: ["pdfjs-dist"],
+  },
   resolve: {
     conditions: ["browser"],
   },

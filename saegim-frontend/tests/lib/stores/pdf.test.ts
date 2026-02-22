@@ -134,6 +134,28 @@ describe("PdfStore", () => {
     });
   });
 
+  describe("error handling", () => {
+    it("logs a warning when loadDocument fails", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const { getDocument } = await import("pdfjs-dist");
+      const mockedGetDocument = vi.mocked(getDocument);
+      mockedGetDocument.mockReturnValueOnce({
+        promise: Promise.reject(new Error("Network error")),
+      } as ReturnType<typeof getDocument>);
+
+      await pdfStore.loadDocument("/fail.pdf");
+
+      expect(pdfStore.error).toBe("Network error");
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[saegim]"),
+        expect.stringContaining("Network error"),
+        expect.any(String),
+        "/fail.pdf",
+      );
+      warnSpy.mockRestore();
+    });
+  });
+
   describe("destroy", () => {
     it("resets all state", async () => {
       await pdfStore.loadDocument("/test.pdf");

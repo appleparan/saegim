@@ -26,6 +26,10 @@
   let documentPages = $state<readonly PageSummary[]>([])
   let saving = $state(false)
 
+  let renderMode = $derived<'pdfjs' | 'image' | 'none'>(
+    currentPageProxy ? 'pdfjs' : pageData ? 'image' : 'none',
+  )
+
   async function loadPage() {
     const pageId = page.params.pageId
     if (!pageId) return
@@ -46,14 +50,16 @@
       })
 
       // Load PDF for vector rendering if available
-      if (data.pdf_url) {
+      if (data.pdf_url && data.pdf_url.length > 0) {
         try {
           await pdfStore.loadDocument(`${API_BASE}${data.pdf_url}`)
           currentPageProxy = await pdfStore.getPage(data.page_no)
-        } catch {
-          // PDF load failed — fall back to image rendering silently
+        } catch (pdfErr) {
+          console.warn('[saegim] PDF.js load failed, falling back to image:', pdfErr)
           currentPageProxy = null
         }
+      } else {
+        console.warn('[saegim] No pdf_url available, using image rendering')
       }
     } catch (e) {
       if (e instanceof NetworkError) {
@@ -243,6 +249,18 @@
         {:else}
           <div class="absolute inset-0 flex items-center justify-center">
             <p class="text-muted-foreground text-sm">이미지를 불러오는 중...</p>
+          </div>
+        {/if}
+
+        <!-- Render mode indicator (dev) -->
+        {#if renderMode !== 'none'}
+          <div
+            class="absolute bottom-3 right-3 z-30 px-2 py-1 text-[10px] font-mono rounded-md shadow-sm border
+              {renderMode === 'pdfjs'
+                ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+                : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700'}"
+          >
+            {renderMode === 'pdfjs' ? 'PDF.js' : 'Image'}
           </div>
         {/if}
       </div>
