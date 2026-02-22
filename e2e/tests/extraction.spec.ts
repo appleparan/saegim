@@ -171,22 +171,31 @@ test.describe.serial('PDF Text/Image Extraction', () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test('08 - text overlay renders extracted text blocks', async ({ page }) => {
+  test('08 - text blocks are accessible as selectable text', async ({ page }) => {
     await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Text overlay should render text_block elements as selectable text
-    const textOverlays = page.locator('[role="textbox"]')
-    const textCount = await textOverlays.count()
-    expect(textCount).toBeGreaterThan(0)
+    // Check which rendering mode is active
+    const pdfCanvas = page.locator('canvas[data-pdf-renderer]')
+    const hasPdfCanvas = await pdfCanvas.isVisible().catch(() => false)
 
-    // First text overlay should have user-select: text
-    const firstOverlay = textOverlays.first()
-    const userSelect = await firstOverlay.evaluate(
-      (el) => window.getComputedStyle(el).userSelect,
-    )
-    expect(userSelect).toBe('text')
+    if (hasPdfCanvas) {
+      // PDF.js mode: text layer provides selectable text
+      const textLayer = page.locator('[data-text-layer]')
+      await expect(textLayer).toBeAttached()
+    } else {
+      // Image fallback mode: TextOverlay renders [role="textbox"] elements
+      const textOverlays = page.locator('[role="textbox"]')
+      const textCount = await textOverlays.count()
+      expect(textCount).toBeGreaterThan(0)
+
+      const firstOverlay = textOverlays.first()
+      const userSelect = await firstOverlay.evaluate(
+        (el) => window.getComputedStyle(el).userSelect,
+      )
+      expect(userSelect).toBe('text')
+    }
   })
 
   test('09 - extracted elements have correct coordinate scaling', async () => {

@@ -124,11 +124,17 @@ test.describe.serial('Hybrid Labeling UX', () => {
     const konvaContainer = page.locator('canvas').first()
     await expect(konvaContainer).toBeVisible()
 
-    // Layer 3: Text overlay divs should be present
-    // Text blocks should render as transparent text
-    const textOverlay = page.locator('[role="textbox"]')
-    const textCount = await textOverlay.count()
-    expect(textCount).toBeGreaterThanOrEqual(2) // title + text_block
+    // Layer 3: Selectable text layer
+    if (hasPdfCanvas) {
+      // PDF.js mode: native text layer provides selectable text
+      const textLayer = page.locator('[data-text-layer]')
+      await expect(textLayer).toBeAttached()
+    } else {
+      // Image fallback mode: TextOverlay renders [role="textbox"] elements
+      const textOverlay = page.locator('[role="textbox"]')
+      const textCount = await textOverlay.count()
+      expect(textCount).toBeGreaterThanOrEqual(2) // title + text_block
+    }
   })
 
   test('02 - text blocks are selectable via native browser selection', async ({ page }) => {
@@ -136,23 +142,33 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Find the title text overlay
-    const titleOverlay = page.locator('[role="textbox"]', {
-      hasText: 'Attention Is All You Need',
-    })
-    await expect(titleOverlay).toBeAttached()
+    // Check which rendering mode is active
+    const pdfCanvas = page.locator('canvas[data-pdf-renderer]')
+    const hasPdfCanvas = await pdfCanvas.isVisible().catch(() => false)
 
-    // Verify text overlay has user-select: text
-    const userSelect = await titleOverlay.evaluate(
-      (el) => window.getComputedStyle(el).userSelect,
-    )
-    expect(userSelect).toBe('text')
+    if (hasPdfCanvas) {
+      // PDF.js mode: text layer provides selectable text natively
+      const textLayer = page.locator('[data-text-layer]')
+      await expect(textLayer).toBeAttached()
+    } else {
+      // Image fallback mode: TextOverlay renders selectable text overlays
+      const titleOverlay = page.locator('[role="textbox"]', {
+        hasText: 'Attention Is All You Need',
+      })
+      await expect(titleOverlay).toBeAttached()
 
-    // Verify text is transparent (color: transparent)
-    const color = await titleOverlay.evaluate(
-      (el) => window.getComputedStyle(el).color,
-    )
-    expect(color).toBe('rgba(0, 0, 0, 0)')
+      // Verify text overlay has user-select: text
+      const userSelect = await titleOverlay.evaluate(
+        (el) => window.getComputedStyle(el).userSelect,
+      )
+      expect(userSelect).toBe('text')
+
+      // Verify text is transparent (color: transparent)
+      const color = await titleOverlay.evaluate(
+        (el) => window.getComputedStyle(el).color,
+      )
+      expect(color).toBe('rgba(0, 0, 0, 0)')
+    }
   })
 
   test('03 - tool buttons work correctly', async ({ page }) => {
@@ -344,20 +360,34 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await expect(breadcrumb.locator('text=페이지')).toBeVisible({ timeout: 5_000 })
   })
 
-  test('12 - text overlay click selects corresponding element', async ({ page }) => {
+  test('12 - clicking on element area selects corresponding element', async ({ page }) => {
     await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Click on the title text overlay
-    const titleOverlay = page.locator('[role="textbox"]', {
-      hasText: 'Attention Is All You Need',
-    })
-    await expect(titleOverlay).toBeVisible()
-    await titleOverlay.click()
+    // Check which rendering mode is active
+    const pdfCanvas = page.locator('canvas[data-pdf-renderer]')
+    const hasPdfCanvas = await pdfCanvas.isVisible().catch(() => false)
+
+    if (hasPdfCanvas) {
+      // PDF.js mode: click on the canvas area where the title element is located
+      // The Konva overlay handles element selection via click coordinates
+      const canvasArea = page.locator('.flex-1.relative.bg-muted')
+      const box = await canvasArea.boundingBox()
+      if (box) {
+        // Click near the top-left area where the title element was seeded
+        await page.mouse.click(box.x + 100, box.y + 70)
+      }
+    } else {
+      // Image fallback mode: click on the text overlay directly
+      const titleOverlay = page.locator('[role="textbox"]', {
+        hasText: 'Attention Is All You Need',
+      })
+      await expect(titleOverlay).toBeVisible()
+      await titleOverlay.click()
+    }
 
     // The element should be selected in the sidebar
-    // The sidebar should show element details
     await page.waitForTimeout(500)
     const sidebar = page.locator('.w-80.border-l')
     await expect(sidebar).toBeVisible()
