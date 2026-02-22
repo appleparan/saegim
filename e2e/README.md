@@ -12,7 +12,7 @@ bun run setup   # Chromium 설치 + 테스트 PDF 다운로드
 
 ## 기본 테스트 (GPU 불필요)
 
-기본 프로파일은 postgres + backend + frontend만 실행한다. PyMuPDF 폴백으로 OCR 추출하므로 GPU가 필요 없다.
+기본 프로파일은 postgres + backend + frontend만 실행한다. pdfminer.six 폴백으로 OCR 추출하므로 GPU가 필요 없다.
 
 ```bash
 # 1. 서비스 시작
@@ -87,7 +87,7 @@ e2e/
 ├── tests/
 │   ├── health.spec.ts        # 서비스 health check
 │   ├── workflow.spec.ts      # 프로젝트 생성 → PDF 업로드 → 레이블링 → 내보내기
-│   ├── extraction.spec.ts    # PyMuPDF 추출 → 수락 워크플로우
+│   ├── extraction.spec.ts    # pdfminer 추출 → 수락 워크플로우
 │   ├── ocr-config.spec.ts    # OCR 엔진 설정 API (engine_type CRUD + validation)
 │   ├── hybrid-labeling.spec.ts
 │   ├── benchmark.spec.ts     # API 응답시간 벤치마크

@@ -124,11 +124,9 @@ test.describe.serial('Hybrid Labeling UX', () => {
     const konvaContainer = page.locator('canvas').first()
     await expect(konvaContainer).toBeVisible()
 
-    // Layer 3: Text overlay divs should be present
-    // Text blocks should render as transparent text
-    const textOverlay = page.locator('[role="textbox"]')
-    const textCount = await textOverlay.count()
-    expect(textCount).toBeGreaterThanOrEqual(2) // title + text_block
+    // Layer 3: Selectable text layer (PDF.js text spans or TextOverlay textbox elements)
+    const textElements = page.locator('[data-text-layer] span, [role="textbox"]')
+    await expect(textElements.first()).toBeAttached({ timeout: 5_000 })
   })
 
   test('02 - text blocks are selectable via native browser selection', async ({ page }) => {
@@ -136,20 +134,19 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Find the title text overlay
-    const titleOverlay = page.locator('[role="textbox"]', {
-      hasText: 'Attention Is All You Need',
-    })
-    await expect(titleOverlay).toBeAttached()
+    // Selectable text should exist (PDF.js text layer spans or TextOverlay textbox elements)
+    const textElements = page.locator('[data-text-layer] span, [role="textbox"]')
+    await expect(textElements.first()).toBeAttached({ timeout: 5_000 })
 
-    // Verify text overlay has user-select: text
-    const userSelect = await titleOverlay.evaluate(
+    // Text should support native selection (user-select is not 'none')
+    const firstText = textElements.first()
+    const userSelect = await firstText.evaluate(
       (el) => window.getComputedStyle(el).userSelect,
     )
-    expect(userSelect).toBe('text')
+    expect(userSelect).not.toBe('none')
 
-    // Verify text is transparent (color: transparent)
-    const color = await titleOverlay.evaluate(
+    // Text should be transparent (both modes use color: transparent for overlay text)
+    const color = await firstText.evaluate(
       (el) => window.getComputedStyle(el).color,
     )
     expect(color).toBe('rgba(0, 0, 0, 0)')
@@ -186,26 +183,22 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Get the background layer (PDF.js canvas or fallback image) for zoom check.
-    const bgLayer = page.locator('canvas[data-pdf-renderer], img[alt="page background"]').first()
-    await expect(bgLayer).toBeVisible({ timeout: 15_000 })
-    const initialTransform = await bgLayer.evaluate(
-      (el) => window.getComputedStyle(el).transform,
-    )
+    // Use the zoom percentage indicator (works in both PDF.js and image modes)
+    const zoomDisplay = page.locator('button[title*="1:1"]')
+    await expect(zoomDisplay).toBeVisible()
+    const initialZoom = await zoomDisplay.textContent()
 
     // Click zoom in
     await page.getByRole('button', { name: '확대' }).click()
     await page.waitForTimeout(300)
 
-    const zoomedTransform = await bgLayer.evaluate(
-      (el) => window.getComputedStyle(el).transform,
-    )
+    const zoomedPercent = await zoomDisplay.textContent()
 
-    // Transform should have changed after zoom
-    expect(zoomedTransform).not.toBe(initialTransform)
+    // Zoom percentage should have changed
+    expect(zoomedPercent).not.toBe(initialZoom)
 
     // Click reset zoom
-    await page.locator('button[title*="1:1"]').click()
+    await zoomDisplay.click()
     await page.waitForTimeout(300)
   })
 
@@ -344,20 +337,17 @@ test.describe.serial('Hybrid Labeling UX', () => {
     await expect(breadcrumb.locator('text=페이지')).toBeVisible({ timeout: 5_000 })
   })
 
-  test('12 - text overlay click selects corresponding element', async ({ page }) => {
+  test('12 - selecting element shows details in sidebar', async ({ page }) => {
     await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Click on the title text overlay
-    const titleOverlay = page.locator('[role="textbox"]', {
-      hasText: 'Attention Is All You Need',
-    })
-    await expect(titleOverlay).toBeVisible()
-    await titleOverlay.click()
+    // Click on the first element in the element list (works in both rendering modes)
+    const elementItems = page.locator('.overflow-y-auto .group')
+    await expect(elementItems.first()).toBeVisible({ timeout: 5_000 })
+    await elementItems.first().click()
 
-    // The element should be selected in the sidebar
-    // The sidebar should show element details
+    // The element should be selected — sidebar should show details
     await page.waitForTimeout(500)
     const sidebar = page.locator('.w-80.border-l')
     await expect(sidebar).toBeVisible()

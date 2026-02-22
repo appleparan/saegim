@@ -17,10 +17,10 @@ test.describe.serial('OCR Config API (engine_type based)', () => {
     projectId = data.id
   })
 
-  test('01 - default OCR config is pymupdf', async () => {
+  test('01 - default OCR config is pdfminer', async () => {
     const { data, status } = await getOcrConfig(projectId)
     expect(status).toBe(200)
-    expect(data.engine_type).toBe('pymupdf')
+    expect(data.engine_type).toBe('pdfminer')
   })
 
   test('02 - update to commercial_api with gemini', async () => {
@@ -72,17 +72,17 @@ test.describe.serial('OCR Config API (engine_type based)', () => {
     expect(data.split_pipeline?.ocr_model).toBe('gemini-3-flash-preview')
   })
 
-  test('05 - revert to pymupdf', async () => {
+  test('05 - revert to pdfminer', async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'pymupdf',
+      engine_type: 'pdfminer',
     })
     expect(status).toBe(200)
-    expect(data.engine_type).toBe('pymupdf')
+    expect(data.engine_type).toBe('pdfminer')
   })
 
   test('06 - get config reflects last update', async () => {
     const { data } = await getOcrConfig(projectId)
-    expect(data.engine_type).toBe('pymupdf')
+    expect(data.engine_type).toBe('pdfminer')
   })
 
   test('07 - validation: commercial_api without sub-config is 422', async () => {
@@ -106,9 +106,9 @@ test.describe.serial('OCR Config API (engine_type based)', () => {
     expect(status).toBe(422)
   })
 
-  test('10 - connection test for pymupdf always succeeds', async () => {
+  test('10 - connection test for pdfminer always succeeds', async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      engine_type: 'pymupdf',
+      engine_type: 'pdfminer',
     })
     expect(status).toBe(200)
     expect(data.success).toBe(true)

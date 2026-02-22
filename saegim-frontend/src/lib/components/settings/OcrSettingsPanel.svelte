@@ -28,7 +28,7 @@
   }: Props = $props()
 
   // Local form state
-  let engineType = $state<EngineType>('pymupdf')
+  let engineType = $state<EngineType>('pdfminer')
 
   // Commercial API state
   let caProvider = $state<CommercialApiProvider>('gemini')
@@ -68,7 +68,7 @@
   })
 
   let isValid = $derived.by(() => {
-    if (engineType === 'pymupdf') return true
+    if (engineType === 'pdfminer') return true
     if (engineType === 'commercial_api') {
       if (caProvider === 'gemini') return caApiKey.trim().length > 0
       return false
@@ -86,7 +86,7 @@
   })
 
   const engineTypes: { value: EngineType; label: string; description: string }[] = [
-    { value: 'pymupdf', label: 'PyMuPDF', description: '기본 텍스트 추출 (Fallback/CI)' },
+    { value: 'pdfminer', label: 'pdfminer', description: '기본 텍스트 추출 (Fallback/CI)' },
     {
       value: 'commercial_api',
       label: '상업용 VLM API',
@@ -104,11 +104,11 @@
     },
   ]
 
-  let needsConnectionTest = $derived(engineType !== 'pymupdf')
+  let needsConnectionTest = $derived(engineType !== 'pdfminer')
 
   function buildConfig(): OcrConfigUpdate {
-    if (engineType === 'pymupdf') {
-      return { engine_type: 'pymupdf' }
+    if (engineType === 'pdfminer') {
+      return { engine_type: 'pdfminer' }
     }
     if (engineType === 'commercial_api') {
       return {

@@ -28,8 +28,8 @@ def document_id():
 
 
 @pytest.fixture
-def mock_pymupdf_config():
-    return {'engine_type': 'pymupdf'}
+def mock_pdfminer_config():
+    return {'engine_type': 'pdfminer'}
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def mock_ocr_settings():
 class TestUploadAndConvert:
     @pytest.mark.asyncio
     async def test_creates_storage_directories(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -49,29 +49,37 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
+            patch.object(document_service, 'extraction_service') as mock_ext,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
+            mock_ext.extract_page_elements.return_value = {
+                'layout_dets': [],
+                'page_attribute': {},
+                'extra': {'relation': []},
+            }
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
+            mock_pil = MagicMock()
+            mock_pil.size = (800, 1000)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
+
             mock_page = MagicMock()
-            mock_pix = MagicMock()
-            mock_pix.width = 800
-            mock_pix.height = 1000
-            mock_page.get_pixmap.return_value = mock_pix
+            mock_page.render.return_value = mock_bitmap
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
             mock_pdf.__getitem__ = lambda _, _i: mock_page
-            mock_fitz.open.return_value = mock_pdf
-            mock_fitz.Matrix.return_value = MagicMock()
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             mock_page_repo.create = AsyncMock()
 
@@ -87,7 +95,7 @@ class TestUploadAndConvert:
         assert (tmp_path / 'images').is_dir()
 
     @pytest.mark.asyncio
-    async def test_saves_pdf_to_disk(self, mock_pool, project_id, tmp_path, mock_pymupdf_config):
+    async def test_saves_pdf_to_disk(self, mock_pool, project_id, tmp_path, mock_pdfminer_config):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
         pdf_bytes = b'%PDF-1.4 fake content'
@@ -95,13 +103,13 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
@@ -109,7 +117,7 @@ class TestUploadAndConvert:
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 0
-            mock_fitz.open.return_value = mock_pdf
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             mock_page_repo.create = AsyncMock()
 
@@ -127,7 +135,7 @@ class TestUploadAndConvert:
 
     @pytest.mark.asyncio
     async def test_creates_document_record_with_processing_status(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -135,13 +143,13 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo'),
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
@@ -149,7 +157,7 @@ class TestUploadAndConvert:
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 0
-            mock_fitz.open.return_value = mock_pdf
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             await document_service.upload_and_convert(
                 mock_pool, project_id, 'report.pdf', b'%PDF', str(tmp_path)
@@ -165,7 +173,7 @@ class TestUploadAndConvert:
 
     @pytest.mark.asyncio
     async def test_converts_pages_to_images(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -173,33 +181,40 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
+            patch.object(document_service, 'extraction_service') as mock_ext,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
+            mock_ext.extract_page_elements.return_value = {
+                'layout_dets': [],
+                'page_attribute': {},
+                'extra': {'relation': []},
+            }
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
-            mock_pix = MagicMock()
-            mock_pix.width = 1200
-            mock_pix.height = 1600
+            mock_pil = MagicMock()
+            mock_pil.size = (1200, 1600)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
 
             mock_page1 = MagicMock()
-            mock_page1.get_pixmap.return_value = mock_pix
+            mock_page1.render.return_value = mock_bitmap
             mock_page2 = MagicMock()
-            mock_page2.get_pixmap.return_value = mock_pix
+            mock_page2.render.return_value = mock_bitmap
 
             pages = [mock_page1, mock_page2]
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 2
             mock_pdf.__getitem__ = lambda _, i: pages[i]
-            mock_fitz.open.return_value = mock_pdf
-            mock_fitz.Matrix.return_value = MagicMock()
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             mock_page_repo.create = AsyncMock()
 
@@ -213,8 +228,8 @@ class TestUploadAndConvert:
         assert mock_page_repo.create.call_args_list[1].kwargs['page_no'] == 2
 
     @pytest.mark.asyncio
-    async def test_uses_2x_matrix_for_rendering(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+    async def test_uses_2x_scale_for_rendering(
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -222,43 +237,49 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
+            patch.object(document_service, 'extraction_service') as mock_ext,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
+            mock_ext.extract_page_elements.return_value = {
+                'layout_dets': [],
+                'page_attribute': {},
+                'extra': {'relation': []},
+            }
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
-            mock_pix = MagicMock()
-            mock_pix.width = 800
-            mock_pix.height = 1000
+            mock_pil = MagicMock()
+            mock_pil.size = (800, 1000)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
+
             mock_page = MagicMock()
-            mock_page.get_pixmap.return_value = mock_pix
+            mock_page.render.return_value = mock_bitmap
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
             mock_pdf.__getitem__ = lambda _, _i: mock_page
-            mock_fitz.open.return_value = mock_pdf
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
-            matrix_instance = MagicMock()
-            mock_fitz.Matrix.return_value = matrix_instance
             mock_page_repo.create = AsyncMock()
 
             await document_service.upload_and_convert(
                 mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
             )
 
-        mock_fitz.Matrix.assert_called_once_with(2.0, 2.0)
-        mock_page.get_pixmap.assert_called_once_with(matrix=matrix_instance)
+        mock_page.render.assert_called_once_with(scale=2.0)
 
     @pytest.mark.asyncio
     async def test_updates_status_to_ready_on_success(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -266,29 +287,37 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
+            patch.object(document_service, 'extraction_service') as mock_ext,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
+            mock_ext.extract_page_elements.return_value = {
+                'layout_dets': [],
+                'page_attribute': {},
+                'extra': {'relation': []},
+            }
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
-            mock_pix = MagicMock()
-            mock_pix.width = 800
-            mock_pix.height = 1000
+            mock_pil = MagicMock()
+            mock_pil.size = (800, 1000)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
+
             mock_page = MagicMock()
-            mock_page.get_pixmap.return_value = mock_pix
+            mock_page.render.return_value = mock_bitmap
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 3
             mock_pdf.__getitem__ = lambda _, _i: mock_page
-            mock_fitz.open.return_value = mock_pdf
-            mock_fitz.Matrix.return_value = MagicMock()
+            mock_pdfium.PdfDocument.return_value = mock_pdf
             mock_page_repo.create = AsyncMock()
 
             result = await document_service.upload_and_convert(
@@ -307,7 +336,7 @@ class TestUploadAndConvert:
 
     @pytest.mark.asyncio
     async def test_updates_status_to_error_on_failure(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -315,18 +344,18 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo'),
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
-            mock_fitz.open.side_effect = RuntimeError('Corrupt PDF')
+            mock_pdfium.PdfDocument.side_effect = RuntimeError('Corrupt PDF')
 
             with pytest.raises(RuntimeError, match='Corrupt PDF'):
                 await document_service.upload_and_convert(
@@ -339,7 +368,7 @@ class TestUploadAndConvert:
 
     @pytest.mark.asyncio
     async def test_returns_correct_result_dict(
-        self, mock_pool, project_id, tmp_path, mock_pymupdf_config
+        self, mock_pool, project_id, tmp_path, mock_pdfminer_config
     ):
         doc_id = uuid.uuid4()
         doc_record = {'id': doc_id}
@@ -347,13 +376,13 @@ class TestUploadAndConvert:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value=mock_pymupdf_config,
+                return_value=mock_pdfminer_config,
             ),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
@@ -361,7 +390,7 @@ class TestUploadAndConvert:
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 0
-            mock_fitz.open.return_value = mock_pdf
+            mock_pdfium.PdfDocument.return_value = mock_pdf
             mock_page_repo.create = AsyncMock()
 
             result = await document_service.upload_and_convert(
@@ -386,7 +415,7 @@ class TestUploadAndConvertOcr:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
@@ -410,17 +439,19 @@ class TestUploadAndConvertOcr:
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
-            mock_pix = MagicMock()
-            mock_pix.width = 800
-            mock_pix.height = 1000
+            mock_pil = MagicMock()
+            mock_pil.size = (800, 1000)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
+
             mock_page = MagicMock()
-            mock_page.get_pixmap.return_value = mock_pix
+            mock_page.render.return_value = mock_bitmap
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
             mock_pdf.__getitem__ = lambda _, _i: mock_page
-            mock_fitz.open.return_value = mock_pdf
-            mock_fitz.Matrix.return_value = MagicMock()
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             mock_page_repo.create = AsyncMock(return_value=page_record)
 
@@ -435,7 +466,7 @@ class TestUploadAndConvertOcr:
         )
 
     @pytest.mark.asyncio
-    async def test_does_not_call_pymupdf_extraction_for_ocr_engine(
+    async def test_does_not_call_pdfminer_extraction_for_ocr_engine(
         self, mock_pool, project_id, tmp_path, mock_ocr_settings
     ):
         doc_id = uuid.uuid4()
@@ -445,7 +476,7 @@ class TestUploadAndConvertOcr:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
@@ -472,17 +503,19 @@ class TestUploadAndConvertOcr:
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
-            mock_pix = MagicMock()
-            mock_pix.width = 800
-            mock_pix.height = 1000
+            mock_pil = MagicMock()
+            mock_pil.size = (800, 1000)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
+
             mock_page = MagicMock()
-            mock_page.get_pixmap.return_value = mock_pix
+            mock_page.render.return_value = mock_bitmap
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
             mock_pdf.__getitem__ = lambda _, _i: mock_page
-            mock_fitz.open.return_value = mock_pdf
-            mock_fitz.Matrix.return_value = MagicMock()
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             mock_page_repo.create = AsyncMock(return_value=page_record)
 
@@ -503,7 +536,7 @@ class TestUploadAndConvertOcr:
         with (
             patch.object(document_service, 'document_repo') as mock_doc_repo,
             patch.object(document_service, 'page_repo') as mock_page_repo,
-            patch.object(document_service, 'fitz') as mock_fitz,
+            patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
             patch.object(
                 document_service,
@@ -527,17 +560,19 @@ class TestUploadAndConvertOcr:
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
 
-            mock_pix = MagicMock()
-            mock_pix.width = 800
-            mock_pix.height = 1000
+            mock_pil = MagicMock()
+            mock_pil.size = (800, 1000)
+
+            mock_bitmap = MagicMock()
+            mock_bitmap.to_pil.return_value = mock_pil
+
             mock_page = MagicMock()
-            mock_page.get_pixmap.return_value = mock_pix
+            mock_page.render.return_value = mock_bitmap
 
             mock_pdf = MagicMock()
             mock_pdf.__len__ = lambda _: 1
             mock_pdf.__getitem__ = lambda _, _i: mock_page
-            mock_fitz.open.return_value = mock_pdf
-            mock_fitz.Matrix.return_value = MagicMock()
+            mock_pdfium.PdfDocument.return_value = mock_pdf
 
             mock_page_repo.create = AsyncMock(return_value=page_record)
 

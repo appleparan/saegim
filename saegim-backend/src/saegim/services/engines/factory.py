@@ -25,8 +25,8 @@ def build_engine(ocr_config: dict[str, Any]) -> BaseOCREngine:
     """
     engine_type = ocr_config.get('engine_type', '')
 
-    if engine_type == 'pymupdf':
-        return _build_pymupdf()
+    if engine_type == 'pdfminer':
+        return _build_pdfminer()
 
     if engine_type == 'commercial_api':
         return _build_commercial_api(ocr_config.get('commercial_api', {}))
@@ -37,20 +37,20 @@ def build_engine(ocr_config: dict[str, Any]) -> BaseOCREngine:
     if engine_type == 'split_pipeline':
         return _build_split_pipeline(ocr_config.get('split_pipeline', {}))
 
-    valid = "'commercial_api', 'integrated_server', 'split_pipeline', 'pymupdf'"
+    valid = "'commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer'"
     msg = f"Unknown engine_type: '{engine_type}'. Use {valid}."
     raise ValueError(msg)
 
 
-def _build_pymupdf() -> BaseOCREngine:
-    """Build a PyMuPDF fallback engine.
+def _build_pdfminer() -> BaseOCREngine:
+    """Build a pdfminer fallback engine.
 
     Returns:
-        PyMuPDFEngine instance.
+        PdfminerEngine instance.
     """
-    from saegim.services.engines.pymupdf_engine import PyMuPDFEngine
+    from saegim.services.engines.pdfminer_engine import PdfminerEngine
 
-    return PyMuPDFEngine()
+    return PdfminerEngine()
 
 
 def _build_commercial_api(config: dict[str, Any]) -> BaseOCREngine:

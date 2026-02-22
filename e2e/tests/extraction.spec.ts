@@ -171,22 +171,21 @@ test.describe.serial('PDF Text/Image Extraction', () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test('08 - text overlay renders extracted text blocks', async ({ page }) => {
+  test('08 - text blocks are accessible as selectable text', async ({ page }) => {
     await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
     await page.waitForTimeout(2000)
 
-    // Text overlay should render text_block elements as selectable text
-    const textOverlays = page.locator('[role="textbox"]')
-    const textCount = await textOverlays.count()
-    expect(textCount).toBeGreaterThan(0)
+    // Selectable text should exist (PDF.js text layer spans or TextOverlay textbox elements)
+    const textElements = page.locator('[data-text-layer] span, [role="textbox"]')
+    await expect(textElements.first()).toBeAttached({ timeout: 5_000 })
 
-    // First text overlay should have user-select: text
-    const firstOverlay = textOverlays.first()
-    const userSelect = await firstOverlay.evaluate(
+    // Text should support native selection (user-select is not 'none')
+    const firstText = textElements.first()
+    const userSelect = await firstText.evaluate(
       (el) => window.getComputedStyle(el).userSelect,
     )
-    expect(userSelect).toBe('text')
+    expect(userSelect).not.toBe('none')
   })
 
   test('09 - extracted elements have correct coordinate scaling', async () => {

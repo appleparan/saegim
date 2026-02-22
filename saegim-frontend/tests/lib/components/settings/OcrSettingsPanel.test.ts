@@ -9,19 +9,19 @@ describe('OcrSettingsPanel', () => {
   })
 
   const defaultConfig: OcrConfigResponse = {
-    engine_type: 'pymupdf',
+    engine_type: 'pdfminer',
   }
 
   it('renders all four engine type options', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    expect(screen.getByText('PyMuPDF')).toBeTruthy()
+    expect(screen.getByText('pdfminer')).toBeTruthy()
     expect(screen.getByText('상업용 VLM API')).toBeTruthy()
     expect(screen.getByText('통합 파이프라인 서버')).toBeTruthy()
     expect(screen.getByText('분리 파이프라인')).toBeTruthy()
   })
 
-  it('does not show sub-config when PyMuPDF is selected', () => {
+  it('does not show sub-config when pdfminer is selected', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.queryByLabelText('API Key')).toBeNull()
@@ -75,7 +75,7 @@ describe('OcrSettingsPanel', () => {
     expect(screen.getByText('OCR 프로바이더')).toBeTruthy()
   })
 
-  it('calls onsave with pymupdf config', async () => {
+  it('calls onsave with pdfminer config', async () => {
     const onsave = vi.fn()
     render(OcrSettingsPanel, {
       props: { config: defaultConfig, onsave },
@@ -86,7 +86,7 @@ describe('OcrSettingsPanel', () => {
 
     expect(onsave).toHaveBeenCalledOnce()
     const saved = onsave.mock.calls[0][0]
-    expect(saved.engine_type).toBe('pymupdf')
+    expect(saved.engine_type).toBe('pdfminer')
     expect(saved.commercial_api).toBeUndefined()
   })
 
@@ -149,20 +149,20 @@ describe('OcrSettingsPanel', () => {
     expect(saveButton.hasAttribute('disabled')).toBe(true)
   })
 
-  it('enables save button for PyMuPDF without extra config', () => {
+  it('enables save button for pdfminer without extra config', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     const saveButton = screen.getByText('설정 저장')
     expect(saveButton.hasAttribute('disabled')).toBe(false)
   })
 
-  it('does not show connection test button for PyMuPDF', () => {
+  it('does not show connection test button for pdfminer', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.queryByText('연결 테스트')).toBeNull()
   })
 
-  it('shows connection test button for non-pymupdf engines', async () => {
+  it('shows connection test button for non-pdfminer engines', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     const caButton = screen.getByText('상업용 VLM API')

@@ -58,12 +58,12 @@ src/saegim/services/
 ├── engines/                       # OCR 엔진 Strategy 패턴
 │   ├── base.py                    # BaseOCREngine ABC (extract_page, test_connection)
 │   ├── factory.py                 # build_engine(ocr_config) 팩토리 (engine_type 분기)
-│   ├── pymupdf_engine.py          # PyMuPDFEngine (GPU 불필요 폴백)
+│   ├── pdfminer_engine.py          # PdfminerEngine (GPU 불필요 폴백)
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
 │   ├── integrated_server_engine.py # IntegratedServerEngine (PP-StructureV3 또는 vLLM 자동 분기)
 │   └── split_pipeline_engine.py   # SplitPipelineEngine (Layout + 외부 OCR)
-├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (PyMuPDF/asyncio)
-├── extraction_service.py          # PyMuPDF 폴백 추출 (text_block + figure)
+├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (pdfminer/asyncio)
+├── extraction_service.py          # pdfminer.six 폴백 추출 (text_block + figure)
 ├── ppstructure_service.py         # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
 ├── ocr_pipeline.py                # 2단계 파이프라인 오케스트레이터 (OcrPipeline, TextOcrProvider)
 ├── ocr_provider.py                # 프롬프트 상수, bbox_to_poly(), build_omnidocbench_page()
@@ -106,7 +106,7 @@ sequenceDiagram
     participant DS as DocumentService
     participant DR as DocumentRepo
     participant PR as PageRepo
-    participant PDF as PyMuPDF
+    participant PDF as pypdfium2
     participant EX as ExtractionService
     participant BG as asyncio Task
 
@@ -115,18 +115,18 @@ sequenceDiagram
     DS->>DS: PDF 파일 저장 (storage/pdfs/)
     DS->>DR: create(pool, project_id, filename, ...)
     DR-->>DS: document record
-    DS->>PDF: fitz.open(pdf_path)
+    DS->>PDF: pdfium.PdfDocument(pdf_path)
     loop 각 페이지
-        DS->>PDF: page.get_pixmap(matrix=2x)
+        DS->>PDF: page.render(scale=2.0)
         DS->>DS: 이미지 저장 (storage/images/)
         DS->>PR: create(pool, document_id, page_no, ...)
     end
 
-    alt engine_type == pymupdf
-        DS->>EX: extract_page_elements(page, scale=2.0)
-        Note over EX: PyMuPDF 동기 추출 (text_block + figure)
+    alt engine_type == pdfminer
+        DS->>EX: extract_page_elements(pdf_path, page_no, scale=2.0)
+        Note over EX: pdfminer.six 동기 추출 (text_block + figure)
         DS->>DR: update_status(pool, id, 'ready')
-    else engine_type != pymupdf (asyncio 백그라운드)
+    else engine_type != pdfminer (asyncio 백그라운드)
         DS->>DR: update_status(pool, id, 'extracting')
         DS->>BG: asyncio.create_task(_run_ocr_extraction_background(...))
         Note over BG: build_engine(ocr_config) → asyncio.to_thread(engine.extract_page())<br/>페이지별 auto_extracted_data 업데이트

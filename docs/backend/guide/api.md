@@ -77,7 +77,7 @@
 
 ### `GET /api/v1/projects/{project_id}/ocr-config`
 
-프로젝트의 OCR 엔진 설정 조회. 미설정 시 기본값 `{"engine_type": "pymupdf"}` 반환.
+프로젝트의 OCR 엔진 설정 조회. 미설정 시 기본값 `{"engine_type": "pdfminer"}` 반환.
 
 **응답:** `200 OK`
 
@@ -95,7 +95,7 @@
 - `commercial_api` → `commercial_api` 설정 (provider, api_key, model)
 - `integrated_server` → `integrated_server` 설정 (host, port, model)
 - `split_pipeline` → `split_pipeline` 설정 (layout_server_url, ocr_provider 등)
-- `pymupdf` → 추가 설정 불필요
+- `pdfminer` → 추가 설정 불필요
 
 **요청 Body 예시:**
 
@@ -141,7 +141,7 @@ OCR 엔진 연결 테스트. `build_engine()` → `engine.test_connection()` 실
 ### `POST /api/v1/projects/{project_id}/documents`
 
 PDF 문서 업로드. 업로드된 PDF는 자동으로 페이지별 이미지로 변환되고,
-PyMuPDF로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`에 저장합니다.
+pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`에 저장합니다.
 
 **요청:** `multipart/form-data`
 

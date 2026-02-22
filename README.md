@@ -24,12 +24,12 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, shadcn-svelte + Tailwind CSS 4, Konva.js, 다크모드 (mode-watcher) |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
-| **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
+| **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
 | **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
 | | - `commercial_api`: Gemini API / vLLM (full-page VLM) |
 | | - `integrated_server`: PP-StructureV3 또는 vLLM (Chandra 등) |
 | | - `split_pipeline`: PP-StructureV3 레이아웃 + Gemini/vLLM OCR |
-| | - `pymupdf`: PyMuPDF 폴백 (GPU 불필요) |
+| | - `pdfminer`: pdfminer.six 폴백 (GPU 불필요) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Playwright + Docker Compose (기본 + GPU 프로파일) |
@@ -37,7 +37,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Gemini, vLLM/Chandra, PP-StructureV3, PyMuPDF)
+- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Gemini, vLLM/Chandra, PP-StructureV3, pdfminer)
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
@@ -182,7 +182,7 @@ saegim/
 │   │   │   ├── engines/            # OCR 엔진 Strategy 패턴
 │   │   │   │   ├── base.py         # BaseOCREngine ABC
 │   │   │   │   ├── factory.py      # build_engine() 팩토리
-│   │   │   │   ├── pymupdf_engine.py
+│   │   │   │   ├── pdfminer_engine.py
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── integrated_server_engine.py
 │   │   │   │   └── split_pipeline_engine.py
