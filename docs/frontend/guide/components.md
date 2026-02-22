@@ -196,6 +196,7 @@ Layer 3 (z-index: 20) — DOM TextOverlay: 텍스트 블록 위치에 선택 가
 | `height` | `number` | 이미지 높이 (px) |
 
 내부 상태 머신:
+
 - `interactionMode`: `'browse'` (기본) → `'edit'` (요소 선택 시)
 - browse 모드: 텍스트 선택 가능, bbox는 호버 시만 표시
 - edit 모드: bbox 편집 가능, 텍스트 오버레이 비활성화
@@ -219,6 +220,7 @@ PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(
 | `interactionMode` | `'browse' \| 'edit'` | 인터랙션 모드 (선택적) |
 
 동작:
+
 - 각 요소를 카테고리 색상으로 렌더링
 - browse 모드에서 비선택 요소는 투명 (호버 시 반투명)
 - 선택된 요소에 Konva Transformer (리사이즈 핸들) 표시
@@ -301,6 +303,7 @@ PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(
 자동 추출 결과 프리뷰 배너. LabelingPage 좌측에 표시.
 
 3가지 상태:
+
 1. **추출 중** (`documentStatus === 'extracting'`): 스피너 + "OCR 추출 진행 중..." 메시지
 2. **결과 없음** (auto_extracted_data 없고 어노테이션도 비어있을 때): "자동 추출 결과가 없습니다" + OCR 설정 링크
 3. **결과 있음** (auto_extracted_data 있고 어노테이션 비어있을 때): 요소 수 표시 + 수락/무시 버튼
