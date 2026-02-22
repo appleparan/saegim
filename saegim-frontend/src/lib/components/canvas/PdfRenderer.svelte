@@ -14,12 +14,14 @@
   let canvasEl: HTMLCanvasElement
   let textLayerEl: HTMLDivElement
   let renderingScale = $state(PDF_BASE_SCALE)
+  const TEXT_LAYER_SCALE = PDF_BASE_SCALE
+  const MAX_RERENDER_SCALE = 6.0
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let renderTask: ReturnType<PDFPageProxy['render']> | null = null
   let textLayerInstance: TextLayer | null = null
 
   /** Render the PDF page to canvas at the given scale. */
-  async function renderPage(page: PDFPageProxy, scale: number): Promise<void> {
+  async function renderCanvas(page: PDFPageProxy, scale: number): Promise<void> {
     if (!canvasEl) return
 
     // Cancel any in-progress render
@@ -39,9 +41,6 @@
       renderTask = page.render({ canvasContext: ctx, viewport, canvas: canvasEl })
       await renderTask.promise
       renderingScale = scale
-
-      // Render text layer for text selection
-      await renderTextLayer(page, viewport)
     } catch (e) {
       // RenderingCancelledException is expected when re-rendering during zoom
       if (e instanceof Error && e.message.includes('cancelled')) return
@@ -52,11 +51,10 @@
   }
 
   /** Render the PDF.js TextLayer for native text selection. */
-  async function renderTextLayer(
-    page: PDFPageProxy,
-    viewport: import('pdfjs-dist').PageViewport,
-  ): Promise<void> {
+  async function renderTextLayer(page: PDFPageProxy): Promise<void> {
     if (!textLayerEl) return
+
+    const viewport = page.getViewport({ scale: TEXT_LAYER_SCALE })
 
     // Cancel previous text layer
     if (textLayerInstance) {
@@ -88,19 +86,22 @@
   function scheduleRerender(): void {
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
-      const targetScale = PDF_BASE_SCALE * canvasStore.scale
-      if (Math.abs(targetScale - renderingScale) > 0.01) {
-        renderPage(pageProxy, targetScale)
+      const targetScale = Math.min(PDF_BASE_SCALE * canvasStore.scale, MAX_RERENDER_SCALE)
+      if (Math.abs(targetScale - renderingScale) > 0.25) {
+        void renderCanvas(pageProxy, targetScale)
       }
       debounceTimer = null
-    }, 300)
+    }, 220)
   }
 
   // Initial render when pageProxy changes
   $effect(() => {
     const page = pageProxy
     if (page && canvasEl) {
-      untrack(() => renderPage(page, PDF_BASE_SCALE))
+      untrack(() => {
+        void renderCanvas(page, PDF_BASE_SCALE)
+        void renderTextLayer(page)
+      })
     }
   })
 
@@ -119,8 +120,11 @@
     }
   })
 
-  /** CSS transform scale factor: viewport scale relative to current rendering scale. */
-  let cssScale = $derived((canvasStore.scale * PDF_BASE_SCALE) / renderingScale)
+  /** CSS transform scale factor for raster canvas. */
+  let canvasCssScale = $derived((canvasStore.scale * PDF_BASE_SCALE) / renderingScale)
+
+  /** Keep text layer at base viewport and only apply UI zoom via CSS. */
+  let textLayerCssScale = $derived(canvasStore.scale)
 </script>
 
 <!-- PDF canvas layer -->
@@ -130,7 +134,7 @@
   style="
     position: absolute;
     transform-origin: 0 0;
-    transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({cssScale});
+    transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({canvasCssScale});
     pointer-events: none;
     user-select: none;
   "
@@ -144,7 +148,7 @@
   style="
     position: absolute;
     transform-origin: 0 0;
-    transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({cssScale});
+    transform: translate({canvasStore.offsetX}px, {canvasStore.offsetY}px) scale({textLayerCssScale});
     z-index: 1;
   "
 ></div>
