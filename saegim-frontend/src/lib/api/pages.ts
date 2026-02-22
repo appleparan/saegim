@@ -23,3 +23,11 @@ export async function savePageAttributes(
 export async function acceptExtraction(pageId: string): Promise<PageResponse> {
   return api.post<PageResponse>(`/api/v1/pages/${pageId}/accept-extraction`)
 }
+
+/** Request OCR text extraction for a specific region on the page. */
+export async function extractElementText(
+  pageId: string,
+  poly: number[],
+): Promise<{ text: string }> {
+  return api.post<{ text: string }>(`/api/v1/pages/${pageId}/extract-text`, { poly })
+}

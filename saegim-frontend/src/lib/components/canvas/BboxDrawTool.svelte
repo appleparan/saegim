@@ -7,9 +7,11 @@
 
   interface Props {
     stage: Konva.Stage
+    /** Called after a new element is drawn with its anno_id. */
+    onDrawComplete?: (annoId: number) => void
   }
 
-  let { stage }: Props = $props()
+  let { stage, onDrawComplete }: Props = $props()
 
   let drawLayer: Konva.Layer | null = null
   let drawRect: Konva.Rect | null = null
@@ -97,6 +99,7 @@
     if (annoId >= 0) {
       annotationStore.selectElement(annoId)
       canvasStore.setTool('select')
+      onDrawComplete?.(annoId)
     }
   }
 

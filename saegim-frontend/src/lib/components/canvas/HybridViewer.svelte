@@ -12,6 +12,7 @@
     resolveInteractionMode,
   } from '$lib/utils/interaction'
   import type { InteractionMode } from '$lib/utils/interaction'
+  import { polyToRect } from '$lib/utils/bbox'
   import BboxLayer from './BboxLayer.svelte'
   import BboxDrawTool from './BboxDrawTool.svelte'
   import TextOverlay from './TextOverlay.svelte'
@@ -22,9 +23,11 @@
     imageUrl?: string
     width: number
     height: number
+    /** Called when OCR is requested for a drawn element. */
+    onOcrRequest?: (annoId: number) => void
   }
 
-  let { pageProxy, imageUrl, width, height }: Props = $props()
+  let { pageProxy, imageUrl, width, height, onOcrRequest }: Props = $props()
 
   // --- DOM refs ---
   let containerEl: HTMLDivElement
@@ -44,6 +47,35 @@
   // --- Container size ---
   let containerWidth = $state(0)
   let containerHeight = $state(0)
+
+  // --- OCR prompt for drawn elements ---
+  let drawnAnnoId = $state<number | null>(null)
+
+  let drawnElementScreenPos = $derived.by(() => {
+    if (drawnAnnoId === null) return null
+    const el = annotationStore.elements.find((e) => e.anno_id === drawnAnnoId)
+    if (!el) return null
+    const rect = polyToRect(el.poly)
+    return {
+      x: rect.x * canvasStore.scale + canvasStore.offsetX,
+      y: (rect.y + rect.height) * canvasStore.scale + canvasStore.offsetY + 8,
+    }
+  })
+
+  function handleDrawComplete(annoId: number): void {
+    drawnAnnoId = annoId
+  }
+
+  function handleOcrRequest(): void {
+    if (drawnAnnoId !== null) {
+      onOcrRequest?.(drawnAnnoId)
+      drawnAnnoId = null
+    }
+  }
+
+  function dismissOcrPrompt(): void {
+    drawnAnnoId = null
+  }
 
   // --- Derived pointer-events ---
   let konvaPointerEvents = $derived(
@@ -224,6 +256,14 @@
       hoveredImageBlockId = null
     }
   })
+
+  // Dismiss OCR prompt when selection changes away from drawn element
+  $effect(() => {
+    const selected = annotationStore.selectedElementId
+    if (drawnAnnoId !== null && selected !== drawnAnnoId) {
+      drawnAnnoId = null
+    }
+  })
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -273,12 +313,52 @@
       {interactionMode}
     />
     {#if canvasStore.toolMode === 'draw'}
-      <BboxDrawTool {stage} />
+      <BboxDrawTool {stage} onDrawComplete={handleDrawComplete} />
     {/if}
   {/if}
 
   <!-- Layer 3: Text overlay (z-index: 20) — only for image fallback mode -->
   {#if !pageProxy}
     <TextOverlay pointerEvents={textPointerEvents} />
+  {/if}
+
+  <!-- OCR prompt after drawing a new bbox -->
+  {#if drawnAnnoId !== null && drawnElementScreenPos}
+    <div
+      class="absolute z-40 flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/95 px-3 py-2 shadow-lg backdrop-blur-sm dark:border-blue-800 dark:bg-blue-950/95"
+      style="left: {drawnElementScreenPos.x}px; top: {drawnElementScreenPos.y}px;"
+    >
+      <svg
+        class="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+        />
+      </svg>
+      <span class="text-xs font-medium text-blue-900 dark:text-blue-200">
+        이 영역에서 텍스트를 추출하시겠습니까?
+      </span>
+      <button
+        type="button"
+        class="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+        onclick={handleOcrRequest}
+      >
+        OCR 실행
+      </button>
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground px-1 text-lg leading-none"
+        onclick={dismissOcrPrompt}
+        aria-label="닫기"
+      >
+        &times;
+      </button>
+    </div>
   {/if}
 </div>

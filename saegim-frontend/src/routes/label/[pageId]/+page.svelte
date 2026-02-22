@@ -14,9 +14,9 @@
   import { pdfStore } from '$lib/stores/pdf.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
-  import { getPage, savePage } from '$lib/api/pages'
+  import { getPage, savePage, extractElementText } from '$lib/api/pages'
   import { listPages, getDocumentStatus } from '$lib/api/documents'
-  import { API_BASE, NetworkError } from '$lib/api/client'
+  import { API_BASE, ApiError, NetworkError } from '$lib/api/client'
   import type { DocumentStatus, PageResponse, PageSummary } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
@@ -141,6 +141,28 @@
     const pageId = page.params.pageId
     if (pageId) {
       annotationStore.load(pageId, data)
+    }
+  }
+
+  async function handleOcrRequest(annoId: number) {
+    const pageId = page.params.pageId
+    if (!pageId) return
+    const el = annotationStore.elements.find((e) => e.anno_id === annoId)
+    if (!el) return
+    try {
+      const result = await extractElementText(pageId, [...el.poly])
+      if (result.text) {
+        annotationStore.updateElement(annoId, { text: result.text })
+        uiStore.showNotification('텍스트가 추출되었습니다', 'success')
+      } else {
+        uiStore.showNotification('텍스트를 찾지 못했습니다', 'info')
+      }
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
+        uiStore.showNotification('OCR 엔드포인트가 아직 준비되지 않았습니다', 'info')
+      } else {
+        uiStore.showNotification('텍스트 추출에 실패했습니다', 'error')
+      }
     }
   }
 
@@ -361,6 +383,7 @@
             imageUrl={`${API_BASE}${pageData.image_url}`}
             width={pageData.width}
             height={pageData.height}
+            onOcrRequest={handleOcrRequest}
           />
         {:else}
           <div class="absolute inset-0 flex items-center justify-center">
