@@ -35,6 +35,19 @@ describe('PdfStore', () => {
     pdfStore.destroy()
   })
 
+  describe('worker configuration', () => {
+    it('sets GlobalWorkerOptions.workerSrc on module load', async () => {
+      const { GlobalWorkerOptions } = await import('pdfjs-dist')
+      expect(GlobalWorkerOptions.workerSrc).toBeTruthy()
+      expect(typeof GlobalWorkerOptions.workerSrc).toBe('string')
+    })
+
+    it('workerSrc contains pdf.worker path', async () => {
+      const { GlobalWorkerOptions } = await import('pdfjs-dist')
+      expect(GlobalWorkerOptions.workerSrc).toContain('pdf.worker')
+    })
+  })
+
   describe('initial state', () => {
     it('starts with no document loaded', () => {
       expect(pdfStore.pdfDoc).toBeNull()

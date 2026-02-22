@@ -8,10 +8,14 @@ import {
   type PDFDocumentProxy,
   type PDFPageProxy,
 } from 'pdfjs-dist'
-import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
-// Configure PDF.js worker using Vite's ?url import for reliable bundling
-GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
+// Configure PDF.js worker.
+// Use non-minified .mjs for better Vite/SvelteKit compatibility.
+// See: https://github.com/mozilla/pdf.js/issues/20236
+const workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString()
+if (!GlobalWorkerOptions.workerSrc) {
+  GlobalWorkerOptions.workerSrc = workerSrc
+}
 
 /** Base render scale matching PyMuPDF Matrix(2.0, 2.0) for coordinate compatibility. */
 export const PDF_BASE_SCALE = 2.0
