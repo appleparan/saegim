@@ -220,7 +220,7 @@
   {:else}
     <div class="flex flex-1 overflow-hidden">
       <!-- Left panel: Page navigator + Element list + extraction preview -->
-      <div class="border-border bg-card flex w-64 flex-col overflow-y-auto border-r shadow-sm">
+      <div class="border-border bg-card flex w-64 flex-col border-r shadow-sm">
         {#if documentPages.length > 1}
           <PageNavigator pages={documentPages} currentPageId={page.params.pageId!} />
         {/if}
@@ -232,7 +232,9 @@
             onAccepted={handleExtractionAccepted}
           />
         {/if}
-        <ElementList />
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <ElementList />
+        </div>
       </div>
 
       <!-- Center: Canvas area -->
