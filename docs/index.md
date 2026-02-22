@@ -11,9 +11,9 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 ```text
 Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 ┌──────────────────┐          ┌──────────────────┐         ┌──────────┐
-│ Canvas + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
+│ PDF.js + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
 │ Runes 상태관리     │◄──JSON──►│ Engine Factory   │◄──SQL──►│  JSONB   │
-│ 3-Panel 에디터    │           │ Repository 패턴   │         │          │
+│ 3-Layer 에디터   │           │ Repository 패턴   │         │          │
 └──────────────────┘          └──────────────────┘         └──────────┘
                                       │
                               ┌───────┴───────┐
@@ -43,7 +43,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 
 | 계층 | 기술 |
 | ---- | ---- |
-| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js |
+| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js, PDF.js |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | PyMuPDF (2x 해상도 렌더링 + 텍스트/이미지 자동 추출) |
@@ -87,15 +87,15 @@ saegim/
 │   ├── migrations/           # SQL 마이그레이션
 │   └── tests/                # pytest 테스트
 │
-├── saegim-frontend/          # Svelte 5 SPA
+├── saegim-frontend/          # Svelte 5 SPA (SvelteKit + adapter-static)
 │   ├── src/
-│   │   ├── pages/            # 라우트 페이지
+│   │   ├── routes/           # SvelteKit 파일 기반 라우트
 │   │   └── lib/
 │   │       ├── api/          # FastAPI 호출 + 타입
 │   │       ├── components/   # canvas/, panels/, settings/
-│   │       ├── stores/       # Svelte 5 Runes 상태관리
-│   │       ├── types/        # OmniDocBench 타입 정의
-│   │       └── utils/        # bbox, color, interaction
+│   │       ├── stores/       # Svelte 5 Runes 상태관리 (annotation, canvas, pdf, ui)
+│   │       ├── types/        # OmniDocBench 타입 정의 + element-groups
+│   │       └── utils/        # bbox, color, interaction, text-layout, text-selection
 │   └── tests/                # Vitest 테스트
 │
 ├── e2e/                      # E2E 테스트

@@ -61,6 +61,7 @@ try {
 | `listDocuments(projectId)` | GET | `/api/projects/:id/documents` | 문서 목록 |
 | `uploadDocument(projectId, file)` | POST | `/api/projects/:id/documents` | PDF 업로드 (FormData) |
 | `getDocumentStatus(docId)` | GET | `/api/documents/:id/status` | 처리 상태 조회 |
+| `deleteDocument(docId)` | DELETE | `/api/documents/:id` | 문서 삭제 |
 | `listPages(docId)` | GET | `/api/documents/:id/pages` | 페이지 목록 |
 
 ### Pages (`src/lib/api/pages.ts`)
@@ -99,9 +100,13 @@ interface PageResponse {
   width: number
   height: number
   image_url: string
+  pdf_url: string                   // PDF.js 벡터 렌더링용 URL
   annotation_data: AnnotationData   // OmniDocBench JSON
   auto_extracted_data: AnnotationData | null
   status: 'pending' | 'in_progress' | 'submitted' | 'reviewed'
+  project_id?: string               // 브레드크럼용
+  project_name?: string
+  document_filename?: string
 }
 ```
 

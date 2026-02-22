@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-레이블링 페이지 (`#/label/:pageId`)에서만 활성화된다. INPUT, TEXTAREA, SELECT 요소에 포커스가 있을 때는 무시된다.
+레이블링 페이지 (`/label/:pageId`)에서만 활성화된다. INPUT, TEXTAREA, SELECT 요소에 포커스가 있을 때는 무시된다.
 
 ## 도구 모드
 
@@ -16,6 +16,13 @@
 | ---- | ------ |
 | `Delete` / `Backspace` | 선택된 요소 삭제 |
 | `Escape` | 선택 해제 |
+
+## 페이지 이동
+
+| 키 | 동작 |
+| ---- | ------ |
+| `[` | 이전 페이지 |
+| `]` | 다음 페이지 |
 
 ## 저장
 

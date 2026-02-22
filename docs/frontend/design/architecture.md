@@ -13,6 +13,7 @@ Saegim 프론트엔드는 한국어 문서 VLM 벤치마크를 위한 레이블�
 | Styling | Tailwind CSS 4 + shadcn-svelte (bits-ui) | ^4.1 |
 | Theme | Violet 테마 (OKLCH CSS 변수) + 다크모드 (mode-watcher) | - |
 | Canvas | Konva.js | ^10.2 |
+| PDF Rendering | pdfjs-dist (PDF.js) | ^5.4 |
 | Router | SvelteKit file-based routing | - |
 | Test | Vitest + jsdom | ^4.0 |
 | Package Manager | Bun | - |
@@ -36,10 +37,14 @@ src/
 │   ├── types/              # 타입 정의
 │   │   ├── omnidocbench.ts     # AnnotationData, LayoutElement, Poly 등
 │   │   ├── categories.ts      # 18개 블록 카테고리, 속성 enum, 한국어 라벨
-│   │   └── canvas.ts          # Point, Rect, ToolMode, ViewportState
+│   │   ├── canvas.ts          # Point, Rect, ToolMode, ViewportState
+│   │   └── element-groups.ts  # IMAGE/TEXT_BLOCK_CATEGORIES, 블록 분류 헬퍼
 │   ├── utils/              # 순수 함수
 │   │   ├── bbox.ts             # 좌표 변환 (poly <-> rect, screen <-> image)
 │   │   ├── color.ts            # 카테고리별 색상
+│   │   ├── interaction.ts     # 인터랙션 모드 해석, 포인터 이벤트 계산
+│   │   ├── text-layout.ts     # 텍스트 블록 레이아웃 계산
+│   │   ├── text-selection.ts  # 텍스트 선택/복사 유틸
 │   │   └── validation.ts      # 어노테이션 유효성 검증
 │   ├── api/                # HTTP 클라이언트
 │   │   ├── client.ts           # fetch 래퍼 + ApiError/NetworkError
@@ -52,16 +57,28 @@ src/
 │   ├── stores/             # Svelte 5 runes 상태 관리
 │   │   ├── annotation.svelte.ts  # 어노테이션 데이터 + CRUD
 │   │   ├── canvas.svelte.ts      # 뷰포트 (zoom/pan/tool)
+│   │   ├── pdf.svelte.ts         # PDF.js 문서 로딩/캐싱
 │   │   └── ui.svelte.ts          # 사이드바, 알림
 │   └── components/
 │       ├── ui/            # shadcn-svelte (button, badge, card, dialog, ...)
 │       ├── common/         # 재사용 UI 위젯 (LoadingSpinner, Select)
 │       ├── layout/         # Header, Sidebar, ThemeToggle
-│       ├── canvas/         # Konva.js 통합 (HybridViewer, BboxLayer, BboxDrawTool, TextOverlay)
-│       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview 등)
+│       ├── canvas/         # 3-layer 하이브리드 뷰어 (HybridViewer, PdfRenderer, BboxLayer, BboxDrawTool, TextOverlay)
+│       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview, PageNavigator 등)
 │       └── settings/       # 프로젝트 설정 (OcrSettingsPanel)
 └── tests/
-    └── lib/utils/bbox.test.ts
+    ├── lib/utils/bbox.test.ts
+    ├── lib/utils/interaction.test.ts
+    ├── lib/utils/text-layout.test.ts
+    ├── lib/utils/text-selection.test.ts
+    ├── lib/stores/canvas.test.ts
+    ├── lib/stores/pdf.test.ts
+    ├── lib/types/element-groups.test.ts
+    ├── lib/components/canvas/HybridViewer.test.ts
+    ├── lib/components/canvas/TextOverlay.test.ts
+    ├── lib/components/panels/PageNavigator.test.ts
+    ├── lib/components/panels/ExtractionPreview.test.ts
+    └── lib/components/settings/OcrSettingsPanel.test.ts
 ```
 
 ## Routing
@@ -80,15 +97,17 @@ SvelteKit 파일 기반 라우팅 (`adapter-static` SPA 모드):
 ```text
 Backend API  →  api/client.ts  →  stores/annotation.svelte.ts  →  components
                                   stores/canvas.svelte.ts
+                                  stores/pdf.svelte.ts
                                   stores/ui.svelte.ts
 ```
 
 1. 페이지 로드 시 `getPage()` API 호출
 2. 응답 데이터를 `annotationStore.load()`로 저장
-3. `$derived` 속성이 자동으로 elements, selectedElement 등을 계산
-4. Canvas 컴포넌트와 패널이 store를 구독하여 렌더링
-5. 사용자 편집 → store 업데이트 → `isDirty = true`
-6. 저장 버튼 → `savePage()` API 호출 → `markSaved()`
+3. `pdf_url`이 있으면 `pdfStore.loadDocument()` → PDF.js 벡터 렌더링
+4. `$derived` 속성이 자동으로 elements, selectedElement 등을 계산
+5. HybridViewer가 3-layer 구조로 렌더링 (배경 PDF/이미지 → Konva bbox → TextOverlay)
+6. 사용자 편집 → store 업데이트 → `isDirty = true`
+7. 저장 버튼 → `savePage()` API 호출 → `markSaved()`
 
 ## Key Patterns
 
