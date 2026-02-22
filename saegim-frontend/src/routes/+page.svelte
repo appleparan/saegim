@@ -156,7 +156,7 @@
               </a>
               <div class="border-border flex justify-end border-t px-5 py-2">
                 <button
-                  class="text-destructive/70 hover:text-destructive text-xs transition-colors"
+                  class="text-muted-foreground hover:text-destructive text-xs transition-colors"
                   onclick={(e) => handleDeleteProject(e, project.id)}
                 >
                   삭제

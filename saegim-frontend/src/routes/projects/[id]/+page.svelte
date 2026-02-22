@@ -296,7 +296,7 @@
                   </div>
                   <div class="flex items-center gap-3">
                     <button
-                      class="text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-lg px-2 py-1 text-xs transition-all"
+                      class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg px-2 py-1 text-xs transition-all"
                       onclick={(e) => handleDeleteDoc(e, doc.id)}
                     >
                       삭제
