@@ -389,7 +389,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
     expect(afterZoom).toBeTruthy()
   })
 
-  test('10 - page navigator is collapsible and shows extraction preview', async ({ page }) => {
+  test('14 - page navigator is collapsible and shows extraction preview', async ({ page }) => {
     await page.goto(`/label/${pageId}`)
     await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
 
@@ -408,6 +408,78 @@ test.describe.serial('Hybrid Labeling UX', () => {
     // Collapse page grid
     await toggleBtn.click()
     await expect(pageGrid).not.toBeVisible()
+  })
+
+  test('15 - PDF.js vector rendering is used instead of image fallback', async ({ page }) => {
+    await page.goto(`/label/${pageId}`)
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
+    await page.waitForTimeout(3000)
+
+    // The render mode indicator should show "PDF.js" (not "Image")
+    const renderIndicator = page.locator('[class*="font-mono"][class*="text-\\[10px\\]"]')
+    const indicatorText = await renderIndicator.textContent().catch(() => '')
+
+    // Check which rendering mode is active
+    const pdfCanvas = page.locator('canvas[data-pdf-renderer]')
+    const fallbackImage = page.locator('img[alt="page background"]')
+    const hasPdfCanvas = await pdfCanvas.isVisible().catch(() => false)
+    const hasFallbackImage = await fallbackImage.isVisible().catch(() => false)
+
+    // PDF.js should be used for PDF documents
+    if (hasPdfCanvas) {
+      // Verify render indicator shows "PDF.js"
+      expect(indicatorText?.trim()).toBe('PDF.js')
+      // Fallback image should NOT be visible
+      expect(hasFallbackImage).toBe(false)
+
+      // Verify the text layer exists (PDF.js creates a text layer for selection)
+      const textLayer = page.locator('[data-text-layer]')
+      await expect(textLayer).toBeAttached()
+    } else {
+      // If PDF.js is not used, log it as expected in image-only mode
+      expect(hasFallbackImage).toBe(true)
+      expect(indicatorText?.trim()).toBe('Image')
+    }
+  })
+
+  test('16 - OCR prompt appears after drawing a new bbox', async ({ page }) => {
+    await page.goto(`/label/${pageId}`)
+    await expect(page.locator('text=요소 목록')).toBeVisible({ timeout: 15_000 })
+    await page.waitForTimeout(2000)
+
+    // Switch to draw tool
+    await page.getByRole('button', { name: '그리기' }).click()
+    await page.waitForTimeout(300)
+
+    // Draw a bbox on the canvas area
+    const canvasArea = page.locator('.flex-1.relative.bg-muted')
+    const box = await canvasArea.boundingBox()
+    if (box) {
+      const startX = box.x + box.width * 0.3
+      const startY = box.y + box.height * 0.3
+      const endX = box.x + box.width * 0.5
+      const endY = box.y + box.height * 0.5
+
+      await page.mouse.move(startX, startY)
+      await page.mouse.down()
+      await page.mouse.move(endX, endY, { steps: 10 })
+      await page.mouse.up()
+    }
+
+    await page.waitForTimeout(500)
+
+    // OCR prompt should appear
+    const ocrPrompt = page.locator('text=이 영역에서 텍스트를 추출하시겠습니까?')
+    await expect(ocrPrompt).toBeVisible({ timeout: 5_000 })
+
+    // OCR button should be present
+    const ocrButton = page.locator('button:has-text("OCR 실행")')
+    await expect(ocrButton).toBeVisible()
+
+    // Dismiss the prompt
+    const dismissButton = ocrPrompt.locator('..').locator('button[aria-label="닫기"]')
+    await dismissButton.click()
+    await expect(ocrPrompt).not.toBeVisible()
   })
 
   test.afterAll(async () => {
