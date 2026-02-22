@@ -6,9 +6,9 @@ import uuid
 from saegim.schemas.page import PageResponse
 
 
-def _make_page_response(**overrides):
+def _make_page_response(**overrides: object) -> PageResponse:
     """Create a minimal PageResponse with defaults."""
-    defaults = {
+    defaults: dict[str, object] = {
         'id': uuid.uuid4(),
         'document_id': uuid.uuid4(),
         'page_no': 1,
@@ -20,7 +20,7 @@ def _make_page_response(**overrides):
         'updated_at': datetime.datetime.now(tz=datetime.UTC),
     }
     defaults.update(overrides)
-    return PageResponse(**defaults)
+    return PageResponse.model_validate(defaults)
 
 
 class TestPageResponseImageUrl:

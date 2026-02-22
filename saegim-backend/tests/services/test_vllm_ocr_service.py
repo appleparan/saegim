@@ -118,6 +118,7 @@ class TestLoadsLenient:
 
     def test_control_characters(self):
         result = _loads_lenient('{"text": "line1\tline2"}')
+        assert isinstance(result, dict)
         assert result['text'] == 'line1\tline2'
 
     def test_invalid_escape_repaired(self):
