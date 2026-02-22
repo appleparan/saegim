@@ -6,7 +6,7 @@
 
 ```bash
 # .env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:5000
 ```
 
 설정하지 않으면 기본값 `http://localhost:8000`을 사용한다.
@@ -46,47 +46,48 @@ try {
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `listProjects()` | GET | `/api/projects` | 프로젝트 목록 |
-| `getProject(id)` | GET | `/api/projects/:id` | 프로젝트 상세 |
-| `createProject(data)` | POST | `/api/projects` | 프로젝트 생성 |
-| `deleteProject(id)` | DELETE | `/api/projects/:id` | 프로젝트 삭제 |
-| `getOcrConfig(projectId)` | GET | `/api/projects/:id/ocr-config` | OCR 엔진 설정 조회 (engine_type) |
-| `updateOcrConfig(projectId, data)` | PUT | `/api/projects/:id/ocr-config` | OCR 엔진 설정 수정 (engine_type) |
-| `testOcrConnection(projectId, data)` | POST | `/api/projects/:id/ocr-config/test` | OCR 엔진 연결 테스트 |
+| `listProjects()` | GET | `/api/v1/projects` | 프로젝트 목록 |
+| `getProject(id)` | GET | `/api/v1/projects/:id` | 프로젝트 상세 |
+| `createProject(data)` | POST | `/api/v1/projects` | 프로젝트 생성 |
+| `deleteProject(id)` | DELETE | `/api/v1/projects/:id` | 프로젝트 삭제 |
+| `getOcrConfig(projectId)` | GET | `/api/v1/projects/:id/ocr-config` | OCR 엔진 설정 조회 (engine_type) |
+| `updateOcrConfig(projectId, data)` | PUT | `/api/v1/projects/:id/ocr-config` | OCR 엔진 설정 수정 (engine_type) |
+| `testOcrConnection(projectId, data)` | POST | `/api/v1/projects/:id/ocr-config/test` | OCR 엔진 연결 테스트 |
 
 ### Documents (`src/lib/api/documents.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `listDocuments(projectId)` | GET | `/api/projects/:id/documents` | 문서 목록 |
-| `uploadDocument(projectId, file)` | POST | `/api/projects/:id/documents` | PDF 업로드 (FormData) |
-| `getDocumentStatus(docId)` | GET | `/api/documents/:id/status` | 처리 상태 조회 |
-| `deleteDocument(docId)` | DELETE | `/api/documents/:id` | 문서 삭제 |
-| `listPages(docId)` | GET | `/api/documents/:id/pages` | 페이지 목록 |
+| `listDocuments(projectId)` | GET | `/api/v1/projects/:id/documents` | 문서 목록 |
+| `uploadDocument(projectId, file)` | POST | `/api/v1/projects/:id/documents` | PDF 업로드 (FormData) |
+| `getDocumentStatus(docId)` | GET | `/api/v1/documents/:id/status` | 처리 상태 조회 |
+| `deleteDocument(docId)` | DELETE | `/api/v1/documents/:id` | 문서 삭제 |
+| `listPages(docId)` | GET | `/api/v1/documents/:id/pages` | 페이지 목록 |
 
 ### Pages (`src/lib/api/pages.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `getPage(pageId)` | GET | `/api/pages/:id` | 페이지 데이터 + 어노테이션 |
-| `savePage(pageId, data)` | PUT | `/api/pages/:id` | 어노테이션 전체 저장 |
-| `savePageAttributes(pageId, data)` | PUT | `/api/pages/:id/attributes` | 페이지 속성 저장 |
-| `acceptExtraction(pageId)` | POST | `/api/pages/:id/accept-extraction` | 자동 추출 수락 |
+| `getPage(pageId)` | GET | `/api/v1/pages/:id` | 페이지 데이터 + 어노테이션 |
+| `savePage(pageId, data)` | PUT | `/api/v1/pages/:id` | 어노테이션 전체 저장 |
+| `savePageAttributes(pageId, data)` | PUT | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
+| `acceptExtraction(pageId)` | POST | `/api/v1/pages/:id/accept-extraction` | 자동 추출 수락 |
+| `extractElementText(pageId, poly)` | POST | `/api/v1/pages/:id/extract-text` | 영역 OCR 요청 (현재 백엔드 미구현 가능) |
 
 ### Elements (`src/lib/api/elements.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `createElement(pageId, data)` | POST | `/api/pages/:id/elements` | 요소 생성 |
-| `updateElement(elementId, data)` | PUT | `/api/elements/:id` | 요소 수정 |
-| `deleteElement(elementId)` | DELETE | `/api/elements/:id` | 요소 삭제 |
+| `createElement(pageId, data)` | POST | `/api/v1/pages/:id/elements` | 요소 생성 |
+| `updateElement(elementId, data)` | PUT | `/api/v1/elements/:id` | 요소 수정 (현재 백엔드 미구현) |
+| `deleteElement(elementId)` | DELETE | `/api/v1/elements/:id` | 요소 삭제 (현재 백엔드 미구현) |
 
 ### Relations (`src/lib/api/relations.ts`)
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `createRelation(pageId, data)` | POST | `/api/pages/:id/relations` | 관계 생성 |
-| `deleteRelation(relationId)` | DELETE | `/api/relations/:id` | 관계 삭제 |
+| `createRelation(pageId, data)` | POST | `/api/v1/pages/:id/relations` | 관계 생성 (현재 백엔드 미구현) |
+| `deleteRelation(relationId)` | DELETE | `/api/v1/relations/:id` | 관계 삭제 (현재 백엔드 미구현) |
 
 ## 주요 타입 (`src/lib/api/types.ts`)
 

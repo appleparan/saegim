@@ -185,6 +185,21 @@ PyMuPDF로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`에 �
 }
 ```
 
+### `GET /api/v1/documents/{document_id}/status`
+
+문서 처리 상태와 진행률 조회.
+
+**응답:** `200 OK`
+
+```json
+{
+  "id": "660e8400-e29b-41d4-a716-446655440000",
+  "status": "extracting",
+  "total_pages": 12,
+  "processed_pages": 5
+}
+```
+
 ### `GET /api/v1/documents/{document_id}/pages`
 
 문서의 페이지 목록 조회 (어노테이션 데이터 미포함, 경량).
