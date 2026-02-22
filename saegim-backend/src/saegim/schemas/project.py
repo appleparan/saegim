@@ -25,7 +25,7 @@ class ProjectResponse(BaseModel):
 
 # --- OCR Config schemas ---
 
-EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pymupdf']
+EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer', 'pymupdf']
 CommercialApiProvider = Literal['gemini', 'vllm']
 GeminiModel = Literal[
     'gemini-3.1-pro-preview',
