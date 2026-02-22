@@ -16,15 +16,17 @@
   import { untrack } from 'svelte'
   import { getPage, savePage, extractElementText } from '$lib/api/pages'
   import { listPages, getDocumentStatus } from '$lib/api/documents'
-  import { API_BASE, ApiError, NetworkError } from '$lib/api/client'
+  import { ApiError, NetworkError } from '$lib/api/client'
   import type { DocumentStatus, PageResponse, PageSummary } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
+  import { resolveBackendAssetUrl, resolvePdfUrl } from '$lib/utils/url'
 
   let pageData = $state<PageResponse | null>(null)
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
   let documentStatus = $state<DocumentStatus | undefined>(undefined)
+  let imageUrl = $state('')
   let saving = $state(false)
 
   let renderMode = $derived<'pdfjs' | 'image' | 'none'>(
@@ -37,11 +39,13 @@
     annotationStore.setLoading(true)
     annotationStore.setError(null)
     currentPageProxy = null
+    imageUrl = ''
     try {
       const data = await getPage(pageId)
       pageData = data
       annotationStore.load(pageId, data.annotation_data)
       canvasStore.setImageDimensions(data.width, data.height)
+      imageUrl = resolveBackendAssetUrl(data.image_url)
 
       // Load page list and document status (non-blocking)
       listPages(data.document_id)
@@ -60,16 +64,17 @@
         })
 
       // Load PDF for vector rendering if available
-      if (data.pdf_url && data.pdf_url.length > 0) {
+      const pdfDocUrl = resolvePdfUrl(data.pdf_url, data.pdf_path)
+      if (pdfDocUrl) {
         try {
-          await pdfStore.loadDocument(`${API_BASE}${data.pdf_url}`)
+          await pdfStore.loadDocument(pdfDocUrl)
           currentPageProxy = await pdfStore.getPage(data.page_no)
         } catch (pdfErr) {
           console.warn('[saegim] PDF.js load failed, falling back to image:', pdfErr)
           currentPageProxy = null
         }
       } else {
-        console.warn('[saegim] No pdf_url available, using image rendering')
+        console.warn('[saegim] No pdf_url/pdf_path available, using image rendering')
       }
     } catch (e) {
       if (e instanceof NetworkError) {
@@ -380,7 +385,7 @@
         {#if pageData}
           <HybridViewer
             pageProxy={currentPageProxy ?? undefined}
-            imageUrl={`${API_BASE}${pageData.image_url}`}
+            {imageUrl}
             width={pageData.width}
             height={pageData.height}
             onOcrRequest={handleOcrRequest}

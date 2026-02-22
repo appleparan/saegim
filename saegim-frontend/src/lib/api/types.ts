@@ -100,7 +100,9 @@ export interface PageResponse {
   readonly page_no: number
   readonly width: number
   readonly height: number
+  readonly image_path?: string
   readonly image_url: string
+  readonly pdf_path?: string | null
   readonly pdf_url: string
   readonly annotation_data: AnnotationData
   readonly auto_extracted_data: AnnotationData | null
