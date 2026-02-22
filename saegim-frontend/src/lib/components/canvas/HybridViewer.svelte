@@ -180,6 +180,16 @@
     }
   })
 
+  // Re-fit viewport when image dimensions change (page navigation)
+  $effect(() => {
+    const _w = width
+    const _h = height
+    if (stage && _w > 0 && _h > 0) {
+      canvasStore.setImageDimensions(_w, _h)
+      untrack(() => canvasStore.fitToContainer(containerWidth, containerHeight))
+    }
+  })
+
   // Sync Konva layer transforms when viewport changes
   $effect(() => {
     if (!stage) return

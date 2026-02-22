@@ -25,6 +25,10 @@
     bboxLayer = new Konva.Layer()
     stage.add(bboxLayer)
 
+    // Apply current viewport transform so bboxes align immediately
+    bboxLayer.position({ x: canvasStore.offsetX, y: canvasStore.offsetY })
+    bboxLayer.scale({ x: canvasStore.scale, y: canvasStore.scale })
+
     transformer = new Konva.Transformer({
       rotateEnabled: false,
       keepRatio: false,
