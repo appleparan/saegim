@@ -194,7 +194,7 @@ test.describe.serial('Hybrid Labeling UX', () => {
     )
 
     // Click zoom in
-    await page.getByRole('button', { name: '+' }).click()
+    await page.getByRole('button', { name: '확대' }).click()
     await page.waitForTimeout(300)
 
     const zoomedTransform = await bgLayer.evaluate(
@@ -204,8 +204,8 @@ test.describe.serial('Hybrid Labeling UX', () => {
     // Transform should have changed after zoom
     expect(zoomedTransform).not.toBe(initialTransform)
 
-    // Click 1:1 to reset
-    await page.getByRole('button', { name: '1:1' }).click()
+    // Click reset zoom
+    await page.locator('button[title*="1:1"]').click()
     await page.waitForTimeout(300)
   })
 
@@ -373,11 +373,11 @@ test.describe.serial('Hybrid Labeling UX', () => {
     const beforeZoom = await canvasArea.screenshot()
 
     // Zoom in
-    await page.getByRole('button', { name: '+' }).click()
+    await page.getByRole('button', { name: '확대' }).click()
     await page.waitForTimeout(500)
 
     // Zoom out back to original
-    await page.getByRole('button', { name: '-' }).click()
+    await page.getByRole('button', { name: '축소' }).click()
     await page.waitForTimeout(500)
 
     // Take screenshot after zoom cycle
