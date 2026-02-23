@@ -1,6 +1,6 @@
 [project]
 name = "saegim"
-version = "0.1.0"
+version = "0.2.0"
 description = "(Backend) human-in-the-loop labeling platform for Korean document benchmarks"
 authors = [
     {name="Jongsu Kim", email="jongsukim8@gmail.com"}

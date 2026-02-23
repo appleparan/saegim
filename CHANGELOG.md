@@ -1,3 +1,37 @@
+## [0.2.0] - 2026-02-23
+
+### Bug Fixes
+
+- Make E2E tests rendering-mode-aware for PDF.js and image fallback ([2f4008a](https://github.com/appleparan/saegim/commit/2f4008abe2f1e51931f4718faa9dd06ac1eecf90))
+- Make E2E tests mode-agnostic without if/else branching ([676d304](https://github.com/appleparan/saegim/commit/676d3044da60edce140f86abd58a02d008caa431))
+- Resolve all ty check diagnostics in test files ([8739925](https://github.com/appleparan/saegim/commit/8739925fc13284fece03fa2faa4a4f72d6ae1aa1))
+- Improve healthcheck settings in docker-compose.yml ([8080ae4](https://github.com/appleparan/saegim/commit/8080ae477a6dce2515e88c0b56a53c76956df81f))
+- Correct VITE_API_URL in .env.example files ([8819106](https://github.com/appleparan/saegim/commit/8819106220fccf29e65eeb21a6e55b14361a472d))
+
+### Documentation
+
+- Update documentation for pdfminer.six and pypdfium2 migration ([b0efdd0](https://github.com/appleparan/saegim/commit/b0efdd08d2265df6ca4e6273688d31af26caf84b))
+- Add Apache License 2.0 ([1306ba9](https://github.com/appleparan/saegim/commit/1306ba93bf32510dd98032860ff61c7bfe5c2876))
+
+### Features
+
+- Add drag-and-drop PDF upload with overlay UI ([881b580](https://github.com/appleparan/saegim/commit/881b580653655389622d40749c3dd85e04d7004c))
+
+### Refactor
+
+- Replace PyMuPDF dependency with pdfminer.six and pypdfium2 ([52d6115](https://github.com/appleparan/saegim/commit/52d6115d99ab682bc16688157e047a3f6703174d))
+- Replace fitz rendering with pypdfium2 and pdfminer.six extraction ([54fd4f0](https://github.com/appleparan/saegim/commit/54fd4f0b7b870951f2c2066ce5f1f5493a24f2a5))
+- Update frontend and e2e tests for pdfminer engine type ([48ca206](https://github.com/appleparan/saegim/commit/48ca206d0d01552ed8787d81ddbb2d576b5d7bed))
+- Remove pymupdf backward compatibility entirely ([7a55e8e](https://github.com/appleparan/saegim/commit/7a55e8e77172f704174203ab4849f3c2e9c4e06c))
+
+### Styling
+
+- Fix prettier formatting in types.ts ([13ebd61](https://github.com/appleparan/saegim/commit/13ebd618d8120eb00120db9c595d80d2c9e702e2))
+
+### Testing
+
+- Add drag-and-drop PDF upload tests ([2acfa2d](https://github.com/appleparan/saegim/commit/2acfa2de7bd0e5c8052533b903cc9acf09eebb03))
+
 ## [0.1.0] - 2026-02-22
 
 ### Bug Fixes
