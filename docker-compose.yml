@@ -15,7 +15,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U labeling -d labeling"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
     networks:
       - saegim-net
 
@@ -40,7 +41,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
