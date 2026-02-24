@@ -69,18 +69,20 @@ class AnnotationStore {
   addElement(categoryType: BlockCategoryType, poly: readonly number[]): number {
     if (!this.annotationData) return -1
 
+    const layoutDets = this.annotationData.layout_dets ?? []
     const annoId = this.getNextAnnoId()
     const newElement: LayoutElement = {
       category_type: categoryType,
       poly: poly as LayoutElement['poly'],
       ignore: false,
-      order: this.annotationData.layout_dets.length,
+      order: layoutDets.length,
       anno_id: annoId,
     }
 
     this.annotationData = {
       ...this.annotationData,
-      layout_dets: [...this.annotationData.layout_dets, newElement],
+      layout_dets: [...layoutDets, newElement],
+      extra: this.annotationData.extra ?? { relation: [] },
     }
     this.isDirty = true
     return annoId
@@ -89,12 +91,15 @@ class AnnotationStore {
   removeElement(annoId: number): void {
     if (!this.annotationData) return
 
+    const layoutDets = this.annotationData.layout_dets ?? []
+    const relations = this.annotationData.extra?.relation ?? []
+
     this.annotationData = {
       ...this.annotationData,
-      layout_dets: this.annotationData.layout_dets.filter((el) => el.anno_id !== annoId),
+      layout_dets: layoutDets.filter((el) => el.anno_id !== annoId),
       extra: {
         ...this.annotationData.extra,
-        relation: this.annotationData.extra.relation.filter(
+        relation: relations.filter(
           (r) => r.source_anno_id !== annoId && r.target_anno_id !== annoId,
         ),
       },
@@ -116,10 +121,11 @@ class AnnotationStore {
   }
 
   getNextAnnoId(): number {
-    if (!this.annotationData || this.annotationData.layout_dets.length === 0) {
+    const layoutDets = this.annotationData?.layout_dets ?? []
+    if (layoutDets.length === 0) {
       return 0
     }
-    return Math.max(...this.annotationData.layout_dets.map((el) => el.anno_id)) + 1
+    return Math.max(...layoutDets.map((el) => el.anno_id)) + 1
   }
 
   markSaved(): void {
