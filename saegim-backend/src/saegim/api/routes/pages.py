@@ -1,5 +1,7 @@
 """Page labeling endpoints."""
 
+import asyncio
+import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
@@ -7,11 +9,21 @@ from fastapi import APIRouter, HTTPException, status
 from saegim.core.database import get_pool
 from saegim.schemas.page import (
     ElementCreate,
+    ExtractTextRequest,
+    ExtractTextResponse,
     PageAnnotationUpdate,
     PageAttributeUpdate,
     PageResponse,
 )
 from saegim.services import labeling_service
+from saegim.services.text_extraction_service import (
+    NoTextProviderError,
+    TextExtractionError,
+    extract_text_from_region,
+    resolve_text_provider,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -128,6 +140,57 @@ async def accept_extraction(page_id: uuid.UUID) -> PageResponse:
             detail='Cannot accept: no auto-extracted data or annotation already exists',
         )
     return PageResponse(**result)
+
+
+@router.post('/pages/{page_id}/extract-text', response_model=ExtractTextResponse)
+async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractTextResponse:
+    """Extract text from a drawn region using OCR.
+
+    Crops the specified polygon region from the page image and sends it
+    to the project's configured text OCR provider for recognition.
+
+    Args:
+        page_id: Page UUID.
+        body: Region polygon and category type.
+
+    Returns:
+        ExtractTextResponse: Extracted text.
+
+    Raises:
+        HTTPException: 404 if page not found, 503 if no OCR provider,
+            502 if OCR fails.
+    """
+    pool = get_pool()
+
+    try:
+        image_path, text_provider = await resolve_text_provider(pool, page_id)
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Page not found',
+        ) from exc
+    except NoTextProviderError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    try:
+        text = await asyncio.to_thread(
+            extract_text_from_region,
+            image_path,
+            body.poly,
+            body.category_type,
+            text_provider,
+        )
+    except TextExtractionError as exc:
+        logger.warning('Text extraction failed for page %s: %s', page_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f'Text extraction failed: {exc}',
+        ) from exc
+
+    return ExtractTextResponse(text=text)
 
 
 @router.delete('/pages/{page_id}/elements/{anno_id}', response_model=PageResponse)
