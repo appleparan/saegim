@@ -5,6 +5,47 @@
 saegim은 PostgreSQL을 사용하며, asyncpg로 raw SQL을 직접 실행합니다.
 ORM 없이 순수 SQL과 JSONB를 활용합니다.
 
+## 왜 PostgreSQL인가
+
+이 프로젝트는 "웹앱 + 2~5명 동시 접속"이므로 SQLite는 적합하지 않다.
+
+| 요구사항 | SQLite | PostgreSQL |
+| --------- | -------- | ------------ |
+| 다수 사용자 동시 쓰기 | 단일 Writer lock → 충돌 | 동시 쓰기 안전 |
+| JSON 내부 필드 검색/인덱싱 | TEXT 저장, 느린 검색 | JSONB 인덱스, 빠른 쿼리 |
+| JSON 부분 업데이트 | 통째로 교체 | jsonb_set()으로 부분 수정 |
+| 설치 복잡도 | 파일 하나 | Docker Compose로 1줄 실행 |
+
+레이블링 작업은 자동 저장이 수시로 발생하므로 동시 쓰기 안전성이 필수적이다.
+
+## Page 단위 JSONB 저장 전략
+
+레이블링 데이터 저장 방식에 두 가지 선택지가 있다:
+
+- **전략 A (정규화)**: layout_elements, span_elements, relations 테이블을 별도로 둠
+  → JOIN이 복잡하고, OmniDocBench JSON 변환 로직이 필요
+- **전략 B (Page 단위 JSONB)**: 페이지 테이블에 annotation_data JSONB 컬럼 하나로 통째 저장
+  → OmniDocBench JSON 구조를 그대로 넣고 꺼냄
+
+**전략 B를 채택한다.** 이유:
+
+1. OmniDocBench JSON ↔ DB 간 변환 로직이 거의 없다 (넣고 꺼내면 그대로 Export 포맷)
+2. 스키마 확장 시 마이그레이션이 단순하다 (JSON 필드 추가는 DB 마이그레이션 불필요)
+3. PostgreSQL JSONB는 내부 필드 인덱싱이 가능하여 "table 카테고리만 찾기" 같은 쿼리도 지원
+4. 수천 페이지, 페이지당 10~50KB 수준이면 전체 합쳐도 수십~수백 MB
+
+## 데이터 저장 위치 분리
+
+| 저장 대상 | 위치 | 이유 |
+| ----------- | ------ | ------ |
+| PDF 원본 | 파일시스템 `./storage/pdfs/` | 바이너리, 수정 안 함 |
+| 페이지 이미지 | 파일시스템 `./storage/images/` | 용량 큼, 읽기만 함 |
+| 레이블링 JSON | PostgreSQL JSONB (`pages.annotation_data`) | 동시 편집 안전, 쿼리/인덱싱 가능 |
+| 자동 추출 원본 | PostgreSQL JSONB (`pages.auto_extracted_data`) | 비교/복원용 보관 |
+| 문서 분석 메타데이터 | PostgreSQL JSONB (`documents.analysis_data`) | AI 추출 결과 + 사람 검수 |
+| 프로젝트/문서/유저 메타 | PostgreSQL 일반 컬럼 | 관계형 데이터 |
+| 최종 내보내기 파일 | 파일시스템 (생성 후 다운로드) | OmniDocBench JSON + 이미지 패키지 |
+
 ## ER 다이어그램
 
 ```mermaid
@@ -176,6 +217,45 @@ PDF 문서 정보를 저장합니다.
 | `created_at` | TIMESTAMPTZ | `NOW()` | 발생 시각 |
 
 **action 값:** `assigned`, `started`, `saved`, `submitted`, `approved`, `rejected`
+
+## annotation_data JSONB 구조
+
+`pages.annotation_data` 컬럼 안에 들어가는 JSON이 곧 OmniDocBench의 한 페이지 데이터다.
+Export 시 이 컬럼을 모아서 배열로 만들면 바로 최종 JSON이 된다.
+
+```jsonc
+{
+  "layout_dets": [
+    {
+      "category_type": "text_block",
+      "poly": [x1,y1, x2,y2, x3,y3, x4,y4],
+      "ignore": false, "order": 0, "anno_id": 0,
+      "text": "...", "latex": "...", "html": "...",
+      "attribute": { /* 카테고리별 속성 */ },
+      "line_with_spans": [ /* Span-level 하위 요소 */ ]
+    }
+  ],
+  "page_attribute": {
+    "data_source": "academic_literature", "language": "ko",
+    "layout": "double_column",
+    "watermark": false, "fuzzy_scan": false, "colorful_background": false
+  },
+  "extra": {
+    "relation": [{ "source_anno_id": 3, "target_anno_id": 4, "relation_type": "parent_son" }]
+  }
+}
+```
+
+타입 정의: [saegim-frontend/src/lib/types/omnidocbench.ts](../../saegim-frontend/src/lib/types/omnidocbench.ts)
+
+스키마 상세: [데이터 스키마](../../architecture/data-schema.md)
+
+## Export 로직
+
+구현: `saegim-backend/src/saegim/services/export_service.py`
+
+annotation_data를 OmniDocBench 구조로 저장했기 때문에,
+Export는 사실상 **DB에서 꺼내서 page_info를 붙이는 것**이 전부다.
 
 ## JSONB 연산
 
