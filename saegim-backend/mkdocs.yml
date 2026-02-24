@@ -192,6 +192,10 @@ markdown_extensions:
 # Assume REF_DOCS_DIR_NAME = 'reference' in scripts/gen_ref_pages.py
 nav:
   - Home: index.md
+  - Architecture:
+    - 데이터 스키마: architecture/data-schema.md
+    - 추출 파이프라인: architecture/extraction-pipeline.md
+    - 레이블링 워크플로우: architecture/labeling-workflow.md
   - Backend:
     - Guide:
       - 시작하기: backend/guide/getting-started.md
