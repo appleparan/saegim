@@ -165,6 +165,11 @@
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
         uiStore.showNotification('OCR 엔드포인트가 아직 준비되지 않았습니다', 'info')
+      } else if (e instanceof ApiError && e.status === 503) {
+        uiStore.showNotification(
+          'OCR 엔진이 설정되지 않았습니다. 프로젝트 설정에서 OCR 엔진을 구성해주세요.',
+          'info',
+        )
       } else {
         uiStore.showNotification('텍스트 추출에 실패했습니다', 'error')
       }

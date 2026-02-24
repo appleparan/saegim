@@ -85,3 +85,16 @@ class ElementCreate(BaseModel):
     html: str = Field(default='')
     attribute: dict[str, Any] = Field(default_factory=dict)
     ignore: bool = Field(default=False)
+
+
+class ExtractTextRequest(BaseModel):
+    """Schema for requesting OCR text extraction from a drawn region."""
+
+    poly: list[float] = Field(min_length=8, max_length=8)
+    category_type: str = Field(default='text_block')
+
+
+class ExtractTextResponse(BaseModel):
+    """Schema for OCR text extraction result."""
+
+    text: str
