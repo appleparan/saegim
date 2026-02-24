@@ -191,23 +191,27 @@ markdown_extensions:
 
 # Assume REF_DOCS_DIR_NAME = 'reference' in scripts/gen_ref_pages.py
 nav:
-  - Home: index.md
+  - Home: README.md
+  - Architecture:
+    - 데이터 스키마: architecture/data-schema.md
+    - 추출 파이프라인: architecture/extraction-pipeline.md
+    - 레이블링 워크플로우: architecture/labeling-workflow.md
   - Backend:
     - Guide:
       - 시작하기: backend/guide/getting-started.md
       - API 엔드포인트: backend/guide/api.md
-    - Design:
-      - 아키텍처: backend/design/architecture.md
-      - 데이터베이스: backend/design/database.md
+    - Architecture:
+      - 아키텍처: backend/architecture/architecture.md
+      - 데이터베이스: backend/architecture/database.md
     - Dev:
       - 개발 가이드: backend/dev/development.md
   - Frontend:
     - Guide:
       - 컴포넌트: frontend/guide/components.md
       - 단축키: frontend/guide/shortcuts.md
-    - Design:
-      - 아키텍처: frontend/design/architecture.md
-      - 스토어: frontend/design/stores.md
+    - Architecture:
+      - 아키텍처: frontend/architecture/architecture.md
+      - 스토어: frontend/architecture/stores.md
     - Dev:
       - API 클라이언트: frontend/dev/api-client.md
   - Deployment:

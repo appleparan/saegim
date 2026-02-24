@@ -426,3 +426,20 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 | 코드 | 설명 |
 | ------ | ------ |
 | `404` | 프로젝트를 찾을 수 없음 |
+
+---
+
+## 미구현 엔드포인트 (계획)
+
+다음 엔드포인트는 후속 Phase에서 구현 예정입니다:
+
+```text
+# 관계 (Relation)
+POST   /api/v1/pages/{id}/relations          관계 추가
+DELETE /api/v1/relations/{id}                관계 삭제
+
+# 작업 관리 (Task)
+GET    /api/v1/tasks                         내 할당 작업 목록
+PUT    /api/v1/tasks/{id}/submit             작업 제출
+PUT    /api/v1/tasks/{id}/review             리뷰 결과 (승인/반려)
+```
