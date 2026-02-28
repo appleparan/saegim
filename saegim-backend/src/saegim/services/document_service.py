@@ -10,7 +10,7 @@ import asyncpg
 import pypdfium2 as pdfium
 
 from saegim.repositories import document_repo, page_repo, project_repo
-from saegim.services import extraction_service
+from saegim.services import attribute_classifier, extraction_service
 from saegim.services.engines import build_engine
 
 logger = logging.getLogger(__name__)
@@ -92,6 +92,7 @@ async def upload_and_convert(
                     page_no=page_no,
                     scale=2.0,
                 )
+                extracted = attribute_classifier.classify_attributes(extracted)
 
             page_record = await page_repo.create(
                 pool,
@@ -223,6 +224,8 @@ async def _run_ocr_extraction_background(
                 page['width'],
                 page['height'],
             )
+
+            extracted = attribute_classifier.classify_attributes(extracted)
 
             await page_repo.update_auto_extracted_data(
                 pool,
