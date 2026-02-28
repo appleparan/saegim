@@ -53,52 +53,52 @@ _DATA_SOURCE_RULES: list[tuple[str, list[str]]] = [
     (
         'exam_paper',
         [
-            r'\b시험\b',
-            r'\b수능\b',
-            r'\b모의고사\b',
+            r'시험',
+            r'수능',
+            r'모의고사',
             r'\bExam\b',
         ],
     ),
     (
         'government_doc',
         [
-            r'\b공문\b',
-            r'\b시행일\b',
-            r'\b관보\b',
-            r'\b고시\b',
+            r'공문',
+            r'시행일',
+            r'관보',
+            r'고시',
         ],
     ),
     (
         'financial_report_kr',
         [
-            r'\b재무제표\b',
-            r'\b감사보고서\b',
-            r'\b사업보고서\b',
-            r'\b손익계산서\b',
-            r'\b대차대조표\b',
+            r'재무제표',
+            r'감사보고서',
+            r'사업보고서',
+            r'손익계산서',
+            r'대차대조표',
         ],
     ),
     (
         'research_report',
         [
-            r'\b연구보고서\b',
+            r'연구보고서',
             r'\bResearch\s+Report\b',
-            r'\b정책\s*보고서\b',
+            r'정책\s*보고서',
         ],
     ),
     (
         'newspaper',
         [
-            r'\b기자\b',
-            r'\b특파원\b',
-            r'\b사설\b',
+            r'기자',
+            r'특파원',
+            r'사설',
         ],
     ),
     (
         'book',
         [
             r'\bChapter\s+\d+\b',
-            r'\b제\s*\d+\s*장\b',
+            r'제\s*\d+\s*장',
             r'\bISBN\b',
         ],
     ),
@@ -106,7 +106,7 @@ _DATA_SOURCE_RULES: list[tuple[str, list[str]]] = [
         'PPT2PDF',
         [
             r'\bSlide\s+\d+\b',
-            r'\b슬라이드\b',
+            r'슬라이드',
         ],
     ),
 ]
