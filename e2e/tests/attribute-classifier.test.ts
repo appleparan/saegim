@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import {
   waitForBackendReady,
   createProject,
@@ -16,15 +16,12 @@ let projectId: string;
 let documentId: string;
 let pageId: string;
 
-test.describe.serial("Auto Attribute Classifier (pdfminer fallback)", () => {
-  test.beforeAll(async () => {
+describe("Auto Attribute Classifier (pdfminer fallback)", () => {
+  beforeAll(async () => {
     await waitForBackendReady();
     await ensureTestPdf();
 
-    const { data: project } = await createProject(
-      PROJECT_NAME,
-      "E2E attribute classifier test",
-    );
+    const { data: project } = await createProject(PROJECT_NAME, "E2E attribute classifier test");
     projectId = project.id;
 
     const { data: doc } = await uploadPdf(projectId, getTestPdfPath());
@@ -94,9 +91,7 @@ test.describe.serial("Auto Attribute Classifier (pdfminer fallback)", () => {
     const autoData = page.auto_extracted_data as Record<string, unknown>;
     const layoutDets = autoData.layout_dets as Array<Record<string, unknown>>;
 
-    const textBlocks = layoutDets.filter(
-      (el) => el.category_type === "text_block",
-    );
+    const textBlocks = layoutDets.filter((el) => el.category_type === "text_block");
     expect(textBlocks.length).toBeGreaterThan(0);
 
     // Each text block should have an attribute dict
@@ -106,9 +101,7 @@ test.describe.serial("Auto Attribute Classifier (pdfminer fallback)", () => {
 
       // text_language should be set (English paper)
       if (attr.text_language) {
-        expect(["text_en", "text_ko", "text_ko_en_mixed"]).toContain(
-          attr.text_language,
-        );
+        expect(["text_en", "text_ko", "text_ko_en_mixed"]).toContain(attr.text_language);
       }
 
       // text_background and text_rotate should have defaults
@@ -161,7 +154,7 @@ test.describe.serial("Auto Attribute Classifier (pdfminer fallback)", () => {
     }
   });
 
-  test.afterAll(async () => {
+  afterAll(async () => {
     try {
       await deleteProject(projectId);
     } catch {
