@@ -1,66 +1,55 @@
-# Svelte + TS + Vite
+# saegim-frontend
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+saegim 레이블링 플랫폼의 프론트엔드. SvelteKit + Svelte 5 Runes 기반 SPA.
 
-## Recommended IDE Setup
+## 기술 스택
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+| 분류 | 기술 |
+| ---- | ---- |
+| **프레임워크** | SvelteKit (adapter-static SPA) + Svelte 5 (Runes) |
+| **빌드** | Vite 7, TypeScript |
+| **스타일** | Tailwind CSS 4, shadcn-svelte, 다크모드 (mode-watcher) |
+| **캔버스** | PDF.js (PDF 렌더링) + Konva.js (바운딩 박스 에디터) |
+| **포맷터** | oxfmt |
+| **린터** | ESLint |
+| **테스트** | Vitest + Testing Library |
 
-## Need an official Svelte framework?
+## 개발
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite.
-Deploy anywhere with its serverless-first approach and adapt to various platforms,
-with out of the box support for TypeScript, SCSS, and Less,
-and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+```bash
+bun install
 
-## Technical considerations
+bun run dev           # 개발 서버 (localhost:5173)
+bun run build         # 프로덕션 빌드
+bun run preview       # 빌드 결과 미리보기
+bun run check         # svelte-check 타입 체크
+bun run test          # Vitest 테스트
+bun run format        # oxfmt 포맷팅
+bun run format:check  # 포맷 검사
+bun run lint          # ESLint 검사
+bun run lint:fix      # ESLint 자동 수정
+```
 
-**Why use this over SvelteKit?**
+## 프로젝트 구조
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte,
-while taking into account the developer experience with regards to HMR and intellisense.
-It demonstrates capabilities on par with the other `create-vite` templates
-and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit,
-the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration.
-Using triple-slash references keeps the default TypeScript setting of accepting type information
-from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README,
-but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project,
-it does not prevent the use of JavaScript syntax in `.svelte` files.
-In addition, it would force `checkJs: false`, bringing the worst of both worlds:
-not being able to guarantee the entire codebase is TypeScript,
-and also having worse typechecking for the existing JavaScript.
-In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas!
-It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte`
-due to its often surprising behavior.
-You can read the details in the [svelte-hmr documentation](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component,
-consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from "svelte/store";
-export default writable(0);
+```text
+src/
+├── routes/                   # SvelteKit 파일 기반 라우팅
+│   ├── +layout.svelte        # 루트 레이아웃
+│   ├── +page.svelte          # 홈 (프로젝트 목록)
+│   ├── projects/             # 프로젝트 상세
+│   └── label/                # 레이블링 에디터
+├── lib/
+│   ├── api/                  # HTTP 클라이언트 (백엔드 REST API)
+│   ├── components/
+│   │   ├── ui/               # shadcn-svelte 기본 UI 컴포넌트
+│   │   ├── canvas/           # PDF.js + Konva.js 캔버스 에디터
+│   │   ├── panels/           # 사이드 패널 (속성, 카테고리 등)
+│   │   ├── layout/           # 레이아웃 컴포넌트
+│   │   ├── settings/         # 설정 관련 컴포넌트
+│   │   └── common/           # 공통 컴포넌트
+│   ├── stores/               # Svelte 5 Runes 상태 관리
+│   ├── types/                # OmniDocBench 타입 정의
+│   └── utils/                # 유틸리티 함수
+└── tests/                    # Vitest 유닛 테스트
 ```

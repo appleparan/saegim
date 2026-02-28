@@ -11,7 +11,7 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 ```text
 Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 ┌──────────────────┐          ┌──────────────────┐         ┌──────────┐
-│ Canvas + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
+│ PDF.js + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
 │ Runes 상태관리     │◄──JSON──►│ Export, Service  │◄──SQL──►│  JSONB   │
 │ 3-Panel 에디터    │           │ Repository 패턴   │         │          │
 └──────────────────┘          └──────────────────┘         └──────────┘
@@ -21,7 +21,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 
 | 계층 | 기술 |
 | ---- | ---- |
-| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, shadcn-svelte + Tailwind CSS 4, Konva.js, 다크모드 (mode-watcher) |
+| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, shadcn-svelte + Tailwind CSS 4, PDF.js, Konva.js, 다크모드 (mode-watcher) |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
@@ -32,7 +32,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | | - `pdfminer`: pdfminer.six 폴백 (GPU 불필요) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
-| **E2E 테스트** | Playwright + Docker Compose (기본 + GPU 프로파일) |
+| **E2E 테스트** | Vitest + Docker Compose (기본 + GPU 프로파일) |
 
 ## 주요 기능
 
@@ -44,7 +44,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
 - **사용자 역할**: admin, annotator, reviewer
 - **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
-- **E2E 테스트**: Playwright 기반 자동화 (기본 + GPU 프로파일)
+- **E2E 테스트**: Vitest 기반 자동화 (기본 + GPU 프로파일)
 
 ## 시작하기
 
@@ -197,7 +197,7 @@ saegim/
 │   └── docs/                       # MkDocs 문서
 ├── saegim-frontend/
 │   ├── src/
-│   │   ├── pages/                  # 라우트 페이지
+│   │   ├── routes/                 # SvelteKit 라우트 페이지
 │   │   └── lib/
 │   │       ├── types/              # OmniDocBench 타입 정의
 │   │       ├── api/                # HTTP 클라이언트
@@ -205,7 +205,7 @@ saegim/
 │   │       ├── components/         # UI: ui/ (shadcn-svelte), canvas/, panels/, layout/, settings/
 │   │       └── utils/              # 유틸리티 함수
 │   └── tests/                      # Vitest 테스트
-├── e2e/                            # E2E 테스트 (Playwright + Docker Compose)
+├── e2e/                            # E2E 테스트 (Vitest + Docker Compose)
 │   ├── docker-compose.e2e.yml      # 기본 + GPU 프로파일
 │   ├── tests/                      # 기본 테스트
 │   └── tests/gpu/                  # GPU 전용 테스트 (vLLM)

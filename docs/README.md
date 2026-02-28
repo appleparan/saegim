@@ -50,7 +50,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
-| **E2E 테스트** | Playwright + Docker Compose |
+| **E2E 테스트** | Vitest + Docker Compose |
 
 ## OCR 엔진 아키텍처
 
@@ -100,7 +100,7 @@ saegim/
 │
 ├── e2e/                      # E2E 테스트
 │   ├── docker-compose.e2e.yml
-│   ├── tests/                # 기본 테스트 (Playwright)
+│   ├── tests/                # 기본 테스트 (Vitest)
 │   └── tests/gpu/            # GPU 전용 (vLLM Chandra)
 │
 └── docker-compose.yml        # 개발/배포용
