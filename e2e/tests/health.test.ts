@@ -1,16 +1,16 @@
-import { describe, test, expect, beforeAll } from 'vitest'
-import { waitForBackendReady, healthCheck } from '../helpers/api'
+import { describe, test, expect, beforeAll } from "vitest";
+import { waitForBackendReady, healthCheck } from "../helpers/api";
 
-describe('Health Checks', () => {
+describe("Health Checks", () => {
   beforeAll(async () => {
-    await waitForBackendReady()
-  })
+    await waitForBackendReady();
+  });
 
-  test('backend health endpoint returns 200', async () => {
-    const { status } = await healthCheck()
-    expect(status).toBe(200)
-  })
+  test("backend health endpoint returns 200", async () => {
+    const { status } = await healthCheck();
+    expect(status).toBe(200);
+  });
 
   // Browser tests (frontend loads, empty state) are verified
   // manually via Chrome DevTools MCP in Claude Code.
-})
+});

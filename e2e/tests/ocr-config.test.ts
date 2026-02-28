@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from 'vitest'
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import {
   waitForBackendReady,
   createProject,
@@ -6,129 +6,129 @@ import {
   updateOcrConfig,
   testOcrConnection,
   deleteProject,
-} from '../helpers/api'
+} from "../helpers/api";
 
-let projectId: string
+let projectId: string;
 
-describe('OCR Config API (engine_type based)', () => {
+describe("OCR Config API (engine_type based)", () => {
   beforeAll(async () => {
-    await waitForBackendReady()
-    const { data } = await createProject(`OCR Config E2E ${Date.now()}`, 'OCR config test')
-    projectId = data.id
-  })
+    await waitForBackendReady();
+    const { data } = await createProject(`OCR Config E2E ${Date.now()}`, "OCR config test");
+    projectId = data.id;
+  });
 
-  test('01 - default OCR config is pdfminer', async () => {
-    const { data, status } = await getOcrConfig(projectId)
-    expect(status).toBe(200)
-    expect(data.engine_type).toBe('pdfminer')
-  })
+  test("01 - default OCR config is pdfminer", async () => {
+    const { data, status } = await getOcrConfig(projectId);
+    expect(status).toBe(200);
+    expect(data.engine_type).toBe("pdfminer");
+  });
 
-  test('02 - update to commercial_api with gemini', async () => {
+  test("02 - update to commercial_api with gemini", async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'commercial_api',
+      engine_type: "commercial_api",
       commercial_api: {
-        provider: 'gemini',
-        api_key: 'test-key',
-        model: 'gemini-3-flash-preview',
+        provider: "gemini",
+        api_key: "test-key",
+        model: "gemini-3-flash-preview",
       },
-    })
-    expect(status).toBe(200)
-    expect(data.engine_type).toBe('commercial_api')
+    });
+    expect(status).toBe(200);
+    expect(data.engine_type).toBe("commercial_api");
     expect(data.commercial_api).toEqual({
-      provider: 'gemini',
-      api_key: 'test-key',
-      model: 'gemini-3-flash-preview',
-    })
-  })
+      provider: "gemini",
+      api_key: "test-key",
+      model: "gemini-3-flash-preview",
+    });
+  });
 
-  test('03 - update to integrated_server with model', async () => {
+  test("03 - update to integrated_server with model", async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'integrated_server',
-      integrated_server: { host: 'localhost', port: 8000, model: 'datalab-to/chandra' },
-    })
-    expect(status).toBe(200)
-    expect(data.engine_type).toBe('integrated_server')
+      engine_type: "integrated_server",
+      integrated_server: { host: "localhost", port: 8000, model: "datalab-to/chandra" },
+    });
+    expect(status).toBe(200);
+    expect(data.engine_type).toBe("integrated_server");
     expect(data.integrated_server).toEqual({
-      host: 'localhost',
+      host: "localhost",
       port: 8000,
-      model: 'datalab-to/chandra',
-    })
-  })
+      model: "datalab-to/chandra",
+    });
+  });
 
-  test('04 - update to split_pipeline with gemini OCR', async () => {
+  test("04 - update to split_pipeline with gemini OCR", async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'split_pipeline',
+      engine_type: "split_pipeline",
       split_pipeline: {
-        layout_server_url: 'http://localhost:18811',
-        ocr_provider: 'gemini',
-        ocr_api_key: 'test-key',
-        ocr_model: 'gemini-3-flash-preview',
+        layout_server_url: "http://localhost:18811",
+        ocr_provider: "gemini",
+        ocr_api_key: "test-key",
+        ocr_model: "gemini-3-flash-preview",
       },
-    })
-    expect(status).toBe(200)
-    expect(data.engine_type).toBe('split_pipeline')
-    expect(data.split_pipeline?.ocr_provider).toBe('gemini')
-    expect(data.split_pipeline?.ocr_api_key).toBe('test-key')
-    expect(data.split_pipeline?.ocr_model).toBe('gemini-3-flash-preview')
-  })
+    });
+    expect(status).toBe(200);
+    expect(data.engine_type).toBe("split_pipeline");
+    expect(data.split_pipeline?.ocr_provider).toBe("gemini");
+    expect(data.split_pipeline?.ocr_api_key).toBe("test-key");
+    expect(data.split_pipeline?.ocr_model).toBe("gemini-3-flash-preview");
+  });
 
-  test('05 - revert to pdfminer', async () => {
+  test("05 - revert to pdfminer", async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: 'pdfminer',
-    })
-    expect(status).toBe(200)
-    expect(data.engine_type).toBe('pdfminer')
-  })
+      engine_type: "pdfminer",
+    });
+    expect(status).toBe(200);
+    expect(data.engine_type).toBe("pdfminer");
+  });
 
-  test('06 - get config reflects last update', async () => {
-    const { data } = await getOcrConfig(projectId)
-    expect(data.engine_type).toBe('pdfminer')
-  })
+  test("06 - get config reflects last update", async () => {
+    const { data } = await getOcrConfig(projectId);
+    expect(data.engine_type).toBe("pdfminer");
+  });
 
-  test('07 - validation: commercial_api without sub-config is 422', async () => {
+  test("07 - validation: commercial_api without sub-config is 422", async () => {
     const { status } = await updateOcrConfig(projectId, {
-      engine_type: 'commercial_api',
-    })
-    expect(status).toBe(422)
-  })
+      engine_type: "commercial_api",
+    });
+    expect(status).toBe(422);
+  });
 
-  test('08 - validation: integrated_server without sub-config is 422', async () => {
+  test("08 - validation: integrated_server without sub-config is 422", async () => {
     const { status } = await updateOcrConfig(projectId, {
-      engine_type: 'integrated_server',
-    })
-    expect(status).toBe(422)
-  })
+      engine_type: "integrated_server",
+    });
+    expect(status).toBe(422);
+  });
 
-  test('09 - validation: split_pipeline without sub-config is 422', async () => {
+  test("09 - validation: split_pipeline without sub-config is 422", async () => {
     const { status } = await updateOcrConfig(projectId, {
-      engine_type: 'split_pipeline',
-    })
-    expect(status).toBe(422)
-  })
+      engine_type: "split_pipeline",
+    });
+    expect(status).toBe(422);
+  });
 
-  test('10 - connection test for pdfminer always succeeds', async () => {
+  test("10 - connection test for pdfminer always succeeds", async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      engine_type: 'pdfminer',
-    })
-    expect(status).toBe(200)
-    expect(data.success).toBe(true)
-  })
+      engine_type: "pdfminer",
+    });
+    expect(status).toBe(200);
+    expect(data.success).toBe(true);
+  });
 
-  test('11 - connection test for unreachable integrated_server fails', async () => {
+  test("11 - connection test for unreachable integrated_server fails", async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      engine_type: 'integrated_server',
-      integrated_server: { host: 'nonexistent-host', port: 18811 },
-    })
-    expect(status).toBe(200)
-    expect(data.success).toBe(false)
-    expect(data.message).toBeTruthy()
-  })
+      engine_type: "integrated_server",
+      integrated_server: { host: "nonexistent-host", port: 18811 },
+    });
+    expect(status).toBe(200);
+    expect(data.success).toBe(false);
+    expect(data.message).toBeTruthy();
+  });
 
   afterAll(async () => {
     try {
-      await deleteProject(projectId)
+      await deleteProject(projectId);
     } catch {
       // Ignore cleanup errors
     }
-  })
-})
+  });
+});

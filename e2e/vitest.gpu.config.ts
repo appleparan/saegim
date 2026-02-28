@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    dir: './tests/gpu',
-    include: ['**/*.test.ts'],
+    dir: "./tests/gpu",
+    include: ["**/*.test.ts"],
     testTimeout: 600_000,
     hookTimeout: 300_000,
     teardownTimeout: 30_000,
@@ -11,6 +11,6 @@ export default defineConfig({
     sequence: {
       concurrent: false,
     },
-    reporters: ['default'],
+    reporters: ["default"],
   },
-})
+});
