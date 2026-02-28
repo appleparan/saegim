@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "types": ["vitest/globals", "node"]
   },
   "include": ["**/*.ts"]
 }

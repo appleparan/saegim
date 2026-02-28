@@ -2,25 +2,25 @@
   "name": "saegim-e2e",
   "version": "0.2.0",
   "private": true,
+  "type": "module",
   "description": "E2E tests for saegim labeling platform",
   "scripts": {
-    "setup": "bunx playwright install chromium && bunx tsx helpers/pdf.ts",
-    "test": "bunx playwright test --project=chromium",
-    "test:ui": "bunx playwright test --ui",
-    "test:health": "bunx playwright test health",
-    "test:workflow": "bunx playwright test workflow",
-    "test:benchmark": "bunx playwright test benchmark",
-    "test:gpu": "bunx playwright test --project=gpu",
-    "docker:gpu:up": "docker compose -f docker-compose.e2e.yml --profile gpu up -d --build",
-    "docker:gpu:down": "docker compose -f docker-compose.e2e.yml --profile gpu down -v",
-    "report": "bunx playwright show-report",
+    "test": "bunx vitest run",
+    "test:health": "bunx vitest run health",
+    "test:benchmark": "bunx vitest run benchmark",
+    "test:extraction": "bunx vitest run extraction",
+    "test:ocr-config": "bunx vitest run ocr-config",
+    "test:attribute": "bunx vitest run attribute-classifier",
+    "test:gpu": "bunx vitest run --config vitest.gpu.config.ts",
     "docker:up": "docker compose -f docker-compose.e2e.yml up -d --build",
     "docker:down": "docker compose -f docker-compose.e2e.yml down -v",
+    "docker:gpu:up": "docker compose -f docker-compose.e2e.yml --profile gpu up -d --build",
+    "docker:gpu:down": "docker compose -f docker-compose.e2e.yml --profile gpu down -v",
     "docker:logs": "docker compose -f docker-compose.e2e.yml logs -f"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
     "@types/node": "^25.2.3",
-    "tsx": "^4.19.0"
+    "tsx": "^4.19.0",
+    "vitest": "^4.0.18"
   }
 }
