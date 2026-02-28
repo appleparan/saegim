@@ -17,7 +17,7 @@ export default ts.config(
   // Svelte recommended rules
   ...svelte.configs['flat/recommended'],
 
-  // Prettier compat (must be last rule set)
+  // Formatter compat — disables ESLint rules that conflict with oxfmt (via eslint-config-prettier)
   prettier,
   ...svelte.configs['flat/prettier'],
 

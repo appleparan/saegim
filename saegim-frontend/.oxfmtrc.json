@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "semi": false,
+  "tabWidth": 2,
+  "useTabs": false,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "sortTailwindcss": {},
+  "sortPackageJson": false,
+  "ignorePatterns": ["build", ".svelte-kit", "dist", "node_modules", "bun.lock", "*.md"]
+}
