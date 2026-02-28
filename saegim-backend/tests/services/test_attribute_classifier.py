@@ -22,7 +22,6 @@ from saegim.services.attribute_classifier import (
     classify_attributes,
 )
 
-
 # ============================================================
 # Shared helpers
 # ============================================================
@@ -132,7 +131,10 @@ class TestCollectAllText:
 class TestClassifyPageLanguage:
     def test_korean_dominant(self):
         elements = [
-            {'category_type': 'text_block', 'text': '이것은 한국어 문서입니다 자연어 처리 기술을 사용합니다'}
+            {
+                'category_type': 'text_block',
+                'text': '이것은 한국어 문서입니다 자연어 처리 기술을 사용합니다',
+            }
         ]
         assert _classify_page_language(elements) == 'ko'
 
@@ -156,9 +158,7 @@ class TestClassifyPageLanguage:
         assert result == 'ko_en_mixed'
 
     def test_mixed_korean_chinese(self):
-        elements = [
-            {'category_type': 'text_block', 'text': '한국 中文混合漢字文書韓國語中國語'}
-        ]
+        elements = [{'category_type': 'text_block', 'text': '한국 中文混合漢字文書韓國語中國語'}]
         result = _classify_page_language(elements)
         assert result == 'ko_ch_mixed'
 
@@ -213,15 +213,11 @@ class TestClassifyPageLayout:
         assert _classify_page_layout(elements) == '1andmore_column'
 
     def test_few_elements_defaults_to_single(self):
-        elements = [
-            {'category_type': 'text_block', 'poly': [100, 0, 500, 0, 500, 100, 100, 100]}
-        ]
+        elements = [{'category_type': 'text_block', 'poly': [100, 0, 500, 0, 500, 100, 100, 100]}]
         assert _classify_page_layout(elements) == 'single_column'
 
     def test_no_text_elements(self):
-        elements = [
-            {'category_type': 'figure', 'poly': [0, 0, 1000, 0, 1000, 1000, 0, 1000]}
-        ]
+        elements = [{'category_type': 'figure', 'poly': [0, 0, 1000, 0, 1000, 1000, 0, 1000]}]
         assert _classify_page_layout(elements) == 'single_column'
 
     def test_empty_elements(self):
@@ -413,7 +409,9 @@ class TestClassifyTableLanguage:
     def test_korean_table(self):
         element = {
             'text': '',
-            'html': '<table><tr><td>이름</td><td>나이</td><td>주소</td><td>연락처</td></tr></table>',
+            'html': (
+                '<table><tr><td>이름</td><td>나이</td><td>주소</td><td>연락처</td></tr></table>'
+            ),
         }
         assert _classify_table_language(element) == 'table_ko'
 
@@ -661,9 +659,7 @@ class TestClassifyAttributes:
             'extra': {'relation': [{'source_anno_id': 0, 'target_anno_id': 1}]},
         }
         result = classify_attributes(extracted)
-        assert result['extra'] == {
-            'relation': [{'source_anno_id': 0, 'target_anno_id': 1}]
-        }
+        assert result['extra'] == {'relation': [{'source_anno_id': 0, 'target_anno_id': 1}]}
 
     def test_fill_missing_preserves_existing_element_attributes(self):
         extracted = {
