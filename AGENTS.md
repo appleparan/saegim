@@ -30,10 +30,10 @@ OCR 품질을 검증하며, 핵심 아이디어를 구조화하는 것이 원래
 이를 위해 **두 가지 어노테이션 패러다임**이 공존해야 한다:
 
 ```text
-패러다임 1: Element-centric (Phase 1~3, KO-VDC 중심)
+패러다임 1: Element-centric (KO-VDC 중심) ← 현재 구현 범위
   Page → [Element(bbox, category, text, attribute)]
 
-패러다임 2: Task-centric (Phase 4b~4c, KO-VQA/OCRAG 중심)
+패러다임 2: Task-centric (KO-VQA/OCRAG 중심) ← 향후 확장
   Page → [Task(question, answer, evidence_regions)]
 ```
 
@@ -133,8 +133,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
      │  └── (6) 요소 간 관계(relation) 라벨링
      │
      ▼
-[Phase C: QA & 내보내기]
-     │  ├── 교차 검증 (Inter-Annotator Agreement)
+[Phase C: 검증 & 내보내기]
      │  ├── 자동 검증 규칙 (필수 필드, 좌표 유효성 등)
      │  └── OmniDocBench JSON 내보내기
      │
@@ -189,46 +188,6 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 
 - 자동 Attribute 분류기, 읽기 순서 에디터, Relation 연결 도구
 
-### Phase 3: 협업 & QA
-
-**목표**: 다수 어노테이터가 동시에 작업하고 품질을 관리할 수 있는 시스템.
-
-- 페이지 단위 배타적 잠금 + optimistic locking
-- 작업 할당, 교차 검증, 리뷰어 워크플로우
-- 진행률 대시보드, Inter-Annotator Agreement
-
-### Phase 4a: AI 분석 메타데이터 + Project Type 추상화
-
-**목표**: 문서 분석 메타데이터 자동 추출 + 다양한 어노테이션 모드를 위한 아키텍처 전환.
-
-이 단계가 전체 로드맵의 **아키텍처 전환점**이다.
-
-- `documents.analysis_data` JSONB: VLM/LLM으로 Overview/Core Idea/Key Figures/Limitations 자동 추출
-- `projects.project_type`: `element_annotation` | `vqa` | `ocrag`
-- Export 서비스를 Strategy 패턴으로 설계
-
-### Phase 4b: KO-VDC Export + KO-VQA 레이블링 모듈
-
-**목표**: KO-VDC ground truth 내보내기 + VQA 질의응답 레이블링 기능.
-
-- VDC: ground truth Export + OmniDocBench 평가 호환성 검증
-- VQA: QA pair 에디터, Evidence region 링크, VQA Export
-
-### Phase 4c: KO-OCRAG 레이블링 모듈
-
-**목표**: OCR + RAG 파이프라인 평가를 위한 레이블링 기능.
-
-- Context chunk 정의, Query-Context-Answer 트리플렛 에디터, OCRAG Export
-
-### Phase 5: 논문 리뷰 에이전트 연동 (별도 시스템)
-
-**목표**: saegim의 ground truth를 활용하는 논문 리뷰 에이전트.
-
-saegim은 이 에이전트의 **데이터 공장** 역할을 한다.
-
-- analysis_data + annotation_data를 학습/평가 데이터로 활용
-- VLM + RAG 파이프라인, Key Figure/OCR 품질 평가
-
 ---
 
 ## 5. 한국어 문서 특화 고려사항
@@ -256,8 +215,7 @@ OmniDocBench는 영어/중국어 중심이므로, 한국어 문서에 맞게 다
 | -------- | ------ | ------ |
 | 자동 추출 품질 부족으로 수동 작업량 증가 | 높 | 추출 도구 비교 평가 후 최적 선택; 점진적 개선 루프 |
 | 고해상도 이미지 렌더링 성능 | 중 | 타일 기반 렌더링, 이미지 피라미드 활용 |
-| 복잡한 레이블링 UI로 인한 어노테이터 학습 곡선 | 중 | 튜토리얼 모드, 단계별 가이드, 단축키 치트시트 |
-| 동시 편집 충돌 | 중 | 페이지 단위 배타적 잠금 (locked_at + assigned_to) |
+| 복잡한 레이블링 UI로 인한 학습 곡선 | 중 | 단축키 치트시트, 단계별 가이드 |
 | JSONB 데이터 일관성 깨짐 | 중 | JSON Schema 검증을 저장 시 서버에서 수행; task_history 스냅샷으로 복원 |
 | asyncpg raw SQL 마이그레이션 | 낮 | Repository 패턴으로 SQL 격리; 마이그레이션 파일(`migrations/`)로 스키마 관리 |
 | 파일 저장소 유실 | 중 | Docker volume 마운트; 추후 S3/MinIO 전환 시 백업 자동화 |
@@ -270,8 +228,6 @@ OmniDocBench는 영어/중국어 중심이므로, 한국어 문서에 맞게 다
 | 지표 | 목표 |
 | ------ | ------ |
 | 페이지당 평균 레이블링 시간 | 자동추출 없이 30분 이내, 자동추출 시 10분 이내 |
-| Inter-Annotator Agreement (Category) | Cohen's κ ≥ 0.85 |
-| Inter-Annotator Agreement (Attribute) | Cohen's κ ≥ 0.80 |
 | JSON 스키마 유효성 통과율 | 100% |
 | OmniDocBench 평가 스크립트 호환성 | 수정 없이 실행 가능 |
 
