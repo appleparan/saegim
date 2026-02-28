@@ -117,6 +117,7 @@
 
   // Re-render when device pixel ratio changes (e.g. moving between monitors)
   $effect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
     const mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
     function onChange() {
       scheduleRerender()
