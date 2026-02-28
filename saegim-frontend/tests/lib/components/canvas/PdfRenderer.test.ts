@@ -31,11 +31,14 @@ let mockAddEventListener = vi.fn()
 let mockRemoveEventListener = vi.fn()
 
 function stubMatchMedia() {
-  vi.stubGlobal('matchMedia', vi.fn(() => ({
-    addEventListener: mockAddEventListener,
-    removeEventListener: mockRemoveEventListener,
-    matches: false,
-  })))
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({
+      addEventListener: mockAddEventListener,
+      removeEventListener: mockRemoveEventListener,
+      matches: false,
+    })),
+  )
 }
 
 stubMatchMedia()
@@ -49,9 +52,7 @@ const mockGetViewport = vi.fn((opts: { scale: number }) => ({
   width: 612 * opts.scale,
   height: 792 * opts.scale,
 }))
-const mockGetTextContent = vi.fn(() =>
-  Promise.resolve({ items: [], styles: {} }),
-)
+const mockGetTextContent = vi.fn(() => Promise.resolve({ items: [], styles: {} }))
 
 function createMockPageProxy() {
   return {
@@ -64,10 +65,10 @@ function createMockPageProxy() {
 
 describe('PdfRenderer', () => {
   // Lazy-import after mocks are set up
-  let render: typeof import('@testing-library/svelte')['render']
-  let cleanup: typeof import('@testing-library/svelte')['cleanup']
-  let PdfRenderer: typeof import('$lib/components/canvas/PdfRenderer.svelte')['default']
-  let canvasStore: typeof import('$lib/stores/canvas.svelte')['canvasStore']
+  let render: (typeof import('@testing-library/svelte'))['render']
+  let cleanup: (typeof import('@testing-library/svelte'))['cleanup']
+  let PdfRenderer: (typeof import('$lib/components/canvas/PdfRenderer.svelte'))['default']
+  let canvasStore: (typeof import('$lib/stores/canvas.svelte'))['canvasStore']
 
   beforeEach(async () => {
     vi.clearAllMocks()
