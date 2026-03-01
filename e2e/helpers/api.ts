@@ -265,6 +265,15 @@ export async function deleteRelation(
   })
 }
 
+export async function updateReadingOrder(
+  pageId: string,
+  orderMap: Record<string, number>,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('PUT', `/pages/${pageId}/reading-order`, {
+    body: { order_map: orderMap },
+  })
+}
+
 export async function acceptExtraction(
   pageId: string,
 ): Promise<{ data: PageResponse; duration: number }> {
