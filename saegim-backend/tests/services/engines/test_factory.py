@@ -30,12 +30,12 @@ class TestBuildEngine:
 
         assert isinstance(engine, CommercialApiEngine)
 
-    @patch(f'{_MODULE}._build_integrated_server')
-    def test_integrated_server(self, mock_build):
+    @patch(f'{_MODULE}._build_vllm')
+    def test_vllm_engine(self, mock_build):
         mock_build.return_value = 'mock_engine'
         config = {
-            'engine_type': 'integrated_server',
-            'integrated_server': {'host': 'localhost', 'port': 8000, 'model': 'datalab-to/chandra'},
+            'engine_type': 'vllm',
+            'vllm': {'host': 'localhost', 'port': 8000, 'model': 'datalab-to/chandra'},
         }
         result = build_engine(config)
         assert result == 'mock_engine'
@@ -49,7 +49,7 @@ class TestBuildEngine:
         config = {
             'engine_type': 'split_pipeline',
             'split_pipeline': {
-                'layout_server_url': 'http://localhost:18811',
+                'docling_model_name': 'ibm-granite/granite-docling-258M',
                 'ocr_provider': 'gemini',
                 'ocr_api_key': 'test-key',
             },
@@ -69,25 +69,6 @@ class TestBuildEngine:
         with pytest.raises(ValueError, match='Unknown engine_type'):
             build_engine({'some_key': 'value'})
 
-    def test_docling_engine(self):
-        config = {'engine_type': 'docling'}
-        engine = build_engine(config)
-        from saegim.services.engines.docling_engine import DoclingEngine
-
-        assert isinstance(engine, DoclingEngine)
-        assert engine.model_name == 'ibm-granite/granite-docling-258M'
-
-    def test_docling_engine_custom_model(self):
-        config = {
-            'engine_type': 'docling',
-            'docling': {'model_name': 'custom/model'},
-        }
-        engine = build_engine(config)
-        from saegim.services.engines.docling_engine import DoclingEngine
-
-        assert isinstance(engine, DoclingEngine)
-        assert engine.model_name == 'custom/model'
-
 
 class TestSplitPipelineOcrConfigExtraction:
     @patch(f'{_MODULE}._build_split_pipeline')
@@ -96,7 +77,7 @@ class TestSplitPipelineOcrConfigExtraction:
         config = {
             'engine_type': 'split_pipeline',
             'split_pipeline': {
-                'layout_server_url': 'http://localhost:18811',
+                'docling_model_name': 'ibm-granite/granite-docling-258M',
                 'ocr_provider': 'gemini',
                 'ocr_api_key': 'the-key',
                 'ocr_model': 'gemini-3-flash-preview',
@@ -105,7 +86,7 @@ class TestSplitPipelineOcrConfigExtraction:
         build_engine(config)
         call_args = mock_build.call_args[0][0]
         assert call_args == {
-            'layout_server_url': 'http://localhost:18811',
+            'docling_model_name': 'ibm-granite/granite-docling-258M',
             'ocr_provider': 'gemini',
             'ocr_api_key': 'the-key',
             'ocr_model': 'gemini-3-flash-preview',

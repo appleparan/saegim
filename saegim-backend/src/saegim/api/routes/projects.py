@@ -163,10 +163,10 @@ def _validate_ocr_config(body: OcrConfigUpdate) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail='commercial_api config is required when engine_type is commercial_api',
         )
-    if body.engine_type == 'integrated_server' and body.integrated_server is None:
+    if body.engine_type == 'vllm' and body.vllm is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail='integrated_server config is required when engine_type is integrated_server',
+            detail='vllm config is required when engine_type is vllm',
         )
     if body.engine_type == 'split_pipeline' and body.split_pipeline is None:
         raise HTTPException(

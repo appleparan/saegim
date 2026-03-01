@@ -1,8 +1,8 @@
-"""Granite Docling 258M engine for document layout detection.
+"""Docling-based document layout detection service.
 
 Uses IBM's granite-docling-258M vision-language model to detect text blocks,
 tables, figures, equations, and other document elements from page images.
-Outputs DocTags format which is parsed into OmniDocBench-compatible dicts.
+Outputs DocTags format which is parsed into LayoutRegion instances.
 """
 
 import logging
@@ -12,7 +12,7 @@ from typing import Any
 
 from PIL import Image
 
-from saegim.services.engines.base import BaseOCREngine
+from saegim.services.layout_types import LayoutRegion
 
 logger = logging.getLogger(__name__)
 
@@ -70,15 +70,15 @@ def _extract_locs(locs_str: str) -> tuple[int, int, int, int]:
     return int(values[0]), int(values[1]), int(values[2]), int(values[3])
 
 
-def _scale_to_poly(
+def _scale_bbox(
     x0: int,
     y0: int,
     x1: int,
     y1: int,
     page_width: int,
     page_height: int,
-) -> list[float]:
-    """Convert DocTags 500x500 coordinates to pixel polygon.
+) -> tuple[float, float, float, float]:
+    """Convert DocTags 500x500 coordinates to pixel bbox.
 
     Args:
         x0: Left coordinate in 0-499 range.
@@ -89,7 +89,7 @@ def _scale_to_poly(
         page_height: Target page height in pixels (must be positive).
 
     Returns:
-        8-element polygon [x0,y0, x1,y0, x1,y1, x0,y1] in pixel coordinates.
+        (x0, y0, x1, y1) bbox in pixel coordinates.
 
     Raises:
         ValueError: If page dimensions are not positive.
@@ -99,11 +99,7 @@ def _scale_to_poly(
         raise ValueError(msg)
     scale_x = page_width / _DOCTAGS_COORD_SIZE
     scale_y = page_height / _DOCTAGS_COORD_SIZE
-    px0 = x0 * scale_x
-    py0 = y0 * scale_y
-    px1 = x1 * scale_x
-    py1 = y1 * scale_y
-    return [px0, py0, px1, py0, px1, py1, px0, py1]
+    return (x0 * scale_x, y0 * scale_y, x1 * scale_x, y1 * scale_y)
 
 
 def _otsl_to_html(otsl_content: str) -> str:
@@ -123,12 +119,10 @@ def _otsl_to_html(otsl_content: str) -> str:
     Returns:
         HTML table string.
     """
-    # Remove <otsl> and </otsl> tags
     content = otsl_content.replace('<otsl>', '').replace('</otsl>', '').strip()
     if not content:
         return '<table></table>'
 
-    # Split into rows by <nl>
     row_strings = content.split('<nl>')
     rows: list[list[tuple[str, str]]] = []
 
@@ -137,7 +131,6 @@ def _otsl_to_html(otsl_content: str) -> str:
         if not row_str:
             continue
         cells: list[tuple[str, str]] = []
-        # Split by cell tokens
         parts = re.split(r'(<fcel>|<ecel>|<lcel>|<ucel>|<xcel>)', row_str)
         current_type = ''
         for part in parts:
@@ -147,7 +140,6 @@ def _otsl_to_html(otsl_content: str) -> str:
             elif current_type:
                 cells.append((current_type, part))
                 current_type = ''
-        # Handle trailing cell type with no content
         if current_type:
             cells.append((current_type, ''))
         rows.append(cells)
@@ -155,15 +147,12 @@ def _otsl_to_html(otsl_content: str) -> str:
     if not rows:
         return '<table></table>'
 
-    # Build span grid
     num_rows = len(rows)
     num_cols = max(len(row) for row in rows) if rows else 0
     if num_cols == 0:
         return '<table></table>'
 
-    # Track which cells are covered by spans
     covered: set[tuple[int, int]] = set()
-    # Build HTML
     html_rows: list[str] = []
 
     for r_idx, row in enumerate(rows):
@@ -175,21 +164,17 @@ def _otsl_to_html(otsl_content: str) -> str:
             if cell_type == '<ecel>':
                 html_cells.append('<td></td>')
             elif cell_type in ('<lcel>', '<ucel>', '<xcel>'):
-                # These are span continuations, skip
                 continue
             else:
-                # <fcel> - calculate span
                 colspan = 1
                 rowspan = 1
 
-                # Count horizontal span (lcel/xcel to the right)
                 for nc in range(c_idx + 1, len(row)):
                     if row[nc][0] in ('<lcel>', '<xcel>'):
                         colspan += 1
                     else:
                         break
 
-                # Count vertical span (ucel/xcel below)
                 for nr in range(r_idx + 1, num_rows):
                     if nr < len(rows) and c_idx < len(rows[nr]):
                         if rows[nr][c_idx][0] in ('<ucel>', '<xcel>'):
@@ -199,7 +184,6 @@ def _otsl_to_html(otsl_content: str) -> str:
                     else:
                         break
 
-                # Mark all cells in the span rectangle as covered
                 for dr in range(rowspan):
                     for dc in range(colspan):
                         if dr == 0 and dc == 0:
@@ -220,16 +204,66 @@ def _otsl_to_html(otsl_content: str) -> str:
     return '<table>' + ''.join(html_rows) + '</table>'
 
 
-class DoclingEngine(BaseOCREngine):
-    """Granite Docling 258M based document layout detection engine.
+def parse_doctags_to_regions(
+    doctags: str,
+    page_width: int,
+    page_height: int,
+) -> list[LayoutRegion]:
+    """Parse DocTags string into LayoutRegion instances.
+
+    Args:
+        doctags: DocTags markup string from model inference.
+        page_width: Target page width in pixels.
+        page_height: Target page height in pixels.
+
+    Returns:
+        List of LayoutRegion instances with pixel-coordinate bboxes.
+    """
+    regions: list[LayoutRegion] = []
+
+    for match in _ELEMENT_RE.finditer(doctags):
+        tag = match.group('tag')
+        locs_str = match.group('locs')
+        content = match.group('content').strip()
+
+        category = _TAG_TO_CATEGORY.get(tag)
+        if category is None:
+            continue
+
+        x0, y0, x1, y1 = _extract_locs(locs_str)
+        bbox = _scale_bbox(x0, y0, x1, y1, page_width, page_height)
+
+        # Build text content
+        text: str | None = None
+        if category == 'table':
+            text = _otsl_to_html(content)
+        elif category == 'figure':
+            text = None
+        else:
+            text = content if content else None
+
+        regions.append(
+            LayoutRegion(
+                bbox=bbox,
+                category=category,
+                score=1.0,
+                text=text,
+            )
+        )
+
+    return regions
+
+
+class DoclingLayoutDetector:
+    """Granite Docling 258M based document layout detector.
 
     Uses IBM's granite-docling-258M vision-language model for detecting
     text, tables, figures, equations, and other document layout elements.
-    The model outputs DocTags format which is parsed into OmniDocBench dicts.
+    Implements the LayoutDetector protocol.
     """
 
     def __init__(self, model_name: str = 'ibm-granite/granite-docling-258M') -> None:
-        """Initialize DoclingEngine with the specified model.
+        """Initialize DoclingLayoutDetector with the specified model.
 
         Args:
             model_name: HuggingFace model identifier.
@@ -239,25 +273,22 @@ class DoclingEngine(BaseOCREngine):
         self._model: Any = None
         self._device: str = 'cpu'
 
-    def extract_page(
-        self,
-        image_path: Path,
-        page_width: int,
-        page_height: int,
-    ) -> dict[str, Any]:
-        """Extract structured layout elements from a page image.
+    def detect_layout(self, image_path: Path) -> list[LayoutRegion]:
+        """Detect layout regions from a page image.
 
         Args:
             image_path: Path to the page image file.
-            page_width: Image width in pixels.
-            page_height: Image height in pixels.
 
         Returns:
-            OmniDocBench-compatible dict with layout_dets, page_attribute, extra.
+            List of detected LayoutRegion instances.
         """
         self._ensure_model_loaded()
-        doctags = self._run_inference(image_path)
-        return self._parse_doctags_to_elements(doctags, page_width, page_height)
+
+        image = Image.open(image_path)
+        page_width, page_height = image.size
+
+        doctags = self._run_inference(image)
+        return parse_doctags_to_regions(doctags, page_width, page_height)
 
     def test_connection(self) -> tuple[bool, str]:
         """Test that torch and transformers are available.
@@ -271,10 +302,10 @@ class DoclingEngine(BaseOCREngine):
             torch = importlib.import_module('torch')
             importlib.import_module('transformers')
         except (ImportError, ModuleNotFoundError):
-            return (False, 'torch and transformers are required for DoclingEngine')
+            return (False, 'torch and transformers are required for DoclingLayoutDetector')
 
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        return (True, f'DoclingEngine available (device: {device})')
+        return (True, f'DoclingLayoutDetector available (device: {device})')
 
     def _ensure_model_loaded(self) -> None:
         """Lazy-load the model and processor on first use.
@@ -290,7 +321,12 @@ class DoclingEngine(BaseOCREngine):
             from transformers import AutoModelForImageTextToText, AutoProcessor
 
             self._device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            logger.info('Loading DoclingEngine model %s on %s', self.model_name, self._device)
+            logger.info(
+                'Loading DoclingLayoutDetector model %s on %s (CUDA available: %s)',
+                self.model_name,
+                self._device,
+                torch.cuda.is_available(),
+            )
 
             self._processor = AutoProcessor.from_pretrained(self.model_name)
             self._model = AutoModelForImageTextToText.from_pretrained(
@@ -298,29 +334,24 @@ class DoclingEngine(BaseOCREngine):
                 torch_dtype=torch.bfloat16 if self._device == 'cuda' else torch.float32,
             ).to(self._device)  # type: ignore[invalid-argument-type]
 
-            logger.info('DoclingEngine model loaded successfully')
+            logger.info('DoclingLayoutDetector model loaded successfully on %s', self._device)
         except ImportError as exc:
-            msg = 'torch and transformers are required for DoclingEngine'
+            msg = 'torch and transformers are required for DoclingLayoutDetector'
             raise ImportError(msg) from exc
         except Exception as exc:
-            logger.exception('Failed to load DoclingEngine model %s', self.model_name)
+            logger.exception('Failed to load DoclingLayoutDetector model %s', self.model_name)
             msg = f'Failed to load model {self.model_name}: {exc}'
             raise RuntimeError(msg) from exc
 
-    def _run_inference(self, image_path: Path) -> str:
+    def _run_inference(self, image: Image.Image) -> str:
         """Run model inference on an image to produce DocTags.
 
         Args:
-            image_path: Path to the page image file.
+            image: PIL Image of the page.
 
         Returns:
             DocTags string output from the model.
-
-        Raises:
-            RuntimeError: If inference fails.
         """
-        image = Image.open(image_path)
-
         messages = [
             {
                 'role': 'user',
@@ -344,62 +375,5 @@ class DoclingEngine(BaseOCREngine):
             skip_special_tokens=False,
         )[0]
 
-        # Strip EOS and padding tokens
         decoded = decoded.replace('<eos>', '').replace('<pad>', '').strip()
         return decoded
-
-    def _parse_doctags_to_elements(
-        self,
-        doctags: str,
-        page_width: int,
-        page_height: int,
-    ) -> dict[str, Any]:
-        """Parse DocTags string into OmniDocBench-compatible elements.
-
-        Args:
-            doctags: DocTags markup string from model inference.
-            page_width: Target page width in pixels.
-            page_height: Target page height in pixels.
-
-        Returns:
-            OmniDocBench dict with layout_dets, page_attribute, extra.
-        """
-        elements: list[dict[str, Any]] = []
-        anno_id = 0
-
-        for match in _ELEMENT_RE.finditer(doctags):
-            tag = match.group('tag')
-            locs_str = match.group('locs')
-            content = match.group('content').strip()
-
-            category = _TAG_TO_CATEGORY.get(tag)
-            if category is None:
-                continue
-
-            x0, y0, x1, y1 = _extract_locs(locs_str)
-            poly = _scale_to_poly(x0, y0, x1, y1, page_width, page_height)
-
-            element: dict[str, Any] = {
-                'anno_id': anno_id,
-                'category_type': category,
-                'poly': poly,
-            }
-
-            if category == 'table':
-                element['html'] = _otsl_to_html(content)
-                # Extract plain text from table cells (match up to any tag)
-                cell_texts = re.findall(r'<fcel>([^<]*)', content)
-                element['text'] = ' '.join(t.strip() for t in cell_texts if t.strip())
-            elif category == 'figure':
-                element['text'] = ''
-            else:
-                element['text'] = content
-
-            elements.append(element)
-            anno_id += 1
-
-        return {
-            'layout_dets': elements,
-            'page_attribute': {},
-            'extra': {'relation': []},
-        }

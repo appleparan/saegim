@@ -1,7 +1,7 @@
 """2-stage OCR pipeline orchestrator.
 
-Combines PP-StructureV3 layout detection with text-only OCR providers
-(Gemini, vLLM, or PP-OCR built-in) to produce OmniDocBench pages.
+Combines a pluggable layout detector with text-only OCR providers
+(Gemini, vLLM, or built-in text) to produce OmniDocBench pages.
 """
 
 import io
@@ -11,8 +11,8 @@ from typing import Any, Protocol
 
 from PIL import Image
 
+from saegim.services.layout_types import LayoutDetector, LayoutRegion
 from saegim.services.ocr_provider import bbox_to_poly
-from saegim.services.ppstructure_service import LayoutRegion, PpstructureClient
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 class TextOcrProvider(Protocol):
     """Protocol for text-only OCR providers (2-stage pipeline).
 
-    Used with PP-StructureV3 layout detection: receives a cropped region
-    image and returns extracted text.
+    Receives a cropped region image and returns extracted text.
     """
 
     def extract_text(self, image_bytes: bytes, category_hint: str = '') -> str:
@@ -40,13 +39,13 @@ class TextOcrProvider(Protocol):
 class OcrPipeline:
     """2-stage OCR pipeline: layout detection + text extraction.
 
-    Stage 1: PP-StructureV3 detects layout regions (bounding boxes + categories).
+    Stage 1: Layout detector finds regions (bounding boxes + categories).
     Stage 2: Text OCR provider extracts text from each cropped region.
     """
 
     def __init__(
         self,
-        layout_client: PpstructureClient,
+        layout_detector: LayoutDetector,
         text_provider: TextOcrProvider | None = None,
         *,
         use_builtin_ocr: bool = False,
@@ -54,11 +53,11 @@ class OcrPipeline:
         """Initialize the 2-stage OCR pipeline.
 
         Args:
-            layout_client: PP-StructureV3 client for layout detection.
+            layout_detector: Layout detection backend (e.g. DoclingLayoutDetector).
             text_provider: Text-only OCR provider (Gemini or vLLM).
-            use_builtin_ocr: If True, use PP-OCR built-in text from layout results.
+            use_builtin_ocr: If True, use built-in text from layout results.
         """
-        self._layout_client = layout_client
+        self._layout_detector = layout_detector
         self._text_provider = text_provider
         self._use_builtin_ocr = use_builtin_ocr
 
@@ -78,7 +77,7 @@ class OcrPipeline:
         Returns:
             OmniDocBench-compatible dict with layout_dets, page_attribute, extra.
         """
-        regions = self._layout_client.detect_layout(image_path)
+        regions = self._layout_detector.detect_layout(image_path)
         logger.info('Detected %d layout regions in %s', len(regions), image_path.name)
 
         if not regions:
@@ -171,7 +170,7 @@ def _build_layout_det(
     """Build an OmniDocBench layout_det from a LayoutRegion.
 
     Args:
-        region: Layout region from PP-StructureV3.
+        region: Layout region with bounding box and category.
         text: Extracted text for this region.
         order: Reading order index.
 
