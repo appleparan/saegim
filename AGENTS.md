@@ -188,6 +188,28 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 
 - 자동 Attribute 분류기, 읽기 순서 에디터, Relation 연결 도구
 
+### Phase 3: 멀티유저 협업
+
+**목표**: 여러 사용자가 프로젝트를 공유하고, 역할 기반으로 레이블링 작업을 분담·검수한다.
+
+- 인증/인가 (JWT), 프로젝트-유저 매핑 (`project_members` 테이블)
+- 태스크 할당/제출/승인·반려 워크플로우 API
+- 동시 편집 방지 (기존 `pages.locked_at` 활용)
+- 프론트엔드: 로그인, 태스크 대시보드, 검수 큐
+
+상세: [멀티유저 협업](docs/architecture/multi-user-collaboration.md)
+
+### Phase 4: Data Curation & 품질 관리
+
+**목표**: 데이터셋의 다양성과 품질을 실시간으로 모니터링하고 큐레이션 조언을 제공한다.
+
+- 분포 대시보드 (문서유형/언어/레이아웃/카테고리별 시각화)
+- 다양성 스코어 및 큐레이션 추천 (목표 분포 대비 커버리지)
+- 어노테이션 품질 지표 (텍스트/속성 완성도, 이상치 탐지)
+- Inter-Annotator Agreement (Phase 3 의존, Cohen's Kappa / IoU)
+
+상세: [Data Curation](docs/architecture/data-curation.md)
+
 ---
 
 ## 5. 한국어 문서 특화 고려사항
