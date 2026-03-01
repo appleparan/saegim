@@ -17,6 +17,7 @@
   import BboxDrawTool from './BboxDrawTool.svelte'
   import TextOverlay from './TextOverlay.svelte'
   import PdfRenderer from './PdfRenderer.svelte'
+  import RelationOverlay from './RelationOverlay.svelte'
 
   interface Props {
     pageProxy?: PDFPageProxy
@@ -321,6 +322,9 @@
   {#if !pageProxy}
     <TextOverlay pointerEvents={textPointerEvents} />
   {/if}
+
+  <!-- Layer 4: Relation arrows overlay (z-index: 30) -->
+  <RelationOverlay />
 
   <!-- OCR prompt after drawing a new bbox -->
   {#if drawnAnnoId !== null && drawnElementScreenPos}

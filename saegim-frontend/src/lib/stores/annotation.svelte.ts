@@ -111,6 +111,45 @@ class AnnotationStore {
     this.isDirty = true
   }
 
+  addRelation(sourceAnnoId: number, targetAnnoId: number, relationType: string): void {
+    if (!this.annotationData) return
+    this.annotationData = {
+      ...this.annotationData,
+      extra: {
+        ...this.annotationData.extra,
+        relation: [
+          ...(this.annotationData.extra?.relation ?? []),
+          {
+            source_anno_id: sourceAnnoId,
+            target_anno_id: targetAnnoId,
+            relation_type: relationType,
+          },
+        ],
+      },
+    }
+    this.isDirty = true
+  }
+
+  removeRelation(sourceAnnoId: number, targetAnnoId: number): void {
+    if (!this.annotationData) return
+    this.annotationData = {
+      ...this.annotationData,
+      extra: {
+        ...this.annotationData.extra,
+        relation: (this.annotationData.extra?.relation ?? []).filter(
+          (r) => !(r.source_anno_id === sourceAnnoId && r.target_anno_id === targetAnnoId),
+        ),
+      },
+    }
+    this.isDirty = true
+  }
+
+  getRelationsForElement(annoId: number): readonly import('$lib/types/omnidocbench').Relation[] {
+    return this.relations.filter(
+      (r) => r.source_anno_id === annoId || r.target_anno_id === annoId,
+    )
+  }
+
   updatePageAttribute(updates: Partial<PageAttribute>): void {
     if (!this.annotationData) return
     this.annotationData = {

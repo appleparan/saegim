@@ -88,7 +88,11 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     }),
 
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  delete: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: 'DELETE',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
 
   /** For multipart uploads (e.g., PDF files). Does NOT set Content-Type. */
   upload: (path: string, formData: FormData) =>
