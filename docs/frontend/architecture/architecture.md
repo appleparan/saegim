@@ -58,13 +58,13 @@ src/
 │   │   ├── annotation.svelte.ts  # 어노테이션 데이터 + CRUD
 │   │   ├── canvas.svelte.ts      # 뷰포트 (zoom/pan/tool)
 │   │   ├── pdf.svelte.ts         # PDF.js 문서 로딩/캐싱
-│   │   └── ui.svelte.ts          # 사이드바, 알림
+│   │   └── ui.svelte.ts          # 사이드바, 알림, 패널탭 (관계 포함)
 │   └── components/
 │       ├── ui/            # shadcn-svelte (button, badge, card, dialog, ...)
 │       ├── common/         # 재사용 UI 위젯 (LoadingSpinner, Select)
-│       ├── layout/         # Header, Sidebar, ThemeToggle
-│       ├── canvas/         # 3-layer 하이브리드 뷰어 (HybridViewer, PdfRenderer, BboxLayer, BboxDrawTool, TextOverlay)
-│       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview, PageNavigator 등)
+│       ├── layout/         # Header, Sidebar (4탭: 요소/속성/텍스트/관계), ThemeToggle
+│       ├── canvas/         # 3-layer 뷰어 + 오버레이 (HybridViewer, BboxLayer, ReadingOrderOverlay, RelationOverlay 등)
+│       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview, PageNavigator, RelationPanel 등)
 │       └── settings/       # 프로젝트 설정 (OcrSettingsPanel)
 └── tests/
     ├── lib/utils/bbox.test.ts

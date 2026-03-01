@@ -20,7 +20,7 @@ VITE_API_URL=http://localhost:5000
 | `api.get<T>` | `(path: string) => Promise<T>` | GET 요청, JSON 응답 파싱 |
 | `api.post<T>` | `(path: string, body?: unknown) => Promise<T>` | POST 요청, JSON body |
 | `api.put<T>` | `(path: string, body?: unknown) => Promise<T>` | PUT 요청, JSON body |
-| `api.delete<T>` | `(path: string) => Promise<T>` | DELETE 요청 |
+| `api.delete<T>` | `(path: string, body?: unknown) => Promise<T>` | DELETE 요청 (body 지원) |
 | `api.upload` | `(path: string, formData: FormData) => Promise<Response>` | FormData 업로드 (PDF 등) |
 
 ### 에러 클래스
@@ -72,7 +72,8 @@ try {
 | `savePage(pageId, data)` | PUT | `/api/v1/pages/:id` | 어노테이션 전체 저장 |
 | `savePageAttributes(pageId, data)` | PUT | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
 | `acceptExtraction(pageId)` | POST | `/api/v1/pages/:id/accept-extraction` | 자동 추출 수락 |
-| `extractElementText(pageId, poly)` | POST | `/api/v1/pages/:id/extract-text` | 영역 OCR 요청 (현재 백엔드 미구현 가능) |
+| `extractElementText(pageId, poly)` | POST | `/api/v1/pages/:id/extract-text` | 영역 OCR 요청 |
+| `updateReadingOrder(pageId, orderMap)` | PUT | `/api/v1/pages/:id/reading-order` | 읽기 순서 업데이트 |
 
 ### Elements (`src/lib/api/elements.ts`)
 
@@ -86,8 +87,8 @@ try {
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `createRelation(pageId, data)` | POST | `/api/v1/pages/:id/relations` | 관계 생성 (현재 백엔드 미구현) |
-| `deleteRelation(relationId)` | DELETE | `/api/v1/relations/:id` | 관계 삭제 (현재 백엔드 미구현) |
+| `createRelation(pageId, data)` | POST | `/api/v1/pages/:id/relations` | 관계 생성 |
+| `deleteRelation(pageId, sourceAnnoId, targetAnnoId)` | DELETE | `/api/v1/pages/:id/relations` | 관계 삭제 (body에 source/target 포함) |
 
 ## 주요 타입 (`src/lib/api/types.ts`)
 

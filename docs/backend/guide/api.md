@@ -96,6 +96,7 @@
 - `integrated_server` → `integrated_server` 설정 (host, port, model)
 - `split_pipeline` → `split_pipeline` 설정 (layout_server_url, ocr_provider 등)
 - `pdfminer` → 추가 설정 불필요
+- `docling` → `docling` 설정 (model_path 등, ibm-granite/granite-docling-258M 기반)
 
 **요청 Body 예시:**
 
@@ -339,6 +340,96 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 | ------ | ------ |
 | `409` | `auto_extracted_data`가 없거나, `annotation_data`에 이미 요소가 존재함 |
 
+### `PUT /api/v1/pages/{page_id}/reading-order`
+
+읽기 순서 업데이트. `anno_id` → `order` 매핑으로 요소 순서를 변경합니다.
+
+**요청 Body:**
+
+```json
+{
+  "order_map": {
+    "0": 2,
+    "1": 0,
+    "2": 1
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+| ------ | ------ | ------ |
+| `order_map` | `dict[string, int]` | anno_id(문자열) → order(정수) 매핑. 중복 order 값 및 음수 값 불허 |
+
+**응답:** `200 OK` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없거나, order_map에 존재하지 않는 anno_id 포함 |
+| `422` | 중복된 order 값 또는 음수 값 |
+
+### `POST /api/v1/pages/{page_id}/relations`
+
+요소 간 관계 추가. JSONB `extra.relation[]`에 저장됩니다.
+
+**요청 Body:**
+
+```json
+{
+  "source_anno_id": 3,
+  "target_anno_id": 4,
+  "relation_type": "figure_caption"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `source_anno_id` | int (≥0) | O | 출발 요소 anno_id |
+| `target_anno_id` | int (≥0) | O | 도착 요소 anno_id |
+| `relation_type` | string | X | 관계 유형 (기본값: `parent_son`) |
+
+**관계 유형:**
+
+| 값 | 설명 |
+| ------ | ------ |
+| `parent_son` | 부모-자식 관계 |
+| `figure_caption` | 그림-캡션 |
+| `table_caption` | 표-캡션 |
+| `table_footnote` | 표-각주 |
+| `equation_caption` | 수식-캡션 |
+| `code_caption` | 코드-캡션 |
+
+**응답:** `201 Created` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없음 |
+| `409` | 자기 참조, 중복 관계, 존재하지 않는 요소 |
+
+### `DELETE /api/v1/pages/{page_id}/relations`
+
+요소 간 관계 삭제.
+
+**요청 Body:**
+
+```json
+{
+  "source_anno_id": 3,
+  "target_anno_id": 4
+}
+```
+
+**응답:** `200 OK` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없음 |
+
 ---
 
 ## Users
@@ -434,10 +525,6 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 다음 엔드포인트는 후속 Phase에서 구현 예정입니다:
 
 ```text
-# 관계 (Relation)
-POST   /api/v1/pages/{id}/relations          관계 추가
-DELETE /api/v1/relations/{id}                관계 삭제
-
 # 작업 관리 (Task)
 GET    /api/v1/tasks                         내 할당 작업 목록
 PUT    /api/v1/tasks/{id}/submit             작업 제출

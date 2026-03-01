@@ -70,7 +70,7 @@ tests/
 │   ├── test_projects.py            # 프로젝트 CRUD
 │   ├── test_project_ocr_config.py  # OCR 엔진 설정 API (engine_type CRUD)
 │   ├── test_documents.py           # 문서 업로드/조회
-│   ├── test_pages.py               # 페이지 레이블링
+│   ├── test_pages.py               # 페이지 레이블링, 읽기 순서, 관계 CRUD
 │   ├── test_users.py               # 사용자 관리
 │   ├── test_export.py              # 데이터 내보내기
 │   └── test_settings.py            # 설정 검증
@@ -83,10 +83,12 @@ tests/
 │   │   ├── test_integrated_server_engine.py
 │   │   └── test_split_pipeline_engine.py
 │   ├── test_document_service.py    # PDF 업로드/변환
-│   ├── test_labeling_service.py    # 어노테이션 관리
+│   ├── test_labeling_service.py    # 어노테이션 관리, 읽기 순서, 관계 CRUD
 │   ├── test_ocr_connection_test.py # 연결 테스트
 │   ├── test_ocr_pipeline.py        # 파이프라인 오케스트레이터
 │   └── test_export_service.py      # 내보내기 서비스
+├── schemas/                       # 스키마 테스트
+│   └── test_page_schema.py        # PageResponse 스키마 (URL 계산)
 ```
 
 ### 테스트 패턴
