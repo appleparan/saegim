@@ -54,8 +54,7 @@ make up-gpu
 
 | 변수 | 기본값 | 설명 |
 | ------ | -------- | ------ |
-| `BUILDER_IMAGE` | `nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04` | 빌드 스테이지 베이스 이미지 |
-| `RUNTIME_IMAGE` | `nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04` | 런타임 스테이지 베이스 이미지 |
+| `BASE_IMAGE` | `nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04` | 베이스 이미지 (양쪽 스테이지 공통) |
 | `TORCH_EXTRA` | `cu130` | PyTorch CUDA 버전 (`cpu`, `cu126`, `cu128`, `cu130`) |
 
 ## 접속 확인

@@ -32,8 +32,7 @@ services:
       dockerfile: Dockerfile
       target: ${BUILD_TARGET:-production}
       args:
-        BUILDER_IMAGE: ${BUILDER_IMAGE:-ubuntu:noble}
-        RUNTIME_IMAGE: ${RUNTIME_IMAGE:-ubuntu:noble}
+        BASE_IMAGE: ${BASE_IMAGE:-ubuntu:noble}
         TORCH_EXTRA: ${TORCH_EXTRA:-cpu}
     restart: unless-stopped
     environment:

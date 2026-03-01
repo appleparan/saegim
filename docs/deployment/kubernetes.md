@@ -16,8 +16,7 @@ docker build -t saegim-backend:latest saegim-backend/
 
 # 백엔드 (GPU)
 docker build -t saegim-backend:latest-gpu \
-  --build-arg BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04 \
-  --build-arg RUNTIME_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
   --build-arg TORCH_EXTRA=cu130 \
   saegim-backend/
 

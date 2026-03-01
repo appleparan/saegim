@@ -4,27 +4,35 @@
 # Usage:
 #   Dev  CPU:  docker build --target development .
 #   Dev  GPU:  docker build --target development \
-#                --build-arg BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04 \
+#                --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
 #                --build-arg TORCH_EXTRA=cu130 .
 #   Prod CPU:  docker build .
 #   Prod GPU:  docker build \
-#                --build-arg BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04 \
-#                --build-arg RUNTIME_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+#                --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
 #                --build-arg TORCH_EXTRA=cu130 .
 
-ARG BUILDER_IMAGE=ubuntu:noble
-ARG RUNTIME_IMAGE=ubuntu:noble
+ARG BASE_IMAGE=ubuntu:noble
 
 
 # =============================================================================
-# Builder stage - install dependencies and build project
+# Development stage - full source with dev dependencies
 # =============================================================================
-FROM ${BUILDER_IMAGE} AS builder
+FROM ${BASE_IMAGE} AS development
 
 ARG TORCH_EXTRA=cpu
 
-# Install curl first (needed by uv installer)
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install system packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    git \
+    wget \
+    gosu \
+    locales && \
+    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install uv
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
@@ -44,73 +52,20 @@ ENV DEBIAN_FRONTEND=noninteractive \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
-# Install build tools for native extensions
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    wget \
-    gnupg2 \
-    git \
-    build-essential \
-    libssl-dev \
-    zlib1g-dev \
-    libncurses5-dev \
-    libncursesw5-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    libgdbm-dev \
-    libdb5.3-dev \
-    libbz2-dev \
-    libexpat1-dev \
-    liblzma-dev \
-    tk-dev \
-    libffi-dev \
-    libgdbm-compat-dev \
-    libxmlsec1-dev \
-    xz-utils \
-    cmake \
-    gcc && \
-    rm -rf /var/lib/apt/lists/*
-
 # Install Python via uv
 ENV UV_PYTHON_INSTALL_DIR=/opt/python
 RUN uv python install 3.13 --compile-bytecode
 
 WORKDIR /workspace
-
-# Copy source code
 COPY . /workspace
 
-# Sync production dependencies into /app/.venv
-# uv sync resolves all dependencies together, preventing allocator/TBB clashes
-ENV UV_PROJECT_ENVIRONMENT=/app/.venv
-RUN --mount=type=cache,target=/tmp/uv-cache \
-    uv sync --locked --no-dev --no-editable --extra ${TORCH_EXTRA}
-
-
-# =============================================================================
-# Development stage - full source with dev dependencies
-# =============================================================================
-FROM builder AS development
-
-ARG TORCH_EXTRA=cpu
-
-# Re-sync with dev dependencies into /workspace/.venv
+# Sync all dependencies (including dev)
 ENV UV_PROJECT_ENVIRONMENT=/workspace/.venv
 RUN --mount=type=cache,target=/tmp/uv-cache \
     uv sync --locked --extra ${TORCH_EXTRA}
 
-# Set venv on PATH (no uv run needed at runtime)
 ENV VIRTUAL_ENV=/workspace/.venv \
     PATH="/workspace/.venv/bin:$PATH"
-
-# Install gosu and locales for entrypoint
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gosu \
-    locales && \
-    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
-    locale-gen && \
-    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user (UID 10001 to avoid conflicts with host users)
 RUN groupadd --gid 10001 appuser && \
@@ -121,7 +76,6 @@ RUN groupadd --gid 10001 appuser && \
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Verify installation
 RUN python -c "import sys; print(f'Python version: {sys.version}')"
 
 EXPOSE 5000
@@ -134,17 +88,13 @@ CMD ["python", "scripts/start_server.py"]
 
 
 # =============================================================================
-# Production stage - minimal runtime with pre-built venv
+# Production stage - wheel install, no source code
 # =============================================================================
-FROM ${RUNTIME_IMAGE} AS production
+FROM ${BASE_IMAGE} AS production
 
-# Use venv Python directly (no uv needed at runtime)
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+ARG TORCH_EXTRA=cpu
 
-# Install runtime dependencies only (no build headers)
+# Install runtime packages only
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -157,29 +107,47 @@ RUN apt-get update && \
     locale-gen && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy Python interpreter from builder (same path ensures venv pyvenv.cfg works)
-COPY --from=builder /opt/python /opt/python
+# Install uv (used for sync, can be removed after)
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+ENV PATH="/root/.local/bin/:$PATH"
 
-# Copy pre-built venv from builder (all deps resolved together)
-COPY --from=builder /app/.venv /app/.venv
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+# Install Python via uv
+ENV UV_PYTHON_INSTALL_DIR=/opt/python
+RUN uv python install 3.13 --compile-bytecode
+
+# Copy source, build wheel + install deps, then remove source
+COPY . /tmp/src
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+RUN --mount=type=cache,target=/tmp/uv-cache \
+    cd /tmp/src && \
+    uv sync --locked --no-dev --no-editable --extra ${TORCH_EXTRA} && \
+    rm -rf /tmp/src
+
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-# Create directories and copy deployment files
+# Copy deployment files
 RUN mkdir -p /app/scripts /app/storage
 COPY scripts/start_server.py /app/scripts/start_server.py
-
-# Create non-root user (UID 10001 to avoid conflicts with host users)
-RUN groupadd --gid 10001 appuser && \
-    useradd -u 10001 -g 10001 -G appuser -m -s /bin/bash appuser && \
-    chown -R appuser:appuser /app && \
-    chown -R appuser:appuser /app/storage
-
-# Copy entrypoint script (runs as root, drops to appuser via gosu)
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Verify venv installation
+# Create non-root user (UID 10001 to avoid conflicts with host users)
+# Only chown storage (write-needed); venv and scripts are read-only at runtime
+RUN groupadd --gid 10001 appuser && \
+    useradd -u 10001 -g 10001 -G appuser -m -s /bin/bash appuser && \
+    chown -R appuser:appuser /app/storage
+
 RUN python -c "import sys; print(f'Python version: {sys.version}')"
 
 EXPOSE 5000

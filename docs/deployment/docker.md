@@ -22,15 +22,14 @@ docker build -t saegim-backend-dev --target development saegim-backend/
 ```bash
 # 프로덕션 GPU 이미지 (CUDA 13.0)
 docker build -t saegim-backend-gpu \
-  --build-arg BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04 \
-  --build-arg RUNTIME_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
   --build-arg TORCH_EXTRA=cu130 \
   saegim-backend/
 
 # 개발 GPU 이미지
 docker build -t saegim-backend-gpu-dev \
   --target development \
-  --build-arg BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04 \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
   --build-arg TORCH_EXTRA=cu130 \
   saegim-backend/
 ```
@@ -39,17 +38,15 @@ docker build -t saegim-backend-gpu-dev \
 
 | ARG | 기본값 | 설명 |
 | ------ | -------- | ------ |
-| `BUILDER_IMAGE` | `ubuntu:noble` | 빌더 스테이지 베이스 이미지 |
-| `RUNTIME_IMAGE` | `ubuntu:noble` | 프로덕션 런타임 베이스 이미지 |
+| `BASE_IMAGE` | `ubuntu:noble` | 베이스 이미지 (양쪽 스테이지 공통) |
 | `TORCH_EXTRA` | `cpu` | PyTorch extra (`cpu`, `cu126`, `cu128`, `cu130`) |
 
 #### 빌드 타겟 (Multi-stage)
 
 | 타겟 | 용도 | 설명 |
 | ------ | ------ | ------ |
-| `builder` | 중간 | 빌드 도구 + uv sync (프로덕션 deps) |
-| `development` | 개발 | builder 기반, 전체 소스 + dev 의존성 |
-| `production` | 운영 | 최소 런타임, builder에서 venv 복사 |
+| `development` | 개발 | 전체 소스 + dev 의존성 |
+| `production` | 운영 | 최소 런타임, 프로덕션 deps만 포함 |
 
 ### 프론트엔드
 
@@ -75,7 +72,7 @@ docker build -t saegim-frontend \
 | `ppstructure` | PaddlePaddle | 18811 | `gpu` |
 | `vllm` | `vllm-openai:v0.15.1` | 18000→8000 | `gpu` |
 
-백엔드 이미지의 CPU/GPU 전환은 `BUILDER_IMAGE`, `RUNTIME_IMAGE`, `TORCH_EXTRA` 환경변수로 제어합니다.
+백엔드 이미지의 CPU/GPU 전환은 `BASE_IMAGE`, `TORCH_EXTRA` 환경변수로 제어합니다.
 GPU 서비스(vLLM, ppstructure)는 `--profile gpu`으로 활성화합니다.
 
 ### 네트워크
@@ -118,7 +115,7 @@ make up-gpu
 
 GPU 모드에서는:
 
-1. 백엔드가 CUDA 베이스 이미지로 빌드됨 (`nvidia/cuda:13.0.2-cudnn-*`)
+1. 백엔드가 CUDA 베이스 이미지로 빌드됨 (`nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04`)
 2. PyTorch가 `--extra cu130`으로 설치됨
 3. vLLM과 PP-StructureV3 서비스가 추가 실행됨
 
@@ -126,8 +123,7 @@ GPU 모드에서는:
 
 ```bash
 # GPU build settings
-BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04
-RUNTIME_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
+BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
 TORCH_EXTRA=cu130
 ```
 

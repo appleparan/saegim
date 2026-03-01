@@ -145,8 +145,7 @@ docker build -t saegim-backend-dev --target development .
 
 # GPU 이미지 빌드 (CUDA 13.0)
 docker build -t saegim-backend-gpu \
-  --build-arg BUILDER_IMAGE=nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04 \
-  --build-arg RUNTIME_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
   --build-arg TORCH_EXTRA=cu130 .
 
 # 실행
