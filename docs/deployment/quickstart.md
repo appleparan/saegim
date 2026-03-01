@@ -36,7 +36,7 @@ make up
 
 ### 3. GPU 모드 실행
 
-NVIDIA GPU가 있는 환경에서 GPU 서비스(vLLM, PP-StructureV3)를 함께 사용하려면:
+NVIDIA GPU가 있는 환경에서 GPU 서비스(vLLM)를 함께 사용하려면:
 
 ```bash
 make up-gpu
@@ -45,7 +45,7 @@ make up-gpu
 
 !!! note
     GPU 모드에서는 백엔드가 CUDA 13.0 이미지로 빌드되고,
-    vLLM과 PP-StructureV3 서비스가 추가로 실행됩니다.
+    vLLM 서비스가 추가로 실행됩니다.
     [NVIDIA Container Toolkit][nvidia-toolkit]이 설치되어 있어야 합니다.
 
 [nvidia-toolkit]: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html

@@ -23,26 +23,26 @@ graph TB
         PG["JSONB"]
     end
 
-    subgraph OCR ["OCR 엔진 (6종)"]
+    subgraph OCR ["OCR 엔진 (4종)"]
         GEMINI["Gemini API"]
-        PPS["PP-StructureV3"]
         VLLM["vLLM (Chandra)"]
-        DOCLING["Docling"]
+        DOCLING_OCR["Docling + OCR"]
+        PDFMINER["pdfminer"]
     end
 
     FE <-->|"REST/JSON"| API
     API <-->|"asyncpg/SQL"| PG
     API --> BG
     BG --> GEMINI
-    BG --> PPS
     BG --> VLLM
-    BG --> DOCLING
+    BG --> DOCLING_OCR
+    BG --> PDFMINER
 ```
 
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **6종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Docling 포함)
+- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
 - **문서 재추출**: OCR 엔진 변경 후 기존 문서를 새 엔진으로 전체 재스캔
 - **자동 속성 분류**: 페이지/테이블/텍스트/수식 속성 자동 분류
@@ -61,7 +61,7 @@ graph TB
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
-| **OCR 엔진** | 6종 Strategy 패턴 (`BaseOCREngine` ABC) |
+| **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Vitest + Docker Compose |
@@ -72,11 +72,10 @@ graph TB
 
 | Engine Type | 설명 | 외부 서비스 |
 | --- | --- | --- |
+| `pdfminer` | pdfminer.six 기본 추출 (GPU 불필요, 동기) | 없음 |
 | `commercial_api` | Gemini/vLLM full-page VLM 분석 | Gemini API 또는 vLLM 서버 |
-| `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 또는 vLLM (모델명 기반 자동 분기) |
-| `split_pipeline` | PP-StructureV3 레이아웃 + 외부 OCR | PP-StructureV3 + Gemini/vLLM |
-| `pdfminer` | pdfminer.six 기본 추출 (GPU 불필요) | 없음 |
-| `docling` | ibm-granite/granite-docling-258M 레이아웃 감지 | 로컬 모델 |
+| `vllm` | vLLM OpenAI-compatible VLM 서버 | vLLM 서버 |
+| `split_pipeline` | Docling 레이아웃 + 외부 OCR | Docling (로컬) + Gemini/vLLM |
 
 ## 프로젝트 구조
 
@@ -91,10 +90,10 @@ saegim/
 │   │   │   │   ├── base.py, factory.py
 │   │   │   │   ├── pdfminer_engine.py
 │   │   │   │   ├── commercial_api_engine.py
-│   │   │   │   ├── integrated_server_engine.py
-│   │   │   │   ├── split_pipeline_engine.py
-│   │   │   │   └── docling_engine.py
-│   │   │   ├── ppstructure_service.py
+│   │   │   │   ├── vllm_engine.py
+│   │   │   │   └── split_pipeline_engine.py
+│   │   │   ├── layout_types.py
+│   │   │   ├── docling_layout_service.py
 │   │   │   ├── gemini_ocr_service.py
 │   │   │   ├── vllm_ocr_service.py
 │   │   │   └── ocr_pipeline.py

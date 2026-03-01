@@ -60,17 +60,17 @@ src/saegim/services/
 │   ├── factory.py                 # build_engine(ocr_config) 팩토리 (engine_type 분기)
 │   ├── pdfminer_engine.py          # PdfminerEngine (GPU 불필요 폴백)
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
-│   ├── integrated_server_engine.py # IntegratedServerEngine (PP-StructureV3 또는 vLLM 자동 분기)
-│   ├── split_pipeline_engine.py   # SplitPipelineEngine (Layout + 외부 OCR)
-│   └── docling_engine.py          # DoclingEngine (ibm-granite/granite-docling-258M 레이아웃 감지)
+│   ├── vllm_engine.py             # VllmEngine (vLLM OpenAI-compatible API)
+│   └── split_pipeline_engine.py   # SplitPipelineEngine (Docling 레이아웃 + 외부 OCR)
 ├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (pdfminer/asyncio), 재추출(re_extract)
 ├── extraction_service.py          # pdfminer.six 폴백 추출 (text_block + figure)
-├── ppstructure_service.py         # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
+├── layout_types.py                # LayoutRegion dataclass, LayoutDetector Protocol
+├── docling_layout_service.py      # DoclingLayoutDetector (ibm-granite/granite-docling-258M)
 ├── ocr_pipeline.py                # 2단계 파이프라인 오케스트레이터 (OcrPipeline, TextOcrProvider)
 ├── ocr_provider.py                # 프롬프트 상수, bbox_to_poly(), build_omnidocbench_page()
 ├── gemini_ocr_service.py          # GeminiOcrProvider, GeminiTextOcrProvider
 ├── vllm_ocr_service.py            # VllmOcrProvider, VllmTextOcrProvider
-├── ocr_connection_test.py         # check_ppstructure/gemini/vllm_connection()
+├── ocr_connection_test.py         # check_gemini/vllm/docling_connection()
 ├── labeling_service.py            # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락/강제 수락, 읽기 순서 업데이트, 관계 CRUD
 ├── attribute_classifier.py        # 페이지/테이블/텍스트/수식 속성 자동 분류
 ├── analysis_service.py            # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)

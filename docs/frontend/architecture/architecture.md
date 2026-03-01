@@ -43,6 +43,7 @@ src/
 │   │   ├── bbox.ts             # 좌표 변환 (poly <-> rect, screen <-> image)
 │   │   ├── color.ts            # 카테고리별 색상
 │   │   ├── interaction.ts     # 인터랙션 모드 해석, 포인터 이벤트 계산
+│   │   ├── ocr.ts             # OCR 엔진 라벨 매핑 (engineLabels)
 │   │   ├── text-layout.ts     # 텍스트 블록 레이아웃 계산
 │   │   ├── text-selection.ts  # 텍스트 선택/복사 유틸
 │   │   └── validation.ts      # 어노테이션 유효성 검증
@@ -89,7 +90,7 @@ SvelteKit 파일 기반 라우팅 (`adapter-static` SPA 모드):
 | ------ | -------- | ------ |
 | `/` | `routes/+page.svelte` | 프로젝트 목록 + 생성 |
 | `/projects/[id]` | `routes/projects/[id]/+page.svelte` | 문서 목록 + PDF 업로드 |
-| `/projects/[id]/settings` | `routes/projects/[id]/settings/+page.svelte` | OCR 엔진 설정 (engine_type 선택) |
+| `/projects/[id]/settings` | `routes/projects/[id]/settings/+page.svelte` | OCR 엔진 설정 (4종 engine_type 선택) |
 | `/label/[pageId]` | `routes/label/[pageId]/+page.svelte` | 3패널 레이블링 화면 |
 
 ## Data Flow

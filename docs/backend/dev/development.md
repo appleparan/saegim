@@ -83,19 +83,17 @@ tests/
 │   │   ├── test_factory.py            # build_engine() 팩토리
 │   │   ├── test_pdfminer_engine.py
 │   │   ├── test_commercial_api_engine.py
-│   │   ├── test_integrated_server_engine.py
-│   │   ├── test_split_pipeline_engine.py
-│   │   └── test_docling_engine.py
+│   │   ├── test_vllm_engine.py
+│   │   └── test_split_pipeline_engine.py
 │   ├── test_document_service.py       # PDF 업로드/변환
 │   ├── test_labeling_service.py       # 어노테이션, 읽기 순서, 관계
 │   ├── test_attribute_classifier.py   # 속성 자동 분류
 │   ├── test_extraction_service.py     # 텍스트 추출
 │   ├── test_text_extraction_service.py  # 영역 OCR 추출
+│   ├── test_docling_layout_service.py # Docling 레이아웃 감지
 │   ├── test_gemini_ocr_service.py     # Gemini VLM 프로바이더
 │   ├── test_vllm_ocr_service.py       # vLLM 프로바이더
-│   ├── test_ppstructure_service.py    # PP-StructureV3 클라이언트
 │   ├── test_ocr_provider.py           # OCR 프로바이더 공통
-│   ├── test_ocr_connection_test.py    # 연결 테스트
 │   ├── test_ocr_pipeline.py           # 파이프라인 오케스트레이터
 │   ├── test_sample_pdf_extraction.py  # 샘플 PDF 추출
 │   └── test_export_service.py         # 내보내기 서비스
