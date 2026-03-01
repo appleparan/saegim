@@ -39,7 +39,7 @@ src/saegim/api/routes/
 ├── health.py       # GET /api/v1/health
 ├── projects.py     # 프로젝트 CRUD (project_type, OCR 설정 포함)
 ├── documents.py    # 문서 업로드/조회
-├── pages.py        # 페이지 레이블링
+├── pages.py        # 페이지 레이블링, 읽기 순서, 관계 CRUD
 ├── users.py        # 사용자 관리
 ├── analysis.py     # Phase 4a: 문서 분석 메타데이터 CRUD
 └── export.py       # 데이터 내보내기 (OmniDocBench / VQA / OCRAG)
@@ -61,7 +61,8 @@ src/saegim/services/
 │   ├── pdfminer_engine.py          # PdfminerEngine (GPU 불필요 폴백)
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
 │   ├── integrated_server_engine.py # IntegratedServerEngine (PP-StructureV3 또는 vLLM 자동 분기)
-│   └── split_pipeline_engine.py   # SplitPipelineEngine (Layout + 외부 OCR)
+│   ├── split_pipeline_engine.py   # SplitPipelineEngine (Layout + 외부 OCR)
+│   └── docling_engine.py          # DoclingEngine (ibm-granite/granite-docling-258M 레이아웃 감지)
 ├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (pdfminer/asyncio)
 ├── extraction_service.py          # pdfminer.six 폴백 추출 (text_block + figure)
 ├── ppstructure_service.py         # PP-StructureV3 HTTP 클라이언트 (PpstructureClient, LayoutRegion)
@@ -70,7 +71,8 @@ src/saegim/services/
 ├── gemini_ocr_service.py          # GeminiOcrProvider, GeminiTextOcrProvider
 ├── vllm_ocr_service.py            # VllmOcrProvider, VllmTextOcrProvider
 ├── ocr_connection_test.py         # check_ppstructure/gemini/vllm_connection()
-├── labeling_service.py            # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락
+├── labeling_service.py            # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락, 읽기 순서 업데이트, 관계 CRUD
+├── attribute_classifier.py        # 페이지/테이블/텍스트/수식 속성 자동 분류
 ├── analysis_service.py            # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
 └── export_service.py              # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
 ```
@@ -87,7 +89,7 @@ asyncpg를 사용하여 PostgreSQL에 raw SQL을 실행합니다.
 src/saegim/repositories/
 ├── project_repo.py    # INSERT/SELECT projects
 ├── document_repo.py   # INSERT/SELECT/UPDATE documents
-├── page_repo.py       # JSONB 연산 (jsonb_set, jsonb_agg)
+├── page_repo.py       # JSONB 연산 (jsonb_set, jsonb_agg), 관계 CRUD (add_relation, delete_relation)
 └── user_repo.py       # INSERT/SELECT users
 ```
 

@@ -11,6 +11,8 @@
     "test:extraction": "bunx vitest run extraction",
     "test:ocr-config": "bunx vitest run ocr-config",
     "test:attribute": "bunx vitest run attribute-classifier",
+    "test:reading-order": "bunx vitest run reading-order",
+    "test:relations": "bunx vitest run relations",
     "test:gpu": "bunx vitest run --config vitest.gpu.config.ts",
     "docker:up": "docker compose -f docker-compose.e2e.yml up -d --build",
     "docker:down": "docker compose -f docker-compose.e2e.yml down -v",

@@ -38,6 +38,11 @@ Svelte 5 runes 기반 class store 패턴을 사용한다. 각 store는 `$state`�
 | `addElement(categoryType, poly)` | 새 요소 추가, anno_id 반환 |
 | `removeElement(annoId)` | 요소 삭제 + 관련 relation 삭제 |
 | `updatePageAttribute(updates)` | 페이지 속성 업데이트 |
+| `reorderElements(orderMap)` | 읽기 순서 재정렬 (anno_id → order 매핑) |
+| `swapElementOrder(annoId1, annoId2)` | 두 요소의 order 교체 |
+| `addRelation(source, target, type)` | 관계 추가 (extra.relation[]) |
+| `removeRelation(source, target)` | 관계 삭제 |
+| `getRelationsForElement(annoId)` | 특정 요소의 관계 목록 조회 |
 | `markSaved()` | isDirty = false |
 | `setLoading(loading)` | 로딩 상태 설정 |
 | `setError(error)` | 에러 메시지 설정 |
@@ -75,6 +80,7 @@ Canvas 뷰포트 상태를 관리한다.
 | `imageWidth` | `number` | `0` | 이미지 너비 |
 | `imageHeight` | `number` | `0` | 이미지 높이 |
 | `imageLoaded` | `boolean` | `false` | 이미지 로드 완료 |
+| `showReadingOrder` | `boolean` | `false` | 읽기 순서 오버레이 표시 |
 
 ### Derived
 
@@ -94,6 +100,7 @@ Canvas 뷰포트 상태를 관리한다.
 | `zoomIn()` | 1.2배 확대 |
 | `zoomOut()` | 1.2배 축소 |
 | `fitToContainer(w, h)` | 컨테이너에 맞춰 줌/센터링 |
+| `toggleReadingOrder()` | 읽기 순서 오버레이 토글 |
 
 ---
 
@@ -156,7 +163,7 @@ UI 상태 (사이드바, 알림)를 관리한다.
 ### Types
 
 ```typescript
-type PanelTab = 'elements' | 'attributes' | 'text'
+type PanelTab = 'elements' | 'attributes' | 'text' | 'relations'
 type NotificationType = 'info' | 'error' | 'success'
 interface Notification { message: string; type: NotificationType }
 ```

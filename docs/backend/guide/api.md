@@ -8,20 +8,28 @@
 
 서버 상태 확인.
 
-**응답:**
+**응답:** `200 OK`
 
 ```json
-{"status": "healthy"}
+{
+  "status": "healthy",
+  "message": "Service is running",
+  "version": "0.1.0"
+}
 ```
 
 ### `GET /api/v1/health/ready`
 
-서비스 준비 상태 확인.
+서비스 준비 상태 확인 (DB 연결 포함).
 
-**응답:**
+**응답:** `200 OK`
 
 ```json
-{"status": "ready"}
+{
+  "status": "ready",
+  "message": "All systems operational",
+  "version": "0.1.0"
+}
 ```
 
 ---
@@ -75,6 +83,12 @@
 
 **응답:** `200 OK` | `404 Not Found`
 
+### `DELETE /api/v1/projects/{project_id}`
+
+프로젝트 삭제. 관련 문서, 페이지, 이미지도 함께 삭제됩니다.
+
+**응답:** `204 No Content` | `404 Not Found`
+
 ### `GET /api/v1/projects/{project_id}/ocr-config`
 
 프로젝트의 OCR 엔진 설정 조회. 미설정 시 기본값 `{"engine_type": "pdfminer"}` 반환.
@@ -96,6 +110,7 @@
 - `integrated_server` → `integrated_server` 설정 (host, port, model)
 - `split_pipeline` → `split_pipeline` 설정 (layout_server_url, ocr_provider 등)
 - `pdfminer` → 추가 설정 불필요
+- `docling` → `docling` 설정 (model_path 등, ibm-granite/granite-docling-258M 기반)
 
 **요청 Body 예시:**
 
@@ -137,6 +152,24 @@ OCR 엔진 연결 테스트. `build_engine()` → `engine.test_connection()` 실
 ---
 
 ## Documents
+
+### `GET /api/v1/projects/{project_id}/documents`
+
+프로젝트의 문서 목록 조회.
+
+**응답:** `200 OK`
+
+```json
+[
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "filename": "paper.pdf",
+    "total_pages": 12,
+    "status": "ready",
+    "created_at": "2025-01-15T10:35:00Z"
+  }
+]
+```
 
 ### `POST /api/v1/projects/{project_id}/documents`
 
@@ -184,6 +217,12 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
   "created_at": "2025-01-15T10:35:00Z"
 }
 ```
+
+### `DELETE /api/v1/documents/{document_id}`
+
+문서 삭제. 관련 페이지와 이미지도 함께 삭제됩니다.
+
+**응답:** `204 No Content` | `404 Not Found`
 
 ### `GET /api/v1/documents/{document_id}/status`
 
@@ -339,6 +378,130 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 | ------ | ------ |
 | `409` | `auto_extracted_data`가 없거나, `annotation_data`에 이미 요소가 존재함 |
 
+### `POST /api/v1/pages/{page_id}/extract-text`
+
+지정 영역의 텍스트를 OCR 엔진으로 추출합니다. 프로젝트 OCR 설정에 따라 엔진이 결정됩니다.
+
+**요청 Body:**
+
+```json
+{
+  "poly": [100, 200, 500, 200, 500, 400, 100, 400],
+  "category_type": "text_block"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `poly` | `list[float]` | O | 8개 좌표 (4 꼭짓점) |
+| `category_type` | string | X | 카테고리 타입 (기본값: `text_block`) |
+
+**응답:** `200 OK`
+
+```json
+{
+  "text": "추출된 텍스트 내용"
+}
+```
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없음 |
+| `502` | OCR 프로바이더 오류 |
+| `503` | OCR 프로바이더 미설정 |
+
+### `PUT /api/v1/pages/{page_id}/reading-order`
+
+읽기 순서 업데이트. `anno_id` → `order` 매핑으로 요소 순서를 변경합니다.
+
+**요청 Body:**
+
+```json
+{
+  "order_map": {
+    "0": 2,
+    "1": 0,
+    "2": 1
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+| ------ | ------ | ------ |
+| `order_map` | `dict[string, int]` | anno_id(문자열) → order(정수) 매핑. 중복 order 값 및 음수 값 불허 |
+
+**응답:** `200 OK` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없거나, order_map에 존재하지 않는 anno_id 포함 |
+| `422` | 중복된 order 값 또는 음수 값 |
+
+### `POST /api/v1/pages/{page_id}/relations`
+
+요소 간 관계 추가. JSONB `extra.relation[]`에 저장됩니다.
+
+**요청 Body:**
+
+```json
+{
+  "source_anno_id": 3,
+  "target_anno_id": 4,
+  "relation_type": "figure_caption"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `source_anno_id` | int (≥0) | O | 출발 요소 anno_id |
+| `target_anno_id` | int (≥0) | O | 도착 요소 anno_id |
+| `relation_type` | string | X | 관계 유형 (기본값: `parent_son`) |
+
+**관계 유형:**
+
+| 값 | 설명 |
+| ------ | ------ |
+| `parent_son` | 부모-자식 관계 |
+| `figure_caption` | 그림-캡션 |
+| `table_caption` | 표-캡션 |
+| `table_footnote` | 표-각주 |
+| `equation_caption` | 수식-캡션 |
+| `code_caption` | 코드-캡션 |
+
+**응답:** `201 Created` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없음 |
+| `409` | 자기 참조, 중복 관계, 존재하지 않는 요소 |
+
+### `DELETE /api/v1/pages/{page_id}/relations`
+
+요소 간 관계 삭제.
+
+**요청 Body:**
+
+```json
+{
+  "source_anno_id": 3,
+  "target_anno_id": 4
+}
+```
+
+**응답:** `200 OK` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 페이지를 찾을 수 없음 |
+
 ---
 
 ## Users
@@ -434,10 +597,6 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 다음 엔드포인트는 후속 Phase에서 구현 예정입니다:
 
 ```text
-# 관계 (Relation)
-POST   /api/v1/pages/{id}/relations          관계 추가
-DELETE /api/v1/relations/{id}                관계 삭제
-
 # 작업 관리 (Task)
 GET    /api/v1/tasks                         내 할당 작업 목록
 PUT    /api/v1/tasks/{id}/submit             작업 제출

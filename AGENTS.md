@@ -148,7 +148,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 | **프론트엔드** | Svelte 5 (Runes) + TypeScript + Vite 7 + Konva.js + PDF.js |
 | **백엔드** | FastAPI + asyncpg (raw SQL) + Repository 패턴 |
 | **DB** | PostgreSQL 15+ (JSONB) |
-| **OCR 엔진** | 5종 Strategy 패턴 (commercial_api, integrated_server, split_pipeline, pdfminer, docling) |
+| **OCR 엔진** | 6종 Strategy 패턴 (commercial_api, integrated_server, split_pipeline, pdfminer, docling) |
 | **배포** | Docker Compose |
 
 상세 문서:
@@ -173,11 +173,9 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 - Category/Attribute/Text 편집, OmniDocBench JSON Export
 - 프로젝트/문서/페이지 CRUD, E2E 테스트
 
-### Phase 2: 자동 추출 통합 (진행 중)
+### Phase 2: 자동 추출 통합 ✅ 완료
 
 **목표**: 자동 추출 → 사람 검수 파이프라인 완성.
-
-#### 구현 완료
 
 - pdfminer.six 텍스트/이미지 자동 추출 + 좌표 스케일링 (PR #28)
 - 2단계 OCR 파이프라인: PP-StructureV3 + Gemini/OlmOCR/PP-OCR (PR #6 → PR #10)
@@ -186,11 +184,9 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 - 프로젝트별 OCR 설정 UI + 연결 테스트
 - 그리기 영역 OCR 텍스트 추출 (PR #32)
 - 자동 Attribute 분류기 — 페이지/테이블/텍스트/수식 속성 자동 분류 (PR #36)
-- Docling 레이아웃 감지 엔진 — ibm-granite/granite-docling-258M 기반 문서 레이아웃 자동 감지
-
-#### 미구현
-
-- 읽기 순서 에디터, Relation 연결 도구
+- Docling 레이아웃 감지 엔진 — ibm-granite/granite-docling-258M 기반 문서 레이아웃 자동 감지 (PR #46)
+- Relation 연결 도구 — CRUD API + UI (RelationPanel) + SVG 오버레이 (PR #49)
+- 읽기 순서 에디터 — 드래그앤드롭 재정렬 + 캔버스 오버레이 + `O` 단축키 (PR #50)
 
 ### Phase 3: 멀티유저 협업
 

@@ -8,33 +8,46 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 
 ## 아키텍처
 
-```text
-Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
-┌──────────────────┐          ┌──────────────────┐         ┌──────────┐
-│ PDF.js + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
-│ Runes 상태관리     │◄──JSON──►│ Engine Factory   │◄──SQL──►│  JSONB   │
-│ 3-Layer 에디터   │           │ Repository 패턴   │         │          │
-└──────────────────┘          └──────────────────┘         └──────────┘
-                                      │
-                              ┌───────┴───────┐
-                              │ asyncio       │
-                              │ background    │
-                              └───────┬───────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                  │
-              ┌─────┴─────┐   ┌──────┴──────┐   ┌──────┴──────┐
-              │  Gemini   │   │ PP-Structure│   │    vLLM     │
-              │  API      │   │   V3        │   │  (Chandra)  │
-              └───────────┘   └─────────────┘   └─────────────┘
+```mermaid
+graph TB
+    subgraph Frontend ["Svelte 5 (:5173)"]
+        FE["PDF.js + Konva.js<br/>Runes 상태관리<br/>3-Layer 에디터"]
+    end
+
+    subgraph Backend ["FastAPI (:5000)"]
+        API["PDF 변환, CRUD<br/>Engine Factory<br/>Repository 패턴"]
+        BG["asyncio<br/>background"]
+    end
+
+    subgraph DB ["PostgreSQL"]
+        PG["JSONB"]
+    end
+
+    subgraph OCR ["OCR 엔진 (6종)"]
+        GEMINI["Gemini API"]
+        PPS["PP-StructureV3"]
+        VLLM["vLLM (Chandra)"]
+        DOCLING["Docling"]
+    end
+
+    FE <-->|"REST/JSON"| API
+    API <-->|"asyncpg/SQL"| PG
+    API --> BG
+    BG --> GEMINI
+    BG --> PPS
+    BG --> VLLM
+    BG --> DOCLING
 ```
 
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택
+- **6종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Docling 포함)
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
+- **자동 속성 분류**: 페이지/테이블/텍스트/수식 속성 자동 분류
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
+- **읽기 순서 에디터**: 드래그앤드롭 재정렬 + 캔버스 오버레이 (`O` 단축키)
+- **관계 도구**: 요소 간 관계 CRUD + SVG 화살표 시각화
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
 - **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
@@ -47,7 +60,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
-| **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
+| **OCR 엔진** | 6종 Strategy 패턴 (`BaseOCREngine` ABC) |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Vitest + Docker Compose |
@@ -62,6 +75,7 @@ Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
 | `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 또는 vLLM (모델명 기반 자동 분기) |
 | `split_pipeline` | PP-StructureV3 레이아웃 + 외부 OCR | PP-StructureV3 + Gemini/vLLM |
 | `pdfminer` | pdfminer.six 기본 추출 (GPU 불필요) | 없음 |
+| `docling` | ibm-granite/granite-docling-258M 레이아웃 감지 | 로컬 모델 |
 
 ## 프로젝트 구조
 
@@ -77,7 +91,8 @@ saegim/
 │   │   │   │   ├── pdfminer_engine.py
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── integrated_server_engine.py
-│   │   │   │   └── split_pipeline_engine.py
+│   │   │   │   ├── split_pipeline_engine.py
+│   │   │   │   └── docling_engine.py
 │   │   │   ├── ppstructure_service.py
 │   │   │   ├── gemini_ocr_service.py
 │   │   │   ├── vllm_ocr_service.py
@@ -125,7 +140,7 @@ docker compose up -d --build
 ```bash
 # 백엔드
 cd saegim-backend
-uv sync --group dev --group docs
+uv sync --group dev --group docs --extra cpu    # CPU only (또는 --extra cu128)
 uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
 
 # 프론트엔드

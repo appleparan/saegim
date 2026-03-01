@@ -171,6 +171,7 @@ Sun/Moon 아이콘 전환 애니메이션. Header에 포함.
 | 요소 | `'elements'` | AttributePanel |
 | 속성 | `'attributes'` | PageAttributePanel |
 | 텍스트 | `'text'` | TextEditor |
+| 관계 | `'relations'` | RelationPanel |
 
 ---
 
@@ -245,6 +246,31 @@ PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(
 - 요소 클릭 시 `annotationStore.selectElement()` 호출
 - `pointerEvents` prop으로 인터랙션 모드에 따라 활성/비활성
 
+### ReadingOrderOverlay
+
+읽기 순서 번호 배지를 캔버스 위에 표시한다. `canvasStore.showReadingOrder`가 `true`일 때만 렌더링.
+
+- 각 요소의 bbox 좌상단에 24x24 원형 배지 표시
+- 배지 배경: `getCategoryColor()`로 카테고리별 색상
+- 배지 텍스트: `el.order` (0-based 인덱스)
+- `O` 단축키 또는 체크박스로 토글
+
+### RelationOverlay
+
+요소 간 관계를 SVG 화살표로 시각화한다.
+
+| Prop | Type | Default | 설명 |
+| ------ | ------ | --------- | ------ |
+| `visible` | `boolean` | `true` | 오버레이 표시 여부 |
+
+- 관계 유형별 색상 코딩:
+  - `parent_son` (#6366f1), `figure_caption` (#22c55e)
+  - `table_caption` (#f59e0b), `table_footnote` (#ef4444)
+  - `equation_caption` (#a855f7), `code_caption` (#06b6d4)
+- 점선(6 3) 스트로크, 화살표 마커
+- opacity 0.7, stroke-width 2
+- 요소 중심점 간 연결선
+
 ---
 
 ## Panel Components (`src/lib/components/panels/`)
@@ -256,7 +282,10 @@ PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(
 - 카테고리 색상 인디케이터
 - 한국어 카테고리 라벨
 - 클릭으로 요소 선택
-- hover 시 삭제(X) 버튼
+- hover 시 삭제(X) 버튼 + 드래그 핸들 (6dot)
+- HTML5 드래그앤드롭으로 읽기 순서 재정렬
+- 드래그 중 반투명 효과 + 드롭 대상 상단 보더 시각 피드백
+- 순서 변경 시 `reorderElements()` + `updateReadingOrder()` API 호출
 
 ### CategorySelect
 
@@ -326,6 +355,16 @@ PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(
 
 - 탭 전환으로 `text`, `latex`, `html` 필드 편집
 - monospace 폰트 textarea
+
+### RelationPanel
+
+선택된 요소의 관계(relation)를 관리하는 패널. 사이드바 "관계" 탭에 표시.
+
+- 선택된 요소의 ID·카테고리 정보 표시
+- 연결된 관계 목록 (incoming: ←, outgoing: →)
+- 관계 추가: 대상 요소 선택 + 관계 유형 드롭다운 (6종)
+- hover 시 삭제 버튼
+- API 연동: `createRelation()` / `deleteRelation()` 호출
 
 ---
 

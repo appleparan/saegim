@@ -9,20 +9,34 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 ## 아키텍처
 
 ```mermaid
-graph LR
-    subgraph "Svelte 5 (:5173)"
-        FE["PDF.js + Konva.js<br/>Runes 상태관리<br/>3-Panel 에디터"]
+graph TB
+    subgraph Frontend ["Svelte 5 (:5173)"]
+        FE["PDF.js + Konva.js<br/>Runes 상태관리<br/>3-Layer 에디터"]
     end
-    subgraph "FastAPI (:5000)"
-        BE["PDF 변환, CRUD<br/>Export, Service<br/>Repository 패턴"]
+
+    subgraph Backend ["FastAPI (:5000)"]
+        API["PDF 변환, CRUD<br/>Engine Factory<br/>Repository 패턴"]
+        BG["asyncio<br/>background"]
     end
-    subgraph PostgreSQL
-        DB["JSONB"]
+
+    subgraph DB ["PostgreSQL"]
+        PG["JSONB"]
     end
-    FE -- "REST / JSON" --> BE
-    BE -- "REST / JSON" --> FE
-    BE -- "asyncpg / SQL" --> DB
-    DB -- "asyncpg / SQL" --> BE
+
+    subgraph OCR ["OCR 엔진 (6종)"]
+        GEMINI["Gemini API"]
+        PPS["PP-StructureV3"]
+        VLLM["vLLM (Chandra)"]
+        DOCLING["Docling"]
+    end
+
+    FE <-->|"REST/JSON"| API
+    API <-->|"asyncpg/SQL"| PG
+    API --> BG
+    BG --> GEMINI
+    BG --> PPS
+    BG --> VLLM
+    BG --> DOCLING
 ```
 
 ## 기술 스택
@@ -33,11 +47,12 @@ graph LR
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
-| **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
+| **OCR 엔진** | 6종 Strategy 패턴 (`BaseOCREngine` ABC) |
 | | - `commercial_api`: Gemini API / vLLM (full-page VLM) |
 | | - `integrated_server`: PP-StructureV3 또는 vLLM (Chandra 등) |
 | | - `split_pipeline`: PP-StructureV3 레이아웃 + Gemini/vLLM OCR |
 | | - `pdfminer`: pdfminer.six 폴백 (GPU 불필요) |
+| | - `docling`: ibm-granite/granite-docling-258M 레이아웃 감지 |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Vitest + Docker Compose (기본 + GPU 프로파일) |
@@ -45,9 +60,12 @@ graph LR
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Gemini, vLLM/Chandra, PP-StructureV3, pdfminer)
+- **6종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택 (Docling 포함)
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
+- **자동 속성 분류**: 페이지/테이블/텍스트/수식 속성 자동 분류
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
+- **읽기 순서 에디터**: 드래그앤드롭 재정렬 + 캔버스 오버레이 (`O` 단축키)
+- **관계 도구**: 요소 간 관계 CRUD + SVG 화살표 시각화
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
 - **사용자 역할**: admin, annotator, reviewer
@@ -138,7 +156,8 @@ CREATE DATABASE labeling OWNER labeling;
 cd saegim-backend
 uv python install 3.14
 uv python pin 3.14
-uv sync --group dev --group docs
+uv sync --group dev --group docs --extra cpu    # CPU only
+# uv sync --group dev --group docs --extra cu128  # CUDA 12.8
 
 # 마이그레이션
 psql -U labeling -d labeling -f migrations/001_init.sql
@@ -187,13 +206,16 @@ saegim/
 │   │   ├── api/routes/             # REST 엔드포인트
 │   │   ├── schemas/                # Pydantic 모델 (EngineType, OcrConfig 등)
 │   │   ├── services/
-│   │   │   ├── engines/            # OCR 엔진 Strategy 패턴
+│   │   │   ├── engines/            # OCR 엔진 Strategy 패턴 (6종)
 │   │   │   │   ├── base.py         # BaseOCREngine ABC
 │   │   │   │   ├── factory.py      # build_engine() 팩토리
 │   │   │   │   ├── pdfminer_engine.py
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── integrated_server_engine.py
-│   │   │   │   └── split_pipeline_engine.py
+│   │   │   │   ├── split_pipeline_engine.py
+│   │   │   │   └── docling_engine.py
+│   │   │   ├── labeling_service.py     # 저장, 읽기 순서, 관계 CRUD
+│   │   │   ├── attribute_classifier.py # 페이지/요소 속성 자동 분류
 │   │   │   ├── ppstructure_service.py  # PP-StructureV3 HTTP 클라이언트
 │   │   │   ├── gemini_ocr_service.py   # Gemini VLM 프로바이더
 │   │   │   ├── vllm_ocr_service.py     # vLLM 프로바이더 (Chandra 등)
@@ -234,6 +256,9 @@ saegim/
 | `PUT` | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
 | `POST` | `/api/v1/pages/:id/elements` | 레이아웃 요소 추가 |
 | `DELETE` | `/api/v1/pages/:id/elements/:anno_id` | 요소 삭제 |
+| `PUT` | `/api/v1/pages/:id/reading-order` | 읽기 순서 업데이트 |
+| `POST` | `/api/v1/pages/:id/relations` | 관계 추가 |
+| `DELETE` | `/api/v1/pages/:id/relations` | 관계 삭제 |
 | `POST` | `/api/v1/pages/:id/accept-extraction` | 자동 추출 결과 수락 |
 | `GET` | `/api/v1/projects/:id/ocr-config` | OCR 설정 조회 |
 | `PUT` | `/api/v1/projects/:id/ocr-config` | OCR 설정 수정 |
