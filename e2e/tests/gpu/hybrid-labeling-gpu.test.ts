@@ -15,7 +15,7 @@ import { ensureTestPdf, getTestPdfPath } from "../../helpers/pdf";
 
 const VLLM_HOST = "vllm";
 const VLLM_PORT = 8000;
-const VLLM_MODEL = "richarddavison/chandra-fp8";
+const VLLM_MODEL = "prithivMLmods/chandra-FP8-Latest";
 
 const PROJECT_NAME = `GPU Hybrid Labeling E2E ${Date.now()}`;
 

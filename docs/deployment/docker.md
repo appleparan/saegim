@@ -168,7 +168,7 @@ docker compose --profile gpu exec backend nvidia-smi
 
 | 변수 | 기본값 | 설명 |
 | ------ | -------- | ------ |
-| `VLLM_MODEL` | `richarddavison/chandra-fp8` | vLLM 모델 |
+| `VLLM_MODEL` | `prithivMLmods/chandra-FP8-Latest` | vLLM 모델 |
 | `VLLM_GPU_UTIL` | `0.9` | GPU 메모리 사용률 |
 | `VLLM_MAX_SEQS` | `4` | 최대 동시 시퀀스 |
 | `VLLM_MAX_MODEL_LEN` | `32768` | 최대 모델 길이 |

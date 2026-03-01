@@ -24,7 +24,7 @@ spec:
           image: vllm/vllm-openai:v0.15.1
           args:
             - "--model"
-            - "richarddavison/chandra-fp8"
+            - "prithivMLmods/chandra-FP8-Latest"
             - "--gpu-memory-utilization"
             - "0.9"
             - "--max-num-seqs"

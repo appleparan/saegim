@@ -84,7 +84,7 @@ services:
       HF_HOME: /root/.cache/huggingface
       VLLM_ATTENTION_BACKEND: TORCH_SDPA
     command: >
-      --model ${VLLM_MODEL:-richarddavison/chandra-fp8}
+      --model ${VLLM_MODEL:-prithivMLmods/chandra-FP8-Latest}
       --gpu-memory-utilization ${VLLM_GPU_UTIL:-0.9}
       --max-num-seqs ${VLLM_MAX_SEQS:-4}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-32768}

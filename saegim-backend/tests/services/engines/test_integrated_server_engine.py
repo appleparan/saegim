@@ -21,7 +21,7 @@ class TestIsPpstructureModel:
         assert _is_ppstructure_model('datalab-to/chandra') is False
 
     def test_chandra_fp8_returns_false(self):
-        assert _is_ppstructure_model('richarddavison/chandra-fp8') is False
+        assert _is_ppstructure_model('prithivMLmods/chandra-FP8-Latest') is False
 
     def test_empty_returns_false(self):
         assert _is_ppstructure_model('') is False
@@ -89,9 +89,9 @@ class TestIntegratedServerEngineVllm:
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_creates_vllm_provider(self, mock_vllm_cls):
-        IntegratedServerEngine(host='vllm-host', port=8000, model='richarddavison/chandra-fp8')
+        IntegratedServerEngine(host='vllm-host', port=8000, model='prithivMLmods/chandra-FP8-Latest')
         mock_vllm_cls.assert_called_once_with(
-            host='vllm-host', port=8000, model='richarddavison/chandra-fp8'
+            host='vllm-host', port=8000, model='prithivMLmods/chandra-FP8-Latest'
         )
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
@@ -110,9 +110,9 @@ class TestIntegratedServerEngineVllm:
     @patch('saegim.services.engines.integrated_server_engine.check_vllm_connection')
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_test_connection_delegates_vllm(self, _mock_vllm, mock_check):  # noqa: PT019
-        mock_check.return_value = (True, 'Connected to vLLM (richarddavison/chandra-fp8)')
+        mock_check.return_value = (True, 'Connected to vLLM (prithivMLmods/chandra-FP8-Latest)')
         engine = IntegratedServerEngine(
-            host='vllm-host', port=8000, model='richarddavison/chandra-fp8'
+            host='vllm-host', port=8000, model='prithivMLmods/chandra-FP8-Latest'
         )
 
         success, message = engine.test_connection()
