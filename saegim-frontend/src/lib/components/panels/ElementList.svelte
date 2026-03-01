@@ -101,7 +101,6 @@
       {annotationStore.elements.length}개 요소
     </p>
   </div>
-  <!-- svelte-ignore a11y_label_has_associated_control -->
   <label class="flex cursor-pointer items-center gap-1.5" title="순서 표시 (O)">
     <input
       type="checkbox"
