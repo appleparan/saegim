@@ -23,11 +23,16 @@
   let isSelectingTarget = $state(false)
   let selectedRelationType = $state('parent_son')
 
-  function getElementLabel(annoId: number): string {
+  function getElementShortLabel(annoId: number): string {
     const el = annotationStore.elements.find((e) => e.anno_id === annoId)
-    if (!el) return `#${annoId} (삭제됨)`
-    const text = el.text ? ` "${el.text.slice(0, 20)}${el.text.length > 20 ? '...' : ''}"` : ''
-    return `#${annoId} ${el.category_type}${text}`
+    if (!el) return `#${annoId}`
+    return `#${annoId} ${el.category_type}`
+  }
+
+  function getElementTextPreview(annoId: number): string {
+    const el = annotationStore.elements.find((e) => e.anno_id === annoId)
+    if (!el?.text) return ''
+    return el.text.slice(0, 40) + (el.text.length > 40 ? '...' : '')
   }
 
   function getElementCategoryType(annoId: number): BlockCategoryType | null {
@@ -62,13 +67,6 @@
     return found ? found.label : type
   }
 
-  function getRelationDirection(
-    relation: Relation,
-    currentAnnoId: number,
-  ): 'outgoing' | 'incoming' {
-    return relation.source_anno_id === currentAnnoId ? 'outgoing' : 'incoming'
-  }
-
   /** Elements available as targets (exclude current selection) */
   let targetCandidates = $derived(
     annotationStore.elements.filter((el) => el.anno_id !== selectedElement?.anno_id),
@@ -92,31 +90,40 @@
       <div class="space-y-1">
         <p class="text-muted-foreground text-xs font-medium">연결된 관계 ({elementRelations.length})</p>
         {#each elementRelations as relation}
-          {@const direction = getRelationDirection(relation, selectedElement.anno_id)}
-          {@const otherAnnoId = direction === 'outgoing' ? relation.target_anno_id : relation.source_anno_id}
-          {@const otherCategory = getElementCategoryType(otherAnnoId)}
+          {@const sourceId = relation.source_anno_id}
+          {@const targetId = relation.target_anno_id}
+          {@const sourceCategory = getElementCategoryType(sourceId)}
+          {@const targetCategory = getElementCategoryType(targetId)}
           <div
-            class="border-border bg-background group flex items-center gap-2 rounded-md border px-2 py-1.5"
+            class="border-border bg-background group relative flex items-center gap-1.5 rounded-md border px-2 py-1.5"
           >
-            {#if otherCategory}
-              <span
-                class="h-2.5 w-2.5 shrink-0 rounded-sm"
-                style="background-color: {getCategoryColor(otherCategory)}"
-              ></span>
-            {/if}
-            <div class="min-w-0 flex-1 text-xs">
-              <span class="text-muted-foreground">
-                {direction === 'outgoing' ? '→' : '←'}
-              </span>
+            <!-- Compact display: #source category → #target category -->
+            <div class="peer min-w-0 flex-1 cursor-default text-xs">
+              {#if sourceCategory}
+                <span
+                  class="mr-0.5 inline-block h-2 w-2 shrink-0 rounded-sm align-middle"
+                  style="background-color: {getCategoryColor(sourceCategory)}"
+                ></span>
+              {/if}
               <button
-                class="text-foreground hover:text-primary truncate hover:underline"
-                onclick={() => annotationStore.selectElement(otherAnnoId)}
+                class="text-foreground hover:text-primary hover:underline"
+                onclick={() => annotationStore.selectElement(sourceId)}
               >
-                {getElementLabel(otherAnnoId)}
+                {getElementShortLabel(sourceId)}
               </button>
-              <span class="bg-muted text-muted-foreground ml-1 rounded px-1 py-0.5 text-[10px]">
-                {getRelationTypeLabel(relation.relation_type)}
-              </span>
+              <span class="text-muted-foreground mx-0.5">→</span>
+              {#if targetCategory}
+                <span
+                  class="mr-0.5 inline-block h-2 w-2 shrink-0 rounded-sm align-middle"
+                  style="background-color: {getCategoryColor(targetCategory)}"
+                ></span>
+              {/if}
+              <button
+                class="text-foreground hover:text-primary hover:underline"
+                onclick={() => annotationStore.selectElement(targetId)}
+              >
+                {getElementShortLabel(targetId)}
+              </button>
             </div>
             <button
               class="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
@@ -127,6 +134,31 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+
+            <!-- Hover tooltip -->
+            <div
+              class="border-border bg-popover text-popover-foreground pointer-events-none invisible absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-md border p-2.5 shadow-md transition-all peer-hover:visible peer-hover:opacity-100"
+            >
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {getRelationTypeLabel(relation.relation_type)}
+              </p>
+              <div class="space-y-1 text-xs">
+                <div>
+                  <span class="text-muted-foreground">Source:</span>
+                  <span class="text-foreground ml-1 font-medium">{getElementShortLabel(sourceId)}</span>
+                  {#if getElementTextPreview(sourceId)}
+                    <p class="text-muted-foreground mt-0.5 truncate text-[10px]">"{getElementTextPreview(sourceId)}"</p>
+                  {/if}
+                </div>
+                <div>
+                  <span class="text-muted-foreground">Target:</span>
+                  <span class="text-foreground ml-1 font-medium">{getElementShortLabel(targetId)}</span>
+                  {#if getElementTextPreview(targetId)}
+                    <p class="text-muted-foreground mt-0.5 truncate text-[10px]">"{getElementTextPreview(targetId)}"</p>
+                  {/if}
+                </div>
+              </div>
+            </div>
           </div>
         {/each}
       </div>

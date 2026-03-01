@@ -1,6 +1,7 @@
 <script lang="ts">
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
+  import ShortcutHelp from './ShortcutHelp.svelte'
   import ThemeToggle from './ThemeToggle.svelte'
 
   interface Props {
@@ -8,9 +9,18 @@
     showSave?: boolean
     onsave?: () => void
     saving?: boolean
+    showShortcutHelp?: boolean
+    shortcutHelpOpen?: boolean
   }
 
-  let { title = 'saegim', showSave = false, onsave, saving = false }: Props = $props()
+  let {
+    title = 'saegim',
+    showSave = false,
+    onsave,
+    saving = false,
+    showShortcutHelp = false,
+    shortcutHelpOpen = $bindable(false),
+  }: Props = $props()
 </script>
 
 <header class="flex h-12 shrink-0 items-center bg-zinc-900 px-4 shadow-sm dark:bg-zinc-950">
@@ -42,6 +52,10 @@
       >
         {saving ? '저장 중...' : '저장'}
       </button>
+    {/if}
+
+    {#if showShortcutHelp}
+      <ShortcutHelp bind:open={shortcutHelpOpen} />
     {/if}
 
     <ThemeToggle />
