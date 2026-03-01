@@ -348,3 +348,53 @@ class TestExtractPage:
 
         tables = [el for el in result['layout_dets'] if el['category_type'] == 'table']
         assert len(tables) >= 1
+
+
+class TestOtslToHtml:
+    """Test OTSL markup to HTML table conversion."""
+
+    def test_simple_table(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        otsl = '<otsl><fcel>A<fcel>B<nl><fcel>1<fcel>2<nl></otsl>'
+        html = _otsl_to_html(otsl)
+        assert '<table>' in html
+        assert '<td>A</td>' in html
+        assert '<td>B</td>' in html
+        assert '<td>1</td>' in html
+        assert '<td>2</td>' in html
+        assert html.count('<tr>') == 2
+
+    def test_empty_cells(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        otsl = '<otsl><fcel>A<ecel><nl></otsl>'
+        html = _otsl_to_html(otsl)
+        assert '<td>A</td>' in html
+        assert '<td></td>' in html
+
+    def test_horizontal_span(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        otsl = '<otsl><fcel>Wide<lcel><nl></otsl>'
+        html = _otsl_to_html(otsl)
+        assert 'colspan="2"' in html
+
+    def test_vertical_span(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        otsl = '<otsl><fcel>Tall<fcel>B<nl><ucel><fcel>D<nl></otsl>'
+        html = _otsl_to_html(otsl)
+        assert 'rowspan="2"' in html
+
+    def test_empty_content(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        html = _otsl_to_html('')
+        assert html == '<table></table>'
+
+    def test_empty_otsl_tags(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        html = _otsl_to_html('<otsl></otsl>')
+        assert html == '<table></table>'
