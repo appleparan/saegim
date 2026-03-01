@@ -339,6 +339,90 @@ async def update_auto_extracted_data(
     )
 
 
+async def add_relation(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+    relation: dict,
+) -> asyncpg.Record | None:
+    """Add a relation to extra.relation array in annotation_data.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        relation: Relation dict with source_anno_id, target_anno_id, relation_type.
+
+    Returns:
+        asyncpg.Record or None: Updated page record.
+    """
+    return await pool.fetchrow(
+        """
+        UPDATE pages
+        SET annotation_data = jsonb_set(
+            jsonb_set(
+                COALESCE(annotation_data, '{"extra": {"relation": []}}'::jsonb),
+                '{extra}',
+                COALESCE(annotation_data->'extra', '{"relation": []}'::jsonb)
+            ),
+            '{extra,relation}',
+            COALESCE(annotation_data->'extra'->'relation', '[]'::jsonb) || $1::jsonb
+        ),
+        updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, document_id, page_no, width, height, image_path,
+                  annotation_data, auto_extracted_data, status, assigned_to,
+                  locked_at, updated_at
+        """,
+        json.dumps(relation),
+        page_id,
+    )
+
+
+async def delete_relation(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+    source_anno_id: int,
+    target_anno_id: int,
+) -> asyncpg.Record | None:
+    """Delete a relation by source and target anno_id from extra.relation array.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        source_anno_id: Source annotation ID.
+        target_anno_id: Target annotation ID.
+
+    Returns:
+        asyncpg.Record or None: Updated page record.
+    """
+    return await pool.fetchrow(
+        """
+        UPDATE pages
+        SET annotation_data = jsonb_set(
+            annotation_data,
+            '{extra,relation}',
+            (
+                SELECT COALESCE(jsonb_agg(rel), '[]'::jsonb)
+                FROM jsonb_array_elements(
+                    COALESCE(annotation_data->'extra'->'relation', '[]'::jsonb)
+                ) AS rel
+                WHERE NOT (
+                    (rel->>'source_anno_id')::int = $1
+                    AND (rel->>'target_anno_id')::int = $2
+                )
+            )
+        ),
+        updated_at = NOW()
+        WHERE id = $3
+        RETURNING id, document_id, page_no, width, height, image_path,
+                  annotation_data, auto_extracted_data, status, assigned_to,
+                  locked_at, updated_at
+        """,
+        source_anno_id,
+        target_anno_id,
+        page_id,
+    )
+
+
 async def get_all_by_project(
     pool: asyncpg.Pool,
     project_id: uuid.UUID,

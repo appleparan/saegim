@@ -110,6 +110,94 @@ class TestPageEndpoints:
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
+    def test_add_relation(self, client: TestClient, sample_page_record):
+        page_id = sample_page_record['id']
+        with patch(
+            'saegim.services.labeling_service.add_relation',
+            new_callable=AsyncMock,
+            return_value=sample_page_record,
+        ):
+            response = client.post(
+                f'/api/v1/pages/{page_id}/relations',
+                json={
+                    'source_anno_id': 0,
+                    'target_anno_id': 1,
+                    'relation_type': 'figure_caption',
+                },
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_add_relation_not_found(self, client: TestClient):
+        with patch(
+            'saegim.services.labeling_service.add_relation',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.post(
+                '/api/v1/pages/00000000-0000-0000-0000-000000000000/relations',
+                json={
+                    'source_anno_id': 0,
+                    'target_anno_id': 1,
+                    'relation_type': 'parent_son',
+                },
+            )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_add_relation_conflict(self, client: TestClient, sample_page_record):
+        page_id = sample_page_record['id']
+        with patch(
+            'saegim.services.labeling_service.add_relation',
+            new_callable=AsyncMock,
+            side_effect=ValueError('Duplicate relation already exists'),
+        ):
+            response = client.post(
+                f'/api/v1/pages/{page_id}/relations',
+                json={
+                    'source_anno_id': 0,
+                    'target_anno_id': 1,
+                    'relation_type': 'parent_son',
+                },
+            )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_delete_relation(self, client: TestClient, sample_page_record):
+        page_id = sample_page_record['id']
+        with patch(
+            'saegim.services.labeling_service.delete_relation',
+            new_callable=AsyncMock,
+            return_value=sample_page_record,
+        ):
+            response = client.request(
+                'DELETE',
+                f'/api/v1/pages/{page_id}/relations',
+                json={
+                    'source_anno_id': 0,
+                    'target_anno_id': 1,
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_delete_relation_not_found(self, client: TestClient):
+        with patch(
+            'saegim.services.labeling_service.delete_relation',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.request(
+                'DELETE',
+                '/api/v1/pages/00000000-0000-0000-0000-000000000000/relations',
+                json={
+                    'source_anno_id': 0,
+                    'target_anno_id': 1,
+                },
+            )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
     def test_delete_element(self, client: TestClient, sample_page_record):
         page_id = sample_page_record['id']
         with patch(

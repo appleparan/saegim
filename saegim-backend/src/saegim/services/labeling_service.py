@@ -233,6 +233,129 @@ async def accept_auto_extraction(
     }
 
 
+async def add_relation(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+    relation: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Add a relation between two elements.
+
+    Validates that both anno_ids exist, prevents self-reference and duplicates.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        relation: Relation dict with source_anno_id, target_anno_id, relation_type.
+
+    Returns:
+        dict or None: Updated page data if found, None if page not found.
+
+    Raises:
+        ValueError: If validation fails (self-reference, missing elements, duplicate).
+    """
+    source_id = relation['source_anno_id']
+    target_id = relation['target_anno_id']
+
+    if source_id == target_id:
+        msg = 'Self-referencing relation is not allowed'
+        raise ValueError(msg)
+
+    page = await page_repo.get_by_id(pool, page_id)
+    if page is None:
+        return None
+
+    annotation = page['annotation_data']
+    if isinstance(annotation, str):
+        annotation = json.loads(annotation)
+    annotation = annotation or {}
+
+    layout_dets = annotation.get('layout_dets', [])
+    anno_ids = {e.get('anno_id') for e in layout_dets}
+
+    if source_id not in anno_ids:
+        msg = f'Source element with anno_id {source_id} not found'
+        raise ValueError(msg)
+    if target_id not in anno_ids:
+        msg = f'Target element with anno_id {target_id} not found'
+        raise ValueError(msg)
+
+    existing_relations = annotation.get('extra', {}).get('relation', [])
+    for r in existing_relations:
+        if r.get('source_anno_id') == source_id and r.get('target_anno_id') == target_id:
+            msg = 'Duplicate relation already exists'
+            raise ValueError(msg)
+
+    record = await page_repo.add_relation(pool, page_id, relation)
+    if record is None:
+        return None
+
+    result_annotation = record['annotation_data']
+    if isinstance(result_annotation, str):
+        result_annotation = json.loads(result_annotation)
+
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
+    return {
+        'id': record['id'],
+        'document_id': record['document_id'],
+        'page_no': record['page_no'],
+        'width': record['width'],
+        'height': record['height'],
+        'image_path': record['image_path'],
+        'annotation_data': result_annotation or {},
+        'auto_extracted_data': auto_extracted,
+        'status': record['status'],
+        'assigned_to': record['assigned_to'],
+        'updated_at': record['updated_at'],
+    }
+
+
+async def delete_relation(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+    source_anno_id: int,
+    target_anno_id: int,
+) -> dict[str, Any] | None:
+    """Delete a relation between two elements.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        source_anno_id: Source annotation ID.
+        target_anno_id: Target annotation ID.
+
+    Returns:
+        dict or None: Updated page data if found.
+    """
+    record = await page_repo.delete_relation(pool, page_id, source_anno_id, target_anno_id)
+    if record is None:
+        return None
+
+    result_annotation = record['annotation_data']
+    if isinstance(result_annotation, str):
+        result_annotation = json.loads(result_annotation)
+
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
+    return {
+        'id': record['id'],
+        'document_id': record['document_id'],
+        'page_no': record['page_no'],
+        'width': record['width'],
+        'height': record['height'],
+        'image_path': record['image_path'],
+        'annotation_data': result_annotation or {},
+        'auto_extracted_data': auto_extracted,
+        'status': record['status'],
+        'assigned_to': record['assigned_to'],
+        'updated_at': record['updated_at'],
+    }
+
+
 async def delete_element(
     pool: asyncpg.Pool,
     page_id: uuid.UUID,

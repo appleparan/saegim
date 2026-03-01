@@ -334,6 +334,163 @@ class TestAddElement:
         assert result is None
 
 
+class TestAddRelation:
+    @pytest.mark.asyncio
+    async def test_returns_none_when_page_not_found(self, mock_pool, page_id):
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=None)
+            result = await labeling_service.add_relation(
+                mock_pool,
+                page_id,
+                {'source_anno_id': 0, 'target_anno_id': 1, 'relation_type': 'parent_son'},
+            )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_raises_on_self_reference(self, mock_pool, page_id):
+        with pytest.raises(ValueError, match='Self-referencing'):
+            await labeling_service.add_relation(
+                mock_pool,
+                page_id,
+                {'source_anno_id': 0, 'target_anno_id': 0, 'relation_type': 'parent_son'},
+            )
+
+    @pytest.mark.asyncio
+    async def test_raises_when_source_not_found(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [{'anno_id': 1, 'category_type': 'text_block'}],
+                'extra': {'relation': []},
+            },
+        )
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            with pytest.raises(ValueError, match='Source element.*anno_id 99'):
+                await labeling_service.add_relation(
+                    mock_pool,
+                    page_id,
+                    {'source_anno_id': 99, 'target_anno_id': 1, 'relation_type': 'parent_son'},
+                )
+
+    @pytest.mark.asyncio
+    async def test_raises_when_target_not_found(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [{'anno_id': 0, 'category_type': 'text_block'}],
+                'extra': {'relation': []},
+            },
+        )
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            with pytest.raises(ValueError, match='Target element.*anno_id 99'):
+                await labeling_service.add_relation(
+                    mock_pool,
+                    page_id,
+                    {'source_anno_id': 0, 'target_anno_id': 99, 'relation_type': 'parent_son'},
+                )
+
+    @pytest.mark.asyncio
+    async def test_raises_on_duplicate_relation(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [
+                    {'anno_id': 0, 'category_type': 'figure'},
+                    {'anno_id': 1, 'category_type': 'figure_caption'},
+                ],
+                'extra': {
+                    'relation': [
+                        {
+                            'source_anno_id': 0,
+                            'target_anno_id': 1,
+                            'relation_type': 'figure_caption',
+                        },
+                    ],
+                },
+            },
+        )
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            with pytest.raises(ValueError, match='Duplicate'):
+                await labeling_service.add_relation(
+                    mock_pool,
+                    page_id,
+                    {'source_anno_id': 0, 'target_anno_id': 1, 'relation_type': 'figure_caption'},
+                )
+
+    @pytest.mark.asyncio
+    async def test_adds_relation_successfully(self, mock_pool, page_id, document_id):
+        annotation = {
+            'layout_dets': [
+                {'anno_id': 0, 'category_type': 'figure'},
+                {'anno_id': 1, 'category_type': 'figure_caption'},
+            ],
+            'extra': {'relation': []},
+        }
+        record = _make_page_record(page_id, document_id, annotation_data=annotation)
+        updated_annotation = {
+            **annotation,
+            'extra': {
+                'relation': [
+                    {
+                        'source_anno_id': 0,
+                        'target_anno_id': 1,
+                        'relation_type': 'figure_caption',
+                    },
+                ],
+            },
+        }
+        updated_record = _make_page_record(
+            page_id, document_id, annotation_data=updated_annotation
+        )
+
+        relation = {'source_anno_id': 0, 'target_anno_id': 1, 'relation_type': 'figure_caption'}
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.add_relation = AsyncMock(return_value=updated_record)
+            result = await labeling_service.add_relation(mock_pool, page_id, relation)
+
+        assert result is not None
+        mock_repo.add_relation.assert_called_once_with(mock_pool, page_id, relation)
+        assert len(result['annotation_data']['extra']['relation']) == 1
+
+
+class TestDeleteRelation:
+    @pytest.mark.asyncio
+    async def test_returns_none_when_page_not_found(self, mock_pool, page_id):
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.delete_relation = AsyncMock(return_value=None)
+            result = await labeling_service.delete_relation(mock_pool, page_id, 0, 1)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_deletes_relation_successfully(self, mock_pool, page_id, document_id):
+        annotation = {
+            'layout_dets': [],
+            'extra': {'relation': []},
+        }
+        record = _make_page_record(page_id, document_id, annotation_data=annotation)
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.delete_relation = AsyncMock(return_value=record)
+            result = await labeling_service.delete_relation(mock_pool, page_id, 0, 1)
+
+        mock_repo.delete_relation.assert_called_once_with(mock_pool, page_id, 0, 1)
+        assert result is not None
+        assert result['annotation_data']['extra']['relation'] == []
+
+
 class TestDeleteElement:
     @pytest.mark.asyncio
     async def test_returns_none_when_page_not_found(self, mock_pool, page_id):

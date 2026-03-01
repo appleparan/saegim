@@ -14,6 +14,8 @@ from saegim.schemas.page import (
     PageAnnotationUpdate,
     PageAttributeUpdate,
     PageResponse,
+    RelationCreate,
+    RelationDelete,
 )
 from saegim.services import labeling_service
 from saegim.services.text_extraction_service import (
@@ -191,6 +193,60 @@ async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractT
         ) from exc
 
     return ExtractTextResponse(text=text)
+
+
+@router.post(
+    '/pages/{page_id}/relations',
+    response_model=PageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_relation(page_id: uuid.UUID, body: RelationCreate) -> PageResponse:
+    """Add a relation between two elements on a page.
+
+    Args:
+        page_id: Page UUID.
+        body: Relation creation data.
+
+    Returns:
+        PageResponse: Updated page data with new relation.
+
+    Raises:
+        HTTPException: If page not found or validation fails.
+    """
+    pool = get_pool()
+    try:
+        result = await labeling_service.add_relation(pool, page_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Page not found')
+    return PageResponse(**result)
+
+
+@router.delete('/pages/{page_id}/relations', response_model=PageResponse)
+async def delete_relation(page_id: uuid.UUID, body: RelationDelete) -> PageResponse:
+    """Delete a relation between two elements on a page.
+
+    Args:
+        page_id: Page UUID.
+        body: Relation deletion data.
+
+    Returns:
+        PageResponse: Updated page data.
+
+    Raises:
+        HTTPException: If page not found.
+    """
+    pool = get_pool()
+    result = await labeling_service.delete_relation(
+        pool, page_id, body.source_anno_id, body.target_anno_id
+    )
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Page not found')
+    return PageResponse(**result)
 
 
 @router.delete('/pages/{page_id}/elements/{anno_id}', response_model=PageResponse)
