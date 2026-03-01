@@ -69,11 +69,10 @@ docker build -t saegim-frontend \
 | `postgres` | `postgres:18.2-trixie` | 15432→5432 | 기본 |
 | `backend` | `Dockerfile` (CPU/GPU) | 15000→5000 | 기본 |
 | `frontend` | `saegim-frontend` | 13000→80 | 기본 |
-| `ppstructure` | PaddlePaddle | 18811 | `gpu` |
 | `vllm` | `vllm-openai:v0.15.1` | 18000→8000 | `gpu` |
 
 백엔드 이미지의 CPU/GPU 전환은 `BASE_IMAGE`, `TORCH_EXTRA` 환경변수로 제어합니다.
-GPU 서비스(vLLM, ppstructure)는 `--profile gpu`으로 활성화합니다.
+GPU 서비스(vLLM)는 `--profile gpu`으로 활성화합니다.
 
 ### 네트워크
 
@@ -117,7 +116,7 @@ GPU 모드에서는:
 
 1. 백엔드가 CUDA 베이스 이미지로 빌드됨 (`nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04`)
 2. PyTorch가 `--extra cu130`으로 설치됨
-3. vLLM과 PP-StructureV3 서비스가 추가 실행됨
+3. vLLM 서비스가 추가 실행됨
 
 ### `.env.gpu` 파일
 
@@ -182,7 +181,6 @@ docker compose --profile gpu exec backend nvidia-smi
 | PostgreSQL | `pg_isready -U labeling -d labeling` | 5초 |
 | Backend | `curl http://localhost:5000/api/v1/health` | 10초 |
 | vLLM | `curl http://localhost:8000/health` | 30초 |
-| PP-StructureV3 | `curl http://localhost:18811/health` | 10초 |
 | Frontend | nginx 기본 (포트 80) | - |
 
 ## 개발 팁

@@ -25,7 +25,7 @@ class ProjectResponse(BaseModel):
 
 # --- OCR Config schemas ---
 
-EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer', 'docling']
+EngineType = Literal['commercial_api', 'vllm', 'split_pipeline', 'pdfminer']
 CommercialApiProvider = Literal['gemini', 'vllm']
 GeminiModel = Literal[
     'gemini-3.1-pro-preview',
@@ -36,15 +36,15 @@ SplitPipelineOcrProvider = Literal['gemini', 'vllm']
 
 
 class CommercialApiConfig(BaseModel):
-    """Commercial VLM API configuration (Type 1)."""
+    """Commercial VLM API configuration."""
 
     provider: CommercialApiProvider = Field(description='VLM provider type')
     api_key: str = Field(default='', description='API key')
     model: str = Field(default='gemini-3-flash-preview', description='Model name')
 
 
-class IntegratedServerConfig(BaseModel):
-    """Integrated pipeline server configuration (Type 2)."""
+class VllmServerConfig(BaseModel):
+    """vLLM server configuration."""
 
     host: str = Field(default='localhost', description='Server host')
     port: int = Field(
@@ -60,11 +60,11 @@ class IntegratedServerConfig(BaseModel):
 
 
 class SplitPipelineConfig(BaseModel):
-    """Split pipeline configuration (Type 3)."""
+    """Split pipeline configuration (Docling layout + text OCR)."""
 
-    layout_server_url: str = Field(
-        default='http://localhost:18811',
-        description='Layout detection server URL',
+    docling_model_name: str = Field(
+        default='ibm-granite/granite-docling-258M',
+        description='Docling model for layout detection',
     )
     ocr_provider: SplitPipelineOcrProvider = Field(description='OCR text provider')
     ocr_api_key: str = Field(default='', description='OCR API key (for Gemini)')
@@ -81,15 +81,6 @@ class SplitPipelineConfig(BaseModel):
     )
 
 
-class DoclingConfig(BaseModel):
-    """Docling layout detection engine configuration."""
-
-    model_name: str = Field(
-        default='ibm-granite/granite-docling-258M',
-        description='HuggingFace model identifier',
-    )
-
-
 class OcrConfigUpdate(BaseModel):
     """Schema for updating project OCR configuration.
 
@@ -98,9 +89,8 @@ class OcrConfigUpdate(BaseModel):
 
     engine_type: EngineType
     commercial_api: CommercialApiConfig | None = None
-    integrated_server: IntegratedServerConfig | None = None
+    vllm: VllmServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
-    docling: DoclingConfig | None = None
 
 
 class OcrConfigResponse(BaseModel):
@@ -108,9 +98,12 @@ class OcrConfigResponse(BaseModel):
 
     engine_type: EngineType
     commercial_api: CommercialApiConfig | None = None
-    integrated_server: IntegratedServerConfig | None = None
+    vllm: VllmServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
-    docling: DoclingConfig | None = None
+    env_gemini_api_key: str = Field(
+        default='',
+        description='Gemini API key from server environment (for UI pre-fill)',
+    )
 
 
 class OcrConnectionTestResponse(BaseModel):

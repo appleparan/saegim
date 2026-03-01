@@ -1,6 +1,6 @@
 """OCR provider connection test service.
 
-Individual connection checks for PP-StructureV3, Gemini API, and vLLM server.
+Individual connection checks for Gemini API and vLLM server.
 Used by engine classes for their test_connection() implementations.
 """
 
@@ -12,30 +12,6 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-
-
-def check_ppstructure_connection(config: dict[str, Any]) -> tuple[bool, str]:
-    """Test PP-StructureV3 server connectivity.
-
-    Args:
-        config: PP-StructureV3 config dict with 'host' and 'port'.
-
-    Returns:
-        Tuple of (success, message).
-    """
-    host = config.get('host', 'localhost')
-    port = config.get('port', 18811)
-    url = f'http://{host}:{port}/api/v1/health'
-
-    try:
-        with httpx.Client(timeout=httpx.Timeout(10.0)) as client:
-            response = client.get(url)
-            response.raise_for_status()
-            return True, f'Connected to PP-StructureV3 at {host}:{port}'
-    except httpx.RequestError as exc:
-        return False, f'Cannot connect to PP-StructureV3 at {host}:{port}: {exc}'
-    except httpx.HTTPStatusError as exc:
-        return False, f'PP-StructureV3 error: {exc.response.status_code}'
 
 
 def check_gemini_connection(config: dict[str, Any]) -> tuple[bool, str]:

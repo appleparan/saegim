@@ -3,15 +3,22 @@
   import Header from '$lib/components/layout/Header.svelte'
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
-  import { getProject } from '$lib/api/projects'
+  import { getProject, getOcrConfig } from '$lib/api/projects'
   import { listDocuments, uploadDocument, deleteDocument, listPages } from '$lib/api/documents'
-  import type { ProjectResponse, DocumentResponse, PageSummary } from '$lib/api/types'
+  import type {
+    ProjectResponse,
+    DocumentResponse,
+    PageSummary,
+    OcrConfigResponse,
+  } from '$lib/api/types'
   import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
+  import { engineLabels } from '$lib/utils/ocr'
 
   const POLL_INTERVAL_MS = 5000
 
   let project = $state<ProjectResponse | null>(null)
+  let ocrConfig = $state<OcrConfigResponse | null>(null)
   let documents = $state<readonly DocumentResponse[]>([])
   let documentPages = $state<Record<string, readonly PageSummary[]>>({})
   let isLoading = $state(true)
@@ -65,9 +72,14 @@
     isLoading = true
     error = null
     try {
-      const [proj, docs] = await Promise.all([getProject(id), listDocuments(id)])
+      const [proj, docs, config] = await Promise.all([
+        getProject(id),
+        listDocuments(id),
+        getOcrConfig(id).catch(() => null),
+      ])
       project = proj
       documents = docs
+      ocrConfig = config
     } catch (e) {
       if (e instanceof NetworkError) {
         error = '백엔드 서버에 연결할 수 없습니다.'
@@ -263,7 +275,18 @@
 
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <h1 class="text-foreground text-2xl font-bold">{project?.name ?? '문서'}</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-foreground text-2xl font-bold">{project?.name ?? '문서'}</h1>
+            {#if ocrConfig}
+              <a
+                href="/projects/{page.params.id}/settings"
+                class="bg-muted text-muted-foreground border-border hover:border-primary hover:text-primary inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors"
+                title="OCR 엔진 설정"
+              >
+                {engineLabels[ocrConfig.engine_type] ?? ocrConfig.engine_type}
+              </a>
+            {/if}
+          </div>
           {#if project?.description}
             <p class="text-muted-foreground mt-1 text-sm">{project.description}</p>
           {/if}

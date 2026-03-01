@@ -6,42 +6,8 @@ import httpx
 
 from saegim.services.ocr_connection_test import (
     check_gemini_connection,
-    check_ppstructure_connection,
     check_vllm_connection,
 )
-
-
-class TestPpstructureConnection:
-    @patch('saegim.services.ocr_connection_test.httpx.Client')
-    def test_successful_connection(self, mock_client_cls):
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-
-        mock_client = MagicMock()
-        mock_client.__enter__ = MagicMock(return_value=mock_client)
-        mock_client.__exit__ = MagicMock(return_value=False)
-        mock_client.get.return_value = mock_response
-        mock_client_cls.return_value = mock_client
-
-        success, message = check_ppstructure_connection(
-            {'host': 'localhost', 'port': 18811},
-        )
-        assert success is True
-        assert 'localhost:18811' in message
-
-    @patch('saegim.services.ocr_connection_test.httpx.Client')
-    def test_connection_error(self, mock_client_cls):
-        mock_client = MagicMock()
-        mock_client.__enter__ = MagicMock(return_value=mock_client)
-        mock_client.__exit__ = MagicMock(return_value=False)
-        mock_client.get.side_effect = httpx.ConnectError('refused')
-        mock_client_cls.return_value = mock_client
-
-        success, message = check_ppstructure_connection(
-            {'host': 'localhost', 'port': 18811},
-        )
-        assert success is False
-        assert 'Cannot connect' in message
 
 
 class TestGeminiConnection:

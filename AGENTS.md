@@ -148,7 +148,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 | **프론트엔드** | Svelte 5 (Runes) + TypeScript + Vite 7 + Konva.js + PDF.js |
 | **백엔드** | FastAPI + asyncpg (raw SQL) + Repository 패턴 |
 | **DB** | PostgreSQL 15+ (JSONB) |
-| **OCR 엔진** | 6종 Strategy 패턴 (commercial_api, integrated_server, split_pipeline, pdfminer, docling) |
+| **OCR 엔진** | 4종 Strategy 패턴 (pdfminer, commercial_api, vllm, split_pipeline) |
 | **배포** | Docker Compose |
 
 상세 문서:
@@ -178,7 +178,7 @@ PDF에서 가능한 메타데이터를 자동으로 뽑고 사람이 검수/보�
 **목표**: 자동 추출 → 사람 검수 파이프라인 완성.
 
 - pdfminer.six 텍스트/이미지 자동 추출 + 좌표 스케일링 (PR #28)
-- 2단계 OCR 파이프라인: PP-StructureV3 + Gemini/OlmOCR/PP-OCR (PR #6 → PR #10)
+- 2단계 OCR 파이프라인: Docling 레이아웃 + Gemini/vLLM OCR (PR #6 → PR #10 → PR #60)
 - Engine Type 기반 아키텍처 (`BaseOCREngine` ABC + Strategy 패턴) (PR #12)
 - asyncio 백그라운드 OCR 추출 — Celery/Redis 제거 (PR #14)
 - 프로젝트별 OCR 설정 UI + 연결 테스트

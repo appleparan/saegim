@@ -97,8 +97,8 @@
 
 ```json
 {
-  "engine_type": "integrated_server",
-  "integrated_server": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
+  "engine_type": "vllm",
+  "vllm": { "host": "localhost", "port": 8000, "model": "prithivMLmods/chandra-FP8-Latest" }
 }
 ```
 
@@ -106,11 +106,10 @@
 
 프로젝트 OCR 엔진 설정 업데이트. `engine_type`에 따라 해당 서브 설정이 필요합니다:
 
-- `commercial_api` → `commercial_api` 설정 (provider, api_key, model)
-- `integrated_server` → `integrated_server` 설정 (host, port, model)
-- `split_pipeline` → `split_pipeline` 설정 (layout_server_url, ocr_provider 등)
 - `pdfminer` → 추가 설정 불필요
-- `docling` → `docling` 설정 (model_path 등, ibm-granite/granite-docling-258M 기반)
+- `commercial_api` → `commercial_api` 설정 (provider, api_key, model)
+- `vllm` → `vllm` 설정 (host, port, model)
+- `split_pipeline` → `split_pipeline` 설정 (docling_model_name, ocr_provider 등)
 
 **요청 Body 예시:**
 
@@ -127,8 +126,8 @@
 
 ```json
 {
-  "engine_type": "integrated_server",
-  "integrated_server": { "host": "gpu-server", "port": 8000, "model": "datalab-to/chandra" }
+  "engine_type": "vllm",
+  "vllm": { "host": "gpu-server", "port": 8000, "model": "prithivMLmods/chandra-FP8-Latest" }
 }
 ```
 

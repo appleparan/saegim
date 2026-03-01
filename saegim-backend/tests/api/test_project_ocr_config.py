@@ -136,7 +136,7 @@ class TestUpdateOcrConfig:
         assert data['commercial_api']['provider'] == 'gemini'
         assert data['commercial_api']['api_key'] == 'my-key'
 
-    def test_update_integrated_server(self, client: TestClient, sample_project_record):
+    def test_update_vllm(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with (
             patch(
@@ -153,8 +153,8 @@ class TestUpdateOcrConfig:
             response = client.put(
                 f'/api/v1/projects/{project_id}/ocr-config',
                 json={
-                    'engine_type': 'integrated_server',
-                    'integrated_server': {
+                    'engine_type': 'vllm',
+                    'vllm': {
                         'host': 'localhost',
                         'port': 8000,
                         'model': 'datalab-to/chandra',
@@ -164,10 +164,10 @@ class TestUpdateOcrConfig:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data['engine_type'] == 'integrated_server'
-        assert data['integrated_server']['host'] == 'localhost'
-        assert data['integrated_server']['port'] == 8000
-        assert data['integrated_server']['model'] == 'datalab-to/chandra'
+        assert data['engine_type'] == 'vllm'
+        assert data['vllm']['host'] == 'localhost'
+        assert data['vllm']['port'] == 8000
+        assert data['vllm']['model'] == 'datalab-to/chandra'
 
     def test_update_split_pipeline_gemini(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
@@ -188,7 +188,7 @@ class TestUpdateOcrConfig:
                 json={
                     'engine_type': 'split_pipeline',
                     'split_pipeline': {
-                        'layout_server_url': 'http://localhost:18811',
+                        'docling_model_name': 'ibm-granite/granite-docling-258M',
                         'ocr_provider': 'gemini',
                         'ocr_api_key': 'my-key',
                         'ocr_model': 'gemini-3-flash-preview',
@@ -214,7 +214,7 @@ class TestUpdateOcrConfig:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_integrated_server_without_sub_config(
+    def test_update_vllm_without_sub_config(
         self,
         client: TestClient,
         sample_project_record,
@@ -222,7 +222,7 @@ class TestUpdateOcrConfig:
         project_id = sample_project_record['id']
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
-            json={'engine_type': 'integrated_server'},
+            json={'engine_type': 'vllm'},
         )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -252,55 +252,6 @@ class TestUpdateOcrConfig:
             )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    def test_update_docling_default(self, client: TestClient, sample_project_record):
-        project_id = sample_project_record['id']
-        with (
-            patch(
-                'saegim.repositories.project_repo.get_by_id',
-                new_callable=AsyncMock,
-                return_value=sample_project_record,
-            ),
-            patch(
-                'saegim.repositories.project_repo.update_ocr_config',
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-        ):
-            response = client.put(
-                f'/api/v1/projects/{project_id}/ocr-config',
-                json={'engine_type': 'docling'},
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()['engine_type'] == 'docling'
-
-    def test_update_docling_custom_model(self, client: TestClient, sample_project_record):
-        project_id = sample_project_record['id']
-        with (
-            patch(
-                'saegim.repositories.project_repo.get_by_id',
-                new_callable=AsyncMock,
-                return_value=sample_project_record,
-            ),
-            patch(
-                'saegim.repositories.project_repo.update_ocr_config',
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-        ):
-            response = client.put(
-                f'/api/v1/projects/{project_id}/ocr-config',
-                json={
-                    'engine_type': 'docling',
-                    'docling': {'model_name': 'custom/model'},
-                },
-            )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data['engine_type'] == 'docling'
-        assert data['docling']['model_name'] == 'custom/model'
 
     def test_update_invalid_engine_type(
         self,

@@ -5,12 +5,12 @@ from unittest.mock import MagicMock
 
 from PIL import Image
 
+from saegim.services.layout_types import LayoutRegion
 from saegim.services.ocr_pipeline import (
     OcrPipeline,
     _build_layout_det,
     _crop_region,
 )
-from saegim.services.ppstructure_service import LayoutRegion
 
 
 def _make_test_image(width: int = 800, height: int = 1200):
@@ -108,8 +108,8 @@ class TestOcrPipeline:
     def test_extract_page_with_text_provider(self, tmp_path):
         image_path = _make_test_image_path(tmp_path)
 
-        mock_layout_client = MagicMock()
-        mock_layout_client.detect_layout.return_value = [
+        mock_layout_detector = MagicMock()
+        mock_layout_detector.detect_layout.return_value = [
             LayoutRegion(bbox=(10.0, 20.0, 300.0, 60.0), category='title', score=0.95),
             LayoutRegion(bbox=(10.0, 80.0, 300.0, 400.0), category='text_block', score=0.88),
         ]
@@ -117,7 +117,7 @@ class TestOcrPipeline:
         mock_text_provider = MagicMock()
         mock_text_provider.extract_text.side_effect = ['Chapter 1', 'Body text here']
 
-        pipeline = OcrPipeline(mock_layout_client, mock_text_provider)
+        pipeline = OcrPipeline(mock_layout_detector, mock_text_provider)
         result = pipeline.extract_page(image_path, 800, 1200)
 
         assert len(result['layout_dets']) == 2
@@ -129,8 +129,8 @@ class TestOcrPipeline:
     def test_extract_page_builtin_ocr(self, tmp_path):
         image_path = _make_test_image_path(tmp_path)
 
-        mock_layout_client = MagicMock()
-        mock_layout_client.detect_layout.return_value = [
+        mock_layout_detector = MagicMock()
+        mock_layout_detector.detect_layout.return_value = [
             LayoutRegion(
                 bbox=(10.0, 20.0, 300.0, 60.0),
                 category='title',
@@ -139,7 +139,7 @@ class TestOcrPipeline:
             ),
         ]
 
-        pipeline = OcrPipeline(mock_layout_client, use_builtin_ocr=True)
+        pipeline = OcrPipeline(mock_layout_detector, use_builtin_ocr=True)
         result = pipeline.extract_page(image_path, 800, 1200)
 
         assert len(result['layout_dets']) == 1
@@ -148,10 +148,10 @@ class TestOcrPipeline:
     def test_extract_page_no_regions(self, tmp_path):
         image_path = _make_test_image_path(tmp_path)
 
-        mock_layout_client = MagicMock()
-        mock_layout_client.detect_layout.return_value = []
+        mock_layout_detector = MagicMock()
+        mock_layout_detector.detect_layout.return_value = []
 
-        pipeline = OcrPipeline(mock_layout_client)
+        pipeline = OcrPipeline(mock_layout_detector)
         result = pipeline.extract_page(image_path, 800, 1200)
 
         assert result['layout_dets'] == []
@@ -161,8 +161,8 @@ class TestOcrPipeline:
     def test_extract_page_skips_figures(self, tmp_path):
         image_path = _make_test_image_path(tmp_path)
 
-        mock_layout_client = MagicMock()
-        mock_layout_client.detect_layout.return_value = [
+        mock_layout_detector = MagicMock()
+        mock_layout_detector.detect_layout.return_value = [
             LayoutRegion(bbox=(10.0, 20.0, 300.0, 300.0), category='figure', score=0.9),
             LayoutRegion(bbox=(10.0, 320.0, 300.0, 400.0), category='text_block', score=0.8),
         ]
@@ -170,7 +170,7 @@ class TestOcrPipeline:
         mock_text_provider = MagicMock()
         mock_text_provider.extract_text.return_value = 'Some text'
 
-        pipeline = OcrPipeline(mock_layout_client, mock_text_provider)
+        pipeline = OcrPipeline(mock_layout_detector, mock_text_provider)
         result = pipeline.extract_page(image_path, 800, 1200)
 
         assert len(result['layout_dets']) == 2
@@ -182,12 +182,12 @@ class TestOcrPipeline:
     def test_extract_page_no_text_provider(self, tmp_path):
         image_path = _make_test_image_path(tmp_path)
 
-        mock_layout_client = MagicMock()
-        mock_layout_client.detect_layout.return_value = [
+        mock_layout_detector = MagicMock()
+        mock_layout_detector.detect_layout.return_value = [
             LayoutRegion(bbox=(10.0, 20.0, 300.0, 60.0), category='title', score=0.95),
         ]
 
-        pipeline = OcrPipeline(mock_layout_client)
+        pipeline = OcrPipeline(mock_layout_detector)
         result = pipeline.extract_page(image_path, 800, 1200)
 
         # With no text provider and no builtin OCR, text should be empty

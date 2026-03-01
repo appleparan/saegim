@@ -111,10 +111,10 @@ class TestBuildTextProvider:
         provider = build_text_provider(config)
         assert provider is not None
 
-    def test_integrated_server_vllm(self):
+    def test_vllm(self):
         config = {
-            'engine_type': 'integrated_server',
-            'integrated_server': {
+            'engine_type': 'vllm',
+            'vllm': {
                 'host': 'localhost',
                 'port': 8000,
                 'model': 'datalab-to/chandra',
@@ -122,17 +122,6 @@ class TestBuildTextProvider:
         }
         provider = build_text_provider(config)
         assert provider is not None
-
-    def test_integrated_server_ppstructure_returns_none(self):
-        config = {
-            'engine_type': 'integrated_server',
-            'integrated_server': {
-                'host': 'localhost',
-                'port': 18811,
-                'model': 'PP-StructureV3',
-            },
-        }
-        assert build_text_provider(config) is None
 
     def test_pdfminer_returns_none(self):
         config = {'engine_type': 'pdfminer'}

@@ -35,16 +35,13 @@
   let caApiKey = $state('')
   let caModel = $state('gemini-3-flash-preview')
 
-  // Integrated server state
-  let isHost = $state('localhost')
-  let isPort = $state(8000)
-  let isModel = $state('datalab-to/chandra')
-
-  // Docling state
-  let dlModelName = $state('ibm-granite/granite-docling-258M')
+  // vLLM server state
+  let vllmHost = $state('localhost')
+  let vllmPort = $state(8000)
+  let vllmModel = $state('datalab-to/chandra')
 
   // Split pipeline state
-  let spLayoutUrl = $state('http://localhost:18811')
+  let spDoclingModel = $state('ibm-granite/granite-docling-258M')
   let spOcrProvider = $state<SplitPipelineOcrProvider>('gemini')
   let spOcrApiKey = $state('')
   let spOcrHost = $state('localhost')
@@ -55,18 +52,17 @@
     engineType = config.engine_type
     // Commercial API
     caProvider = config.commercial_api?.provider ?? 'gemini'
-    caApiKey = config.commercial_api?.api_key ?? ''
+    caApiKey = config.commercial_api?.api_key || config.env_gemini_api_key || ''
     caModel = config.commercial_api?.model ?? 'gemini-3-flash-preview'
-    // Integrated server
-    isHost = config.integrated_server?.host ?? 'localhost'
-    isPort = config.integrated_server?.port ?? 8000
-    isModel = config.integrated_server?.model ?? 'datalab-to/chandra'
-    // Docling
-    dlModelName = config.docling?.model_name ?? 'ibm-granite/granite-docling-258M'
+    // vLLM server
+    vllmHost = config.vllm?.host ?? 'localhost'
+    vllmPort = config.vllm?.port ?? 8000
+    vllmModel = config.vllm?.model ?? 'datalab-to/chandra'
     // Split pipeline
-    spLayoutUrl = config.split_pipeline?.layout_server_url ?? 'http://localhost:18811'
+    spDoclingModel =
+      config.split_pipeline?.docling_model_name ?? 'ibm-granite/granite-docling-258M'
     spOcrProvider = config.split_pipeline?.ocr_provider ?? 'gemini'
-    spOcrApiKey = config.split_pipeline?.ocr_api_key ?? ''
+    spOcrApiKey = config.split_pipeline?.ocr_api_key || config.env_gemini_api_key || ''
     spOcrHost = config.split_pipeline?.ocr_host ?? 'localhost'
     spOcrPort = config.split_pipeline?.ocr_port ?? 8000
     spOcrModel = config.split_pipeline?.ocr_model ?? 'gemini-3-flash-preview'
@@ -74,16 +70,15 @@
 
   let isValid = $derived.by(() => {
     if (engineType === 'pdfminer') return true
-    if (engineType === 'docling') return dlModelName.trim().length > 0
     if (engineType === 'commercial_api') {
       if (caProvider === 'gemini') return caApiKey.trim().length > 0
       return false
     }
-    if (engineType === 'integrated_server') {
-      return isHost.trim().length > 0 && isPort > 0
+    if (engineType === 'vllm') {
+      return vllmHost.trim().length > 0 && vllmPort > 0
     }
     if (engineType === 'split_pipeline') {
-      if (spLayoutUrl.trim().length === 0) return false
+      if (spDoclingModel.trim().length === 0) return false
       if (spOcrProvider === 'gemini') return spOcrApiKey.trim().length > 0
       if (spOcrProvider === 'vllm') return spOcrHost.trim().length > 0 && spOcrPort > 0
       return false
@@ -94,38 +89,27 @@
   const engineTypes: { value: EngineType; label: string; description: string }[] = [
     { value: 'pdfminer', label: 'pdfminer', description: '기본 텍스트 추출 (Fallback/CI)' },
     {
-      value: 'docling',
-      label: 'Docling',
-      description: 'Granite Docling 258M 레이아웃 감지',
-    },
-    {
       value: 'commercial_api',
-      label: '상업용 VLM API',
-      description: 'Gemini 등 Full-page OCR',
+      label: 'Gemini API',
+      description: 'Google Gemini Full-page VLM OCR',
     },
     {
-      value: 'integrated_server',
-      label: '통합 파이프라인 서버',
-      description: 'PP-StructureV3 + PP-OCR',
+      value: 'vllm',
+      label: 'vLLM 서버',
+      description: 'vLLM 호환 서버 (OpenAI API)',
     },
     {
       value: 'split_pipeline',
-      label: '분리 파이프라인',
-      description: '레이아웃 서버 + 별도 OCR',
+      label: 'Docling + OCR',
+      description: 'Docling 레이아웃 + Gemini/vLLM 텍스트 OCR',
     },
   ]
 
-  let needsConnectionTest = $derived(engineType !== 'pdfminer' && engineType !== 'docling')
+  let needsConnectionTest = $derived(engineType !== 'pdfminer')
 
   function buildConfig(): OcrConfigUpdate {
     if (engineType === 'pdfminer') {
       return { engine_type: 'pdfminer' }
-    }
-    if (engineType === 'docling') {
-      return {
-        engine_type: 'docling',
-        docling: { model_name: dlModelName.trim() },
-      }
     }
     if (engineType === 'commercial_api') {
       return {
@@ -137,17 +121,17 @@
         },
       }
     }
-    if (engineType === 'integrated_server') {
+    if (engineType === 'vllm') {
       return {
-        engine_type: 'integrated_server',
-        integrated_server: { host: isHost.trim(), port: isPort, model: isModel.trim() },
+        engine_type: 'vllm',
+        vllm: { host: vllmHost.trim(), port: vllmPort, model: vllmModel.trim() },
       }
     }
     // split_pipeline
     return {
       engine_type: 'split_pipeline',
       split_pipeline: {
-        layout_server_url: spLayoutUrl.trim(),
+        docling_model_name: spDoclingModel.trim(),
         ocr_provider: spOcrProvider,
         ocr_api_key: spOcrProvider === 'gemini' ? spOcrApiKey.trim() : undefined,
         ocr_host: spOcrProvider === 'vllm' ? spOcrHost.trim() : undefined,
@@ -187,26 +171,6 @@
     </div>
   </div>
 
-  <!-- Docling Config -->
-  {#if engineType === 'docling'}
-    <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
-      <h4 class="text-foreground text-sm font-medium">Granite Docling</h4>
-      <div>
-        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="dl-model-name">
-          모델
-        </label>
-        <input
-          id="dl-model-name"
-          type="text"
-          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
-            py-2 text-sm focus:ring-1"
-          placeholder="ibm-granite/granite-docling-258M"
-          bind:value={dlModelName}
-        />
-      </div>
-    </div>
-  {/if}
-
   <!-- Commercial API Config -->
   {#if engineType === 'commercial_api'}
     <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
@@ -244,51 +208,51 @@
     </div>
   {/if}
 
-  <!-- Integrated Server Config -->
-  {#if engineType === 'integrated_server'}
+  <!-- vLLM Server Config -->
+  {#if engineType === 'vllm'}
     <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
-      <h4 class="text-foreground text-sm font-medium">통합 파이프라인 서버</h4>
+      <h4 class="text-foreground text-sm font-medium">vLLM 서버</h4>
       <div class="grid grid-cols-3 gap-3">
         <div class="col-span-2">
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="is-host"
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="vllm-host"
             >호스트</label
           >
           <input
-            id="is-host"
+            id="vllm-host"
             type="text"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
               py-2 text-sm focus:ring-1"
             placeholder="localhost"
-            bind:value={isHost}
+            bind:value={vllmHost}
           />
         </div>
         <div>
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="is-port"
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="vllm-port"
             >포트</label
           >
           <input
-            id="is-port"
+            id="vllm-port"
             type="number"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
               py-2 text-sm focus:ring-1"
             placeholder="8000"
             min="1"
             max="65535"
-            bind:value={isPort}
+            bind:value={vllmPort}
           />
         </div>
       </div>
       <div>
-        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="is-model"
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="vllm-model"
           >모델</label
         >
         <input
-          id="is-model"
+          id="vllm-model"
           type="text"
           class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
             py-2 text-sm focus:ring-1"
           placeholder="datalab-to/chandra"
-          bind:value={isModel}
+          bind:value={vllmModel}
         />
       </div>
     </div>
@@ -297,18 +261,18 @@
   <!-- Split Pipeline Config -->
   {#if engineType === 'split_pipeline'}
     <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
-      <h4 class="text-foreground text-sm font-medium">레이아웃 서버</h4>
+      <h4 class="text-foreground text-sm font-medium">Docling 레이아웃 감지</h4>
       <div>
-        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-layout-url">
-          레이아웃 서버 URL
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="sp-docling-model">
+          Docling 모델
         </label>
         <input
-          id="sp-layout-url"
+          id="sp-docling-model"
           type="text"
           class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
             py-2 text-sm focus:ring-1"
-          placeholder="http://localhost:18811"
-          bind:value={spLayoutUrl}
+          placeholder="ibm-granite/granite-docling-258M"
+          bind:value={spDoclingModel}
         />
       </div>
     </div>

@@ -24,10 +24,10 @@
 프로젝트 설정 페이지. Route: `/projects/:id/settings`
 
 - `engine_type` 기반 OCR 엔진 선택 (카드 UI)
-  - `commercial_api`: Gemini/vLLM full-page VLM (API key, model)
-  - `integrated_server`: PP-StructureV3 또는 vLLM 통합 서버 (host, port, model)
-  - `split_pipeline`: PP-StructureV3 레이아웃 + 외부 OCR (layout URL, OCR provider, key/host)
   - `pdfminer`: pdfminer.six 폴백 (추가 설정 불필요)
+  - `commercial_api`: Gemini/vLLM full-page VLM (API key, model)
+  - `vllm`: vLLM 서버 (host, port, model)
+  - `split_pipeline`: Docling 레이아웃 + 외부 OCR (Docling 모델명, OCR provider, key/host)
 - 엔진별 세부 설정 폼 (선택한 카드에 따라 동적 표시)
 - 연결 테스트 버튼 (`build_engine → test_connection`)
 - 문서 목록에서 톱니바퀴 아이콘으로 진입
@@ -402,12 +402,12 @@ OCR 엔진 설정 폼 컴포넌트.
 
 기능:
 
-- `engine_type` 카드 선택 UI (4종: commercial_api, integrated_server, split_pipeline, pdfminer)
+- `engine_type` 카드 선택 UI (4종: pdfminer, commercial_api, vllm, split_pipeline)
 - 선택한 엔진 카드에 따라 세부 설정 폼 동적 표시
-  - `commercial_api`: provider (gemini/vllm), API key, model
-  - `integrated_server`: host, port, model (PP-StructureV3 또는 vLLM 자동 분기)
-  - `split_pipeline`: layout server URL, OCR provider, key/host/port/model
   - `pdfminer`: 추가 설정 없음
+  - `commercial_api`: provider (gemini/vllm), API key, model
+  - `vllm`: host, port, model
+  - `split_pipeline`: Docling 모델명, OCR provider, key/host/port/model
 - 연결 테스트 버튼 (`build_engine → test_connection`)
 - 저장 시 test-then-save 패턴 (연결 테스트 성공 후 저장)
 - 유효성 검증 (엔진 타입별 필수 필드 체크)

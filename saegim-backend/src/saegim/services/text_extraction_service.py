@@ -94,8 +94,8 @@ def build_text_provider(ocr_config: dict[str, Any]) -> TextOcrProvider | None:
     if engine_type == 'commercial_api':
         return _build_from_commercial_api(ocr_config.get('commercial_api', {}))
 
-    if engine_type == 'integrated_server':
-        return _build_from_integrated_server(ocr_config.get('integrated_server', {}))
+    if engine_type == 'vllm':
+        return _build_from_vllm(ocr_config.get('vllm', {}))
 
     # pdfminer and unknown engines have no text extraction capability
     return None
@@ -178,7 +178,7 @@ async def resolve_text_provider(
         engine_type = ocr_config.get('engine_type', 'unknown')
         msg = (
             f"Engine type '{engine_type}' does not support region text extraction. "
-            f'Configure a split_pipeline, commercial_api, or integrated_server engine.'
+            f'Configure a split_pipeline, commercial_api, or vllm engine.'
         )
         raise NoTextProviderError(msg)
 
@@ -220,27 +220,21 @@ def _build_from_commercial_api(
     return _create_text_provider(provider, config)
 
 
-def _build_from_integrated_server(
+def _build_from_vllm(
     config: dict[str, Any],
-) -> VllmTextOcrProvider | None:
-    """Build text provider from integrated_server config.
-
-    PP-StructureV3 models (PP-* prefix) do not support standalone text extraction.
+) -> VllmTextOcrProvider:
+    """Build text provider from vllm config.
 
     Args:
-        config: integrated_server configuration dict.
+        config: vllm configuration dict.
 
     Returns:
-        VllmTextOcrProvider or None for PP-StructureV3 models.
+        VllmTextOcrProvider instance.
     """
-    model = config.get('model', '')
-    if model.startswith('PP-'):
-        return None
-
     return VllmTextOcrProvider(
         host=config.get('host', 'localhost'),
         port=config.get('port', 8000),
-        model=model,
+        model=config.get('model', 'datalab-to/chandra'),
     )
 
 

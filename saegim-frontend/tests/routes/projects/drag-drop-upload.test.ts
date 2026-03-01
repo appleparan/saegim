@@ -20,6 +20,7 @@ const mockDocument: DocumentResponse = {
 }
 
 const mockGetProject = vi.fn()
+const mockGetOcrConfig = vi.fn()
 const mockListDocuments = vi.fn()
 const mockUploadDocument = vi.fn()
 const mockDeleteDocument = vi.fn()
@@ -35,6 +36,7 @@ vi.mock('$app/state', () => ({
 
 vi.mock('$lib/api/projects', () => ({
   getProject: (...args: unknown[]) => mockGetProject(...args),
+  getOcrConfig: (...args: unknown[]) => mockGetOcrConfig(...args),
 }))
 
 vi.mock('$lib/api/documents', () => ({
@@ -72,6 +74,7 @@ describe('Project page drag-and-drop upload', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetProject.mockResolvedValue(mockProject)
+    mockGetOcrConfig.mockResolvedValue({ engine_type: 'pdfminer' })
     mockListDocuments.mockResolvedValue([])
     mockUploadDocument.mockResolvedValue(mockDocument)
   })

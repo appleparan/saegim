@@ -41,14 +41,14 @@ describe("OCR Config API (engine_type based)", () => {
     });
   });
 
-  test("03 - update to integrated_server with model", async () => {
+  test("03 - update to vllm with model", async () => {
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: "integrated_server",
-      integrated_server: { host: "localhost", port: 8000, model: "datalab-to/chandra" },
+      engine_type: "vllm",
+      vllm: { host: "localhost", port: 8000, model: "datalab-to/chandra" },
     });
     expect(status).toBe(200);
-    expect(data.engine_type).toBe("integrated_server");
-    expect(data.integrated_server).toEqual({
+    expect(data.engine_type).toBe("vllm");
+    expect(data.vllm).toEqual({
       host: "localhost",
       port: 8000,
       model: "datalab-to/chandra",
@@ -59,7 +59,7 @@ describe("OCR Config API (engine_type based)", () => {
     const { data, status } = await updateOcrConfig(projectId, {
       engine_type: "split_pipeline",
       split_pipeline: {
-        layout_server_url: "http://localhost:18811",
+        docling_model_name: "ibm-granite/granite-docling-258M",
         ocr_provider: "gemini",
         ocr_api_key: "test-key",
         ocr_model: "gemini-3-flash-preview",
@@ -92,9 +92,9 @@ describe("OCR Config API (engine_type based)", () => {
     expect(status).toBe(422);
   });
 
-  test("08 - validation: integrated_server without sub-config is 422", async () => {
+  test("08 - validation: vllm without sub-config is 422", async () => {
     const { status } = await updateOcrConfig(projectId, {
-      engine_type: "integrated_server",
+      engine_type: "vllm",
     });
     expect(status).toBe(422);
   });
@@ -114,10 +114,10 @@ describe("OCR Config API (engine_type based)", () => {
     expect(data.success).toBe(true);
   });
 
-  test("11 - connection test for unreachable integrated_server fails", async () => {
+  test("11 - connection test for unreachable vllm fails", async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      engine_type: "integrated_server",
-      integrated_server: { host: "nonexistent-host", port: 18811 },
+      engine_type: "vllm",
+      vllm: { host: "nonexistent-host", port: 18811 },
     });
     expect(status).toBe(200);
     expect(data.success).toBe(false);

@@ -7,18 +7,18 @@
 
 ```text
 ocr_config.engine_type
+  ├── pdfminer           → pdfminer.six 폴백 (GPU 불필요, 동기)
   ├── commercial_api     → VLM API (Gemini/vLLM) full-page 분석
-  ├── integrated_server  → PP-StructureV3 + PP-OCR 내장 파이프라인
-  ├── split_pipeline     → PP-StructureV3 레이아웃 + 외부 OCR (Gemini/vLLM)
-  └── pdfminer           → pdfminer.six 폴백 (GPU 불필요)
+  ├── vllm               → vLLM 서버 (Chandra 등)
+  └── split_pipeline     → Docling 레이아웃 + 외부 OCR (Gemini/vLLM)
 ```
 
 | Engine Type | 설명 | 외부 서비스 | 사용 시나리오 |
 | --- | --- | --- | --- |
-| `commercial_api` | 상업용 VLM API (Gemini, vLLM) | Gemini API 또는 vLLM 서버 | 고품질 full-page OCR |
-| `integrated_server` | 통합 서버 (PP-StructureV3 또는 vLLM) | PP-StructureV3 Docker 또는 vLLM 서버 | 레이아웃+OCR 일체형 (모델명으로 자동 분기) |
-| `split_pipeline` | 분리 파이프라인 (Layout + OCR) | PP-StructureV3 + Gemini/vLLM | 레이아웃은 PP, OCR은 VLM |
 | `pdfminer` | pdfminer.six 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
+| `commercial_api` | 상업용 VLM API (Gemini, vLLM) | Gemini API 또는 vLLM 서버 | 고품질 full-page OCR |
+| `vllm` | vLLM OpenAI-compatible VLM 서버 | vLLM 서버 | 로컬 GPU 기반 OCR |
+| `split_pipeline` | 분리 파이프라인 (Layout + OCR) | Docling (로컬) + Gemini/vLLM | 레이아웃은 Docling, OCR은 VLM |
 
 ## pdfminer.six 폴백 (`engine_type: pdfminer`)
 
@@ -49,24 +49,15 @@ PDF 업로드
      → document status: extracting → ready (또는 extraction_failed)
 ```
 
-## Integrated Server Engine (`engine_type: integrated_server`)
+## vLLM Engine (`engine_type: vllm`)
 
-모델 이름 기반으로 PP-StructureV3 / vLLM 백엔드를 자동 선택한다:
-
-- `PP-` 접두사 모델 (예: `PP-StructureV3`): PP-StructureV3 + PP-OCR 내장
-- 그 외 모델 (예: `datalab-to/chandra`, `prithivMLmods/chandra-FP8-Latest`): vLLM OpenAI-compatible API
+vLLM OpenAI-compatible API를 통한 full-page OCR:
 
 ```text
 PDF 업로드
   → pypdfium2 페이지 렌더링 (2x scale PNG)
   → asyncio 백그라운드 태스크 디스패치
-     → 페이지별 (PP-StructureV3 모드):
-        1. PpstructureClient.detect_layout(image_path)
-           → PP-StructureV3 HTTP POST /api/v1/predict
-           → list[LayoutRegion(bbox, category, score, text)]
-        2. PP-OCR 내장 텍스트 직접 사용 (use_builtin_ocr=True)
-        3. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
-     → 페이지별 (vLLM 모드):
+     → 페이지별:
         1. VllmOcrProvider.extract_page(image_path)
            → vLLM /v1/chat/completions (base64 이미지)
            → structured OCR 프롬프트로 JSON 파싱
@@ -77,13 +68,16 @@ PDF 업로드
 
 ## Split Pipeline Engine (`engine_type: split_pipeline`)
 
+Docling 레이아웃 감지 + 외부 OCR (Gemini/vLLM) 조합:
+
 ```text
 PDF 업로드
   → pypdfium2 페이지 렌더링 (2x scale PNG)
   → asyncio 백그라운드 태스크 디스패치
      → 페이지별:
-        1. PpstructureClient.detect_layout(image_path)
-           → PP-StructureV3 레이아웃 감지 (bbox + category)
+        1. DoclingLayoutDetector.detect_layout(image_path)
+           → ibm-granite/granite-docling-258M 레이아웃 감지
+           → list[LayoutRegion(bbox, category, score, text)]
         2. 텍스트 영역 크롭 (PIL/Pillow)
         3. 외부 OCR 프로바이더로 텍스트 추출:
            - gemini: Gemini API (category_hint별 프롬프트)
@@ -107,23 +101,17 @@ PDF 업로드
   }
 }
 
-// integrated_server (vLLM + Chandra)
+// vllm
 {
-  "engine_type": "integrated_server",
-  "integrated_server": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
+  "engine_type": "vllm",
+  "vllm": { "host": "localhost", "port": 8000, "model": "prithivMLmods/chandra-FP8-Latest" }
 }
 
-// integrated_server (PP-StructureV3)
-{
-  "engine_type": "integrated_server",
-  "integrated_server": { "host": "localhost", "port": 18811, "model": "PP-StructureV3" }
-}
-
-// split_pipeline
+// split_pipeline (Docling + Gemini)
 {
   "engine_type": "split_pipeline",
   "split_pipeline": {
-    "layout_server_url": "http://localhost:18811",
+    "docling_model_name": "ibm-granite/granite-docling-258M",
     "ocr_provider": "gemini",
     "ocr_api_key": "...",
     "ocr_model": "gemini-3-flash-preview"
@@ -142,23 +130,24 @@ PDF 업로드
 - `services/engines/factory.py`: `build_engine(ocr_config)` 팩토리 (`engine_type` 분기)
 - `services/engines/pdfminer_engine.py`: `PdfminerEngine`
 - `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
-- `services/engines/integrated_server_engine.py`: `IntegratedServerEngine` (PP-StructureV3 또는 vLLM, 모델명 기반 자동 분기)
-- `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (Layout + 외부 OCR)
+- `services/engines/vllm_engine.py`: `VllmEngine` (vLLM OpenAI-compatible API)
+- `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (Docling 레이아웃 + 외부 OCR)
 
 ### 하위 서비스
 
-- `services/ppstructure_service.py`: PP-StructureV3 HTTP 클라이언트 (`PpstructureClient`, `LayoutRegion`)
+- `services/layout_types.py`: `LayoutRegion` dataclass, `LayoutDetector` Protocol
+- `services/docling_layout_service.py`: `DoclingLayoutDetector` (ibm-granite/granite-docling-258M)
 - `services/ocr_pipeline.py`: 2단계 파이프라인 오케스트레이터 (`OcrPipeline`, `TextOcrProvider` Protocol)
 - `services/ocr_provider.py`: 프롬프트 상수, `bbox_to_poly()`, `build_omnidocbench_page()`
 - `services/gemini_ocr_service.py`: `GeminiOcrProvider`, `GeminiTextOcrProvider`
 - `services/vllm_ocr_service.py`: `VllmOcrProvider`, `VllmTextOcrProvider`
-- `services/ocr_connection_test.py`: 개별 연결 테스트 (`check_ppstructure_connection`, `check_gemini_connection`, `check_vllm_connection`)
+- `services/ocr_connection_test.py`: 개별 연결 테스트 (`check_gemini_connection`, `check_vllm_connection`, `check_docling_connection`)
 - `services/extraction_service.py`: pdfminer.six 폴백 추출
 
 ### 통합
 
 - `services/document_service.py`: asyncio 백그라운드 태스크 (`build_engine()` → `asyncio.to_thread(engine.extract_page())`)
-- `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `IntegratedServerConfig`, `SplitPipelineConfig`
+- `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `VllmServerConfig`, `SplitPipelineConfig`
 - `OcrSettingsPanel.svelte`: 엔진 타입 선택 카드 UI + 연결 테스트
 
 ## 재추출 (Re-extract)
@@ -187,7 +176,7 @@ OCR 엔진을 변경한 후 기존 문서를 새 엔진으로 재추출할 수 �
 | 도구 | 특징 | 장점 | 단점 | 상태 |
 | ------ | ------ | ------ | ------ | ------ |
 | **MinerU** (OpenDataLab) | OmniDocBench 제작팀 도구 (AGPL) | OmniDocBench 포맷과 직접 호환, 15+ 카테고리 | AGPL 라이선스 | **제거됨** (라이선스 이슈) |
-| **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 (Docker 서비스) | **구현 완료** (2단계 파이프라인 1단계) |
+| **PP-StructureV3** (PaddlePaddle) | 레이아웃+OCR+테이블 통합 | 높은 정확도 (OmniDocBench Overall 86.73) | 패들 의존성 (Docker 서비스) | **제거됨** (Docling으로 대체) |
 | **DocLayout-YOLO** | 경량 레이아웃 검출 | 빠른 추론 속도 | 텍스트 인식 별도 필요 | 미구현 |
 | **Marker** (VikParuchuri) | PDF → Markdown 변환 | 간단한 파이프라인 | Attribute 정보 없음 | 미구현 |
 | **Google Gemini API** | VLM structured output | 고품질 OCR, 클라우드 API | API 비용, 네트워크 의존 | **구현 완료** (프로젝트별 설정) |

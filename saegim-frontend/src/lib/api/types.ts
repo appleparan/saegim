@@ -20,12 +20,7 @@ export interface CreateProjectRequest {
 
 // --- OCR Config (engine_type based) ---
 
-export type EngineType =
-  | 'commercial_api'
-  | 'integrated_server'
-  | 'split_pipeline'
-  | 'pdfminer'
-  | 'docling'
+export type EngineType = 'commercial_api' | 'vllm' | 'split_pipeline' | 'pdfminer'
 export type CommercialApiProvider = 'gemini' | 'vllm'
 export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 
@@ -35,14 +30,14 @@ export interface CommercialApiConfig {
   readonly model: string
 }
 
-export interface IntegratedServerConfig {
+export interface VllmServerConfig {
   readonly host: string
   readonly port: number
   readonly model?: string
 }
 
 export interface SplitPipelineConfig {
-  readonly layout_server_url: string
+  readonly docling_model_name: string
   readonly ocr_provider: SplitPipelineOcrProvider
   readonly ocr_api_key?: string
   readonly ocr_host?: string
@@ -50,24 +45,19 @@ export interface SplitPipelineConfig {
   readonly ocr_model?: string
 }
 
-export interface DoclingConfig {
-  readonly model_name: string
-}
-
 export interface OcrConfigResponse {
   readonly engine_type: EngineType
   readonly commercial_api?: CommercialApiConfig
-  readonly integrated_server?: IntegratedServerConfig
+  readonly vllm?: VllmServerConfig
   readonly split_pipeline?: SplitPipelineConfig
-  readonly docling?: DoclingConfig
+  readonly env_gemini_api_key?: string
 }
 
 export interface OcrConfigUpdate {
   readonly engine_type: EngineType
   readonly commercial_api?: CommercialApiConfig
-  readonly integrated_server?: IntegratedServerConfig
+  readonly vllm?: VllmServerConfig
   readonly split_pipeline?: SplitPipelineConfig
-  readonly docling?: DoclingConfig
 }
 
 export interface OcrConnectionTestResponse {

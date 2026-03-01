@@ -31,16 +31,13 @@ def build_engine(ocr_config: dict[str, Any]) -> BaseOCREngine:
     if engine_type == 'commercial_api':
         return _build_commercial_api(ocr_config.get('commercial_api', {}))
 
-    if engine_type == 'integrated_server':
-        return _build_integrated_server(ocr_config.get('integrated_server', {}))
+    if engine_type == 'vllm':
+        return _build_vllm(ocr_config.get('vllm', {}))
 
     if engine_type == 'split_pipeline':
         return _build_split_pipeline(ocr_config.get('split_pipeline', {}))
 
-    if engine_type == 'docling':
-        return _build_docling(ocr_config.get('docling', {}))
-
-    valid = "'commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer', 'docling'"
+    valid = "'commercial_api', 'vllm', 'split_pipeline', 'pdfminer'"
     msg = f"Unknown engine_type: '{engine_type}'. Use {valid}."
     raise ValueError(msg)
 
@@ -71,35 +68,35 @@ def _build_commercial_api(config: dict[str, Any]) -> BaseOCREngine:
     return CommercialApiEngine(provider=provider, config=config)
 
 
-def _build_integrated_server(config: dict[str, Any]) -> BaseOCREngine:
-    """Build an integrated server engine.
+def _build_vllm(config: dict[str, Any]) -> BaseOCREngine:
+    """Build a vLLM server engine.
 
     Args:
-        config: Integrated server config with 'host', 'port', 'model'.
+        config: vLLM config with 'host', 'port', 'model'.
 
     Returns:
-        IntegratedServerEngine instance.
+        VllmEngine instance.
     """
-    from saegim.services.engines.integrated_server_engine import IntegratedServerEngine
+    from saegim.services.engines.vllm_engine import VllmEngine
 
     host = config.get('host', 'localhost')
     port = config.get('port', 8000)
     model = config.get('model', 'datalab-to/chandra')
-    return IntegratedServerEngine(host=host, port=port, model=model)
+    return VllmEngine(host=host, port=port, model=model)
 
 
 def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:
-    """Build a split pipeline engine.
+    """Build a split pipeline engine (Docling layout + text OCR).
 
     Args:
-        config: Split pipeline config with 'layout_server_url', 'ocr_provider', etc.
+        config: Split pipeline config with 'docling_model_name', 'ocr_provider', etc.
 
     Returns:
         SplitPipelineEngine instance.
     """
     from saegim.services.engines.split_pipeline_engine import SplitPipelineEngine
 
-    layout_url = config.get('layout_server_url', 'http://localhost:18811')
+    docling_model_name = config.get('docling_model_name', 'ibm-granite/granite-docling-258M')
     ocr_provider = config.get('ocr_provider', '')
     ocr_config = {
         k.removeprefix('ocr_'): v
@@ -107,22 +104,7 @@ def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:
         if k.startswith('ocr_') and k != 'ocr_provider'
     }
     return SplitPipelineEngine(
-        layout_server_url=layout_url,
+        docling_model_name=docling_model_name,
         ocr_provider=ocr_provider,
         ocr_config=ocr_config,
     )
-
-
-def _build_docling(config: dict[str, Any]) -> BaseOCREngine:
-    """Build a Docling layout detection engine.
-
-    Args:
-        config: Docling config with optional 'model_name'.
-
-    Returns:
-        DoclingEngine instance.
-    """
-    from saegim.services.engines.docling_engine import DoclingEngine
-
-    model_name = config.get('model_name', 'ibm-granite/granite-docling-258M')
-    return DoclingEngine(model_name=model_name)

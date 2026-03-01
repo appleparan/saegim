@@ -110,9 +110,14 @@ async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
     config = await project_repo.get_ocr_config(pool, project_id)
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+
+    from saegim.api.settings import get_settings
+
+    env_key = get_settings().gemini_api_key
+
     if not config or 'engine_type' not in config:
-        return OcrConfigResponse(engine_type='pdfminer')
-    return OcrConfigResponse(**config)
+        return OcrConfigResponse(engine_type='pdfminer', env_gemini_api_key=env_key)
+    return OcrConfigResponse(**config, env_gemini_api_key=env_key)
 
 
 @router.put('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
@@ -163,10 +168,10 @@ def _validate_ocr_config(body: OcrConfigUpdate) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail='commercial_api config is required when engine_type is commercial_api',
         )
-    if body.engine_type == 'integrated_server' and body.integrated_server is None:
+    if body.engine_type == 'vllm' and body.vllm is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail='integrated_server config is required when engine_type is integrated_server',
+            detail='vllm config is required when engine_type is vllm',
         )
     if body.engine_type == 'split_pipeline' and body.split_pipeline is None:
         raise HTTPException(
