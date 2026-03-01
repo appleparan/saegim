@@ -20,7 +20,7 @@ export interface CreateProjectRequest {
 
 // --- OCR Config (engine_type based) ---
 
-export type EngineType = 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pdfminer'
+export type EngineType = 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pdfminer' | 'docling'
 export type CommercialApiProvider = 'gemini' | 'vllm'
 export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 
@@ -45,11 +45,16 @@ export interface SplitPipelineConfig {
   readonly ocr_model?: string
 }
 
+export interface DoclingConfig {
+  readonly model_name: string
+}
+
 export interface OcrConfigResponse {
   readonly engine_type: EngineType
   readonly commercial_api?: CommercialApiConfig
   readonly integrated_server?: IntegratedServerConfig
   readonly split_pipeline?: SplitPipelineConfig
+  readonly docling?: DoclingConfig
 }
 
 export interface OcrConfigUpdate {
@@ -57,6 +62,7 @@ export interface OcrConfigUpdate {
   readonly commercial_api?: CommercialApiConfig
   readonly integrated_server?: IntegratedServerConfig
   readonly split_pipeline?: SplitPipelineConfig
+  readonly docling?: DoclingConfig
 }
 
 export interface OcrConnectionTestResponse {
