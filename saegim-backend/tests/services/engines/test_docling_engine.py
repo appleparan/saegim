@@ -112,7 +112,6 @@ class TestDocTagsParsing:
             DOCTAGS_TEXT_ONLY,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         assert len(result['layout_dets']) == 2
@@ -127,7 +126,6 @@ class TestDocTagsParsing:
             DOCTAGS_WITH_TABLE,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         tables = [el for el in result['layout_dets'] if el['category_type'] == 'table']
@@ -142,7 +140,6 @@ class TestDocTagsParsing:
             DOCTAGS_WITH_FIGURE,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         figures = [el for el in result['layout_dets'] if el['category_type'] == 'figure']
@@ -154,7 +151,6 @@ class TestDocTagsParsing:
             DOCTAGS_MIXED,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         anno_ids = [el['anno_id'] for el in result['layout_dets']]
@@ -166,7 +162,6 @@ class TestDocTagsParsing:
             DOCTAGS_MIXED,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         categories = [el['category_type'] for el in result['layout_dets']]
@@ -181,7 +176,6 @@ class TestDocTagsParsing:
             DOCTAGS_SECTION_HEADER,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         categories = [el['category_type'] for el in result['layout_dets']]
@@ -194,7 +188,6 @@ class TestDocTagsParsing:
             DOCTAGS_FORMULA,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         formulas = [el for el in result['layout_dets'] if el['category_type'] == 'equation']
@@ -211,7 +204,6 @@ class TestCoordinateScaling:
             DOCTAGS_TEXT_ONLY,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         # First text: <loc_50><loc_100><loc_400><loc_150>
@@ -228,7 +220,6 @@ class TestCoordinateScaling:
             DOCTAGS_TEXT_ONLY,
             page_width=1224,
             page_height=1584,
-            image=None,
         )
 
         poly = result['layout_dets'][0]['poly']
@@ -248,7 +239,6 @@ class TestCoordinateScaling:
             DOCTAGS_MIXED,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         for el in result['layout_dets']:
@@ -264,7 +254,6 @@ class TestOmniDocBenchStructure:
             DOCTAGS_TEXT_ONLY,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         assert 'layout_dets' in result
@@ -277,7 +266,6 @@ class TestOmniDocBenchStructure:
             DOCTAGS_TEXT_ONLY,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         page_attr = result['page_attribute']
@@ -289,7 +277,6 @@ class TestOmniDocBenchStructure:
             DOCTAGS_TEXT_ONLY,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         assert 'relation' in result['extra']
@@ -301,7 +288,6 @@ class TestOmniDocBenchStructure:
             DOCTAGS_MIXED,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         required_fields = {'anno_id', 'category_type', 'poly'}
@@ -314,7 +300,6 @@ class TestOmniDocBenchStructure:
             DOCTAGS_TEXT_ONLY,
             page_width=1000,
             page_height=1000,
-            image=None,
         )
 
         for el in result['layout_dets']:
@@ -325,11 +310,9 @@ class TestOmniDocBenchStructure:
 class TestExtractPage:
     """Test extract_page with mocked model inference."""
 
-    @patch('saegim.services.engines.docling_engine.Image')
     @patch.object(DoclingEngine, '_run_inference', return_value=DOCTAGS_TEXT_ONLY)
     @patch.object(DoclingEngine, '_ensure_model_loaded')
-    def test_extract_page_returns_omnidocbench(self, mock_load, mock_infer, mock_image):
-        mock_image.open.return_value = MagicMock()
+    def test_extract_page_returns_omnidocbench(self, mock_load, mock_infer):
         engine = DoclingEngine()
         result = engine.extract_page(Path('/fake/image.png'), 1000, 1000)
 
@@ -338,11 +321,9 @@ class TestExtractPage:
         assert 'extra' in result
         assert len(result['layout_dets']) == 2
 
-    @patch('saegim.services.engines.docling_engine.Image')
     @patch.object(DoclingEngine, '_run_inference', return_value=DOCTAGS_WITH_TABLE)
     @patch.object(DoclingEngine, '_ensure_model_loaded')
-    def test_extract_page_detects_tables(self, mock_load, mock_infer, mock_image):
-        mock_image.open.return_value = MagicMock()
+    def test_extract_page_detects_tables(self, mock_load, mock_infer):
         engine = DoclingEngine()
         result = engine.extract_page(Path('/fake/image.png'), 1000, 1000)
 
@@ -398,3 +379,36 @@ class TestOtslToHtml:
 
         html = _otsl_to_html('<otsl></otsl>')
         assert html == '<table></table>'
+
+    def test_cross_span_2x2(self):
+        from saegim.services.engines.docling_engine import _otsl_to_html
+
+        # 2x2 merged cell
+        otsl = '<otsl><fcel>Merged<lcel><nl><ucel><xcel><nl></otsl>'
+        html = _otsl_to_html(otsl)
+        assert 'colspan="2"' in html
+        assert 'rowspan="2"' in html
+        # Only one <td> for the merged cell
+        assert html.count('<td') == 1
+
+
+class TestInputValidation:
+    """Test input validation and edge cases."""
+
+    def test_extract_locs_invalid_count(self):
+        from saegim.services.engines.docling_engine import _extract_locs
+
+        with pytest.raises(ValueError, match='Expected 4 loc values'):
+            _extract_locs('<loc_10><loc_20><loc_30>')
+
+    def test_scale_to_poly_zero_width(self):
+        from saegim.services.engines.docling_engine import _scale_to_poly
+
+        with pytest.raises(ValueError, match='Page dimensions must be positive'):
+            _scale_to_poly(0, 0, 100, 100, 0, 1000)
+
+    def test_scale_to_poly_zero_height(self):
+        from saegim.services.engines.docling_engine import _scale_to_poly
+
+        with pytest.raises(ValueError, match='Page dimensions must be positive'):
+            _scale_to_poly(0, 0, 100, 100, 1000, 0)

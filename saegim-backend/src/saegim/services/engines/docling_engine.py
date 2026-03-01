@@ -59,8 +59,14 @@ def _extract_locs(locs_str: str) -> tuple[int, int, int, int]:
 
     Returns:
         Tuple of (x0, y0, x1, y1) in 0-499 range.
+
+    Raises:
+        ValueError: If the string does not contain exactly 4 loc values.
     """
     values = _LOC_RE.findall(locs_str)
+    if len(values) != 4:
+        msg = f'Expected 4 loc values, got {len(values)} in: {locs_str!r}'
+        raise ValueError(msg)
     return int(values[0]), int(values[1]), int(values[2]), int(values[3])
 
 
@@ -79,12 +85,18 @@ def _scale_to_poly(
         y0: Top coordinate in 0-499 range.
         x1: Right coordinate in 0-499 range.
         y1: Bottom coordinate in 0-499 range.
-        page_width: Target page width in pixels.
-        page_height: Target page height in pixels.
+        page_width: Target page width in pixels (must be positive).
+        page_height: Target page height in pixels (must be positive).
 
     Returns:
         8-element polygon [x0,y0, x1,y0, x1,y1, x0,y1] in pixel coordinates.
+
+    Raises:
+        ValueError: If page dimensions are not positive.
     """
+    if page_width <= 0 or page_height <= 0:
+        msg = f'Page dimensions must be positive, got {page_width}x{page_height}'
+        raise ValueError(msg)
     scale_x = page_width / _DOCTAGS_COORD_SIZE
     scale_y = page_height / _DOCTAGS_COORD_SIZE
     px0 = x0 * scale_x
@@ -135,9 +147,6 @@ def _otsl_to_html(otsl_content: str) -> str:
             elif current_type:
                 cells.append((current_type, part))
                 current_type = ''
-            elif part and not current_type:
-                # Content without a cell type prefix - skip
-                pass
         # Handle trailing cell type with no content
         if current_type:
             cells.append((current_type, ''))
@@ -173,24 +182,29 @@ def _otsl_to_html(otsl_content: str) -> str:
                 colspan = 1
                 rowspan = 1
 
-                # Count horizontal span (lcel to the right)
+                # Count horizontal span (lcel/xcel to the right)
                 for nc in range(c_idx + 1, len(row)):
                     if row[nc][0] in ('<lcel>', '<xcel>'):
                         colspan += 1
-                        covered.add((r_idx, nc))
                     else:
                         break
 
-                # Count vertical span (ucel below)
+                # Count vertical span (ucel/xcel below)
                 for nr in range(r_idx + 1, num_rows):
                     if nr < len(rows) and c_idx < len(rows[nr]):
                         if rows[nr][c_idx][0] in ('<ucel>', '<xcel>'):
                             rowspan += 1
-                            covered.add((nr, c_idx))
                         else:
                             break
                     else:
                         break
+
+                # Mark all cells in the span rectangle as covered
+                for dr in range(rowspan):
+                    for dc in range(colspan):
+                        if dr == 0 and dc == 0:
+                            continue
+                        covered.add((r_idx + dr, c_idx + dc))
 
                 attrs = ''
                 if colspan > 1:
@@ -212,12 +226,14 @@ class DoclingEngine(BaseOCREngine):
     Uses IBM's granite-docling-258M vision-language model for detecting
     text, tables, figures, equations, and other document layout elements.
     The model outputs DocTags format which is parsed into OmniDocBench dicts.
-
-    Args:
-        model_name: HuggingFace model identifier.
     """
 
     def __init__(self, model_name: str = 'ibm-granite/granite-docling-258M') -> None:
+        """Initialize DoclingEngine with the specified model.
+
+        Args:
+            model_name: HuggingFace model identifier.
+        """
         self.model_name = model_name
         self._processor: Any = None
         self._model: Any = None
@@ -240,9 +256,8 @@ class DoclingEngine(BaseOCREngine):
             OmniDocBench-compatible dict with layout_dets, page_attribute, extra.
         """
         self._ensure_model_loaded()
-        image = Image.open(image_path)
         doctags = self._run_inference(image_path)
-        return self._parse_doctags_to_elements(doctags, page_width, page_height, image)
+        return self._parse_doctags_to_elements(doctags, page_width, page_height)
 
     def test_connection(self) -> tuple[bool, str]:
         """Test that torch and transformers are available.
@@ -262,23 +277,35 @@ class DoclingEngine(BaseOCREngine):
         return (True, f'DoclingEngine available (device: {device})')
 
     def _ensure_model_loaded(self) -> None:
-        """Lazy-load the model and processor on first use."""
+        """Lazy-load the model and processor on first use.
+
+        Raises:
+            RuntimeError: If model loading fails.
+        """
         if self._model is not None:
             return
 
-        import torch
-        from transformers import AutoModelForVision2Seq, AutoProcessor
+        try:
+            import torch
+            from transformers import AutoModelForImageTextToText, AutoProcessor
 
-        self._device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        logger.info('Loading DoclingEngine model %s on %s', self.model_name, self._device)
+            self._device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            logger.info('Loading DoclingEngine model %s on %s', self.model_name, self._device)
 
-        self._processor = AutoProcessor.from_pretrained(self.model_name)
-        self._model = AutoModelForVision2Seq.from_pretrained(
-            self.model_name,
-            torch_dtype=torch.bfloat16 if self._device == 'cuda' else torch.float32,
-        ).to(self._device)
+            self._processor = AutoProcessor.from_pretrained(self.model_name)
+            self._model = AutoModelForImageTextToText.from_pretrained(
+                self.model_name,
+                torch_dtype=torch.bfloat16 if self._device == 'cuda' else torch.float32,
+            ).to(self._device)
 
-        logger.info('DoclingEngine model loaded successfully')
+            logger.info('DoclingEngine model loaded successfully')
+        except ImportError as exc:
+            msg = 'torch and transformers are required for DoclingEngine'
+            raise ImportError(msg) from exc
+        except Exception as exc:
+            logger.exception('Failed to load DoclingEngine model %s', self.model_name)
+            msg = f'Failed to load model {self.model_name}: {exc}'
+            raise RuntimeError(msg) from exc
 
     def _run_inference(self, image_path: Path) -> str:
         """Run model inference on an image to produce DocTags.
@@ -288,6 +315,9 @@ class DoclingEngine(BaseOCREngine):
 
         Returns:
             DocTags string output from the model.
+
+        Raises:
+            RuntimeError: If inference fails.
         """
         image = Image.open(image_path)
 
@@ -323,7 +353,6 @@ class DoclingEngine(BaseOCREngine):
         doctags: str,
         page_width: int,
         page_height: int,
-        image: Image.Image | None = None,
     ) -> dict[str, Any]:
         """Parse DocTags string into OmniDocBench-compatible elements.
 
@@ -331,7 +360,6 @@ class DoclingEngine(BaseOCREngine):
             doctags: DocTags markup string from model inference.
             page_width: Target page width in pixels.
             page_height: Target page height in pixels.
-            image: Optional PIL Image (used for docling-core conversion if needed).
 
         Returns:
             OmniDocBench dict with layout_dets, page_attribute, extra.
@@ -359,8 +387,8 @@ class DoclingEngine(BaseOCREngine):
 
             if category == 'table':
                 element['html'] = _otsl_to_html(content)
-                # Extract plain text from table cells
-                cell_texts = re.findall(r'<fcel>(.*?)(?=<[a-z])', content)
+                # Extract plain text from table cells (match up to any tag)
+                cell_texts = re.findall(r'<fcel>([^<]*)', content)
                 element['text'] = ' '.join(t.strip() for t in cell_texts if t.strip())
             elif category == 'figure':
                 element['text'] = ''
