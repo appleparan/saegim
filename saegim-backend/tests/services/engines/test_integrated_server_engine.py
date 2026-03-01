@@ -89,7 +89,9 @@ class TestIntegratedServerEngineVllm:
 
     @patch('saegim.services.engines.integrated_server_engine.VllmOcrProvider')
     def test_creates_vllm_provider(self, mock_vllm_cls):
-        IntegratedServerEngine(host='vllm-host', port=8000, model='prithivMLmods/chandra-FP8-Latest')
+        IntegratedServerEngine(
+            host='vllm-host', port=8000, model='prithivMLmods/chandra-FP8-Latest'
+        )
         mock_vllm_cls.assert_called_once_with(
             host='vllm-host', port=8000, model='prithivMLmods/chandra-FP8-Latest'
         )

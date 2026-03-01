@@ -233,6 +233,49 @@ async def accept_auto_extraction(
     }
 
 
+async def force_accept_auto_extraction(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+) -> dict[str, Any] | None:
+    """Force-accept auto-extracted data, overwriting existing annotation.
+
+    Unlike ``accept_auto_extraction``, this replaces annotation_data
+    even when it already contains elements.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+
+    Returns:
+        dict or None: Updated page data, or None if no auto data.
+    """
+    record = await page_repo.force_accept_auto_extracted(pool, page_id)
+    if record is None:
+        return None
+
+    result_annotation = record['annotation_data']
+    if isinstance(result_annotation, str):
+        result_annotation = json.loads(result_annotation)
+
+    auto_extracted = record['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
+    return {
+        'id': record['id'],
+        'document_id': record['document_id'],
+        'page_no': record['page_no'],
+        'width': record['width'],
+        'height': record['height'],
+        'image_path': record['image_path'],
+        'annotation_data': result_annotation or {},
+        'auto_extracted_data': auto_extracted,
+        'status': record['status'],
+        'assigned_to': record['assigned_to'],
+        'updated_at': record['updated_at'],
+    }
+
+
 async def add_relation(
     pool: asyncpg.Pool,
     page_id: uuid.UUID,

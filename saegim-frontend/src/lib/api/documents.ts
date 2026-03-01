@@ -20,6 +20,10 @@ export async function getDocumentStatus(documentId: string): Promise<DocumentSta
   return api.get<DocumentStatusResponse>(`/api/v1/documents/${documentId}/status`)
 }
 
+export async function reExtractDocument(documentId: string): Promise<DocumentStatusResponse> {
+  return api.post<DocumentStatusResponse>(`/api/v1/documents/${documentId}/re-extract`)
+}
+
 export async function deleteDocument(documentId: string): Promise<void> {
   await api.delete(`/api/v1/documents/${documentId}`)
 }

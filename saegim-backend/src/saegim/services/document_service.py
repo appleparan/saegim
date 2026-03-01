@@ -252,6 +252,101 @@ async def _run_ocr_extraction_background(
         )
 
 
+async def re_extract(
+    pool: asyncpg.Pool,
+    document_id: uuid.UUID,
+) -> dict:
+    """Re-run extraction on all pages of an existing document.
+
+    Uses the current OCR engine configured on the parent project.
+    For pdfminer: synchronous extraction using the PDF file.
+    For other engines: background task using page images.
+
+    Args:
+        pool: Database connection pool.
+        document_id: Document UUID.
+
+    Returns:
+        dict with id and status.
+
+    Raises:
+        LookupError: If document not found or has no pages.
+        ValueError: If document is already extracting.
+    """
+    doc = await document_repo.get_by_id(pool, document_id)
+    if doc is None:
+        msg = f'Document {document_id} not found'
+        raise LookupError(msg)
+
+    if doc['status'] == 'extracting':
+        msg = f'Document {document_id} is already extracting'
+        raise ValueError(msg)
+
+    project_id = doc['project_id']
+    pdf_path = Path(doc['pdf_path'])
+    ocr_config = await _resolve_ocr_config(pool, project_id)
+    engine_type = ocr_config.get('engine_type', 'pdfminer')
+
+    pages = await page_repo.list_for_extraction(pool, document_id)
+    if not pages:
+        msg = f'Document {document_id} has no pages'
+        raise LookupError(msg)
+
+    logger.info(
+        'Starting re-extraction for document %s (%d pages, engine=%s)',
+        document_id,
+        len(pages),
+        engine_type,
+    )
+
+    if engine_type == 'pdfminer':
+        for p in pages:
+            page_idx = p['page_no'] - 1
+            extracted = extraction_service.extract_page_elements(
+                pdf_path,
+                page_no=page_idx,
+                scale=2.0,
+            )
+            extracted = attribute_classifier.classify_attributes(extracted)
+            await page_repo.update_auto_extracted_data(pool, p['id'], extracted)
+
+        await document_repo.update_status(
+            pool,
+            document_id=document_id,
+            status='ready',
+        )
+        return {'id': document_id, 'status': 'ready'}
+
+    page_info_list = [
+        {
+            'page_id': str(p['id']),
+            'page_idx': p['page_no'] - 1,
+            'width': p['width'],
+            'height': p['height'],
+            'image_path': p['image_path'],
+        }
+        for p in pages
+    ]
+
+    await document_repo.update_status(
+        pool,
+        document_id=document_id,
+        status='extracting',
+    )
+
+    _task = asyncio.create_task(
+        _run_ocr_extraction_background(
+            pool,
+            document_id,
+            page_info_list,
+            ocr_config,
+        )
+    )
+    _task.add_done_callback(lambda t: t.result() if not t.cancelled() else None)
+
+    return {'id': document_id, 'status': 'extracting'}
+
+
 async def delete_with_files(
     pool: asyncpg.Pool,
     document_id: uuid.UUID,

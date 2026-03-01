@@ -583,6 +583,146 @@ class TestUploadAndConvertOcr:
         assert mock_page_repo.create.call_args.kwargs['auto_extracted_data'] is None
 
 
+class TestReExtract:
+    @pytest.mark.asyncio
+    async def test_raises_when_document_not_found(self, mock_pool, document_id):
+        with patch.object(document_service, 'document_repo') as mock_doc_repo:
+            mock_doc_repo.get_by_id = AsyncMock(return_value=None)
+
+            with pytest.raises(LookupError, match='not found'):
+                await document_service.re_extract(mock_pool, document_id)
+
+    @pytest.mark.asyncio
+    async def test_raises_when_already_extracting(self, mock_pool, document_id, project_id):
+        doc_record = {
+            'id': document_id,
+            'project_id': project_id,
+            'pdf_path': '/fake.pdf',
+            'status': 'extracting',
+        }
+        with patch.object(document_service, 'document_repo') as mock_doc_repo:
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+
+            with pytest.raises(ValueError, match='already extracting'):
+                await document_service.re_extract(mock_pool, document_id)
+
+    @pytest.mark.asyncio
+    async def test_raises_when_no_pages(self, mock_pool, document_id, project_id):
+        doc_record = {
+            'id': document_id,
+            'project_id': project_id,
+            'pdf_path': '/fake.pdf',
+            'status': 'ready',
+        }
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(
+                document_service,
+                '_resolve_ocr_config',
+                new_callable=AsyncMock,
+                return_value={'engine_type': 'pdfminer'},
+            ),
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+            mock_page_repo.list_for_extraction = AsyncMock(return_value=[])
+
+            with pytest.raises(LookupError, match='no pages'):
+                await document_service.re_extract(mock_pool, document_id)
+
+    @pytest.mark.asyncio
+    async def test_pdfminer_re_extract_returns_ready(self, mock_pool, document_id, project_id):
+        doc_record = {
+            'id': document_id,
+            'project_id': project_id,
+            'pdf_path': '/fake.pdf',
+            'status': 'ready',
+        }
+        page_records = [
+            {
+                'id': uuid.uuid4(),
+                'page_no': 1,
+                'width': 800,
+                'height': 1000,
+                'image_path': '/img.png',
+            },
+        ]
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(document_service, 'extraction_service') as mock_ext,
+            patch.object(document_service, 'attribute_classifier') as mock_cls,
+            patch.object(
+                document_service,
+                '_resolve_ocr_config',
+                new_callable=AsyncMock,
+                return_value={'engine_type': 'pdfminer'},
+            ),
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+            mock_doc_repo.update_status = AsyncMock()
+            mock_page_repo.list_for_extraction = AsyncMock(return_value=page_records)
+            mock_page_repo.update_auto_extracted_data = AsyncMock()
+            mock_ext.extract_page_elements.return_value = {'layout_dets': []}
+            mock_cls.classify_attributes.return_value = {'layout_dets': []}
+
+            result = await document_service.re_extract(mock_pool, document_id)
+
+        assert result['status'] == 'ready'
+        mock_ext.extract_page_elements.assert_called_once()
+        mock_page_repo.update_auto_extracted_data.assert_called_once()
+        mock_doc_repo.update_status.assert_called_once_with(
+            mock_pool, document_id=document_id, status='ready'
+        )
+
+    @pytest.mark.asyncio
+    async def test_ocr_re_extract_creates_background_task(self, mock_pool, document_id, project_id):
+        doc_record = {
+            'id': document_id,
+            'project_id': project_id,
+            'pdf_path': '/fake.pdf',
+            'status': 'ready',
+        }
+        page_records = [
+            {
+                'id': uuid.uuid4(),
+                'page_no': 1,
+                'width': 800,
+                'height': 1000,
+                'image_path': '/img.png',
+            },
+        ]
+        with (
+            patch.object(document_service, 'document_repo') as mock_doc_repo,
+            patch.object(document_service, 'page_repo') as mock_page_repo,
+            patch.object(
+                document_service,
+                '_resolve_ocr_config',
+                new_callable=AsyncMock,
+                return_value={
+                    'engine_type': 'commercial_api',
+                    'commercial_api': {'provider': 'gemini', 'api_key': 'k', 'model': 'm'},
+                },
+            ),
+            patch.object(
+                document_service.asyncio,
+                'create_task',
+                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
+            ) as mock_create_task,
+        ):
+            mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
+            mock_doc_repo.update_status = AsyncMock()
+            mock_page_repo.list_for_extraction = AsyncMock(return_value=page_records)
+
+            result = await document_service.re_extract(mock_pool, document_id)
+
+        assert result['status'] == 'extracting'
+        mock_create_task.assert_called_once()
+        mock_doc_repo.update_status.assert_called_once_with(
+            mock_pool, document_id=document_id, status='extracting'
+        )
+
+
 class TestDeleteWithFiles:
     @pytest.mark.asyncio
     async def test_returns_false_when_document_not_found(self, mock_pool):

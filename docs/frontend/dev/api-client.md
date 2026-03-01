@@ -61,6 +61,7 @@ try {
 | `listDocuments(projectId)` | GET | `/api/v1/projects/:id/documents` | 문서 목록 |
 | `uploadDocument(projectId, file)` | POST | `/api/v1/projects/:id/documents` | PDF 업로드 (FormData) |
 | `getDocumentStatus(docId)` | GET | `/api/v1/documents/:id/status` | 처리 상태 조회 |
+| `reExtractDocument(docId)` | POST | `/api/v1/documents/:id/re-extract` | 현재 OCR 엔진으로 전체 재추출 |
 | `deleteDocument(docId)` | DELETE | `/api/v1/documents/:id` | 문서 삭제 |
 | `listPages(docId)` | GET | `/api/v1/documents/:id/pages` | 페이지 목록 |
 
@@ -72,6 +73,7 @@ try {
 | `savePage(pageId, data)` | PUT | `/api/v1/pages/:id` | 어노테이션 전체 저장 |
 | `savePageAttributes(pageId, data)` | PUT | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
 | `acceptExtraction(pageId)` | POST | `/api/v1/pages/:id/accept-extraction` | 자동 추출 수락 |
+| `forceAcceptExtraction(pageId)` | POST | `/api/v1/pages/:id/force-accept-extraction` | 자동 추출 강제 수락 (기존 주석 덮어쓰기) |
 | `extractElementText(pageId, poly)` | POST | `/api/v1/pages/:id/extract-text` | 영역 OCR 요청 |
 | `updateReadingOrder(pageId, orderMap)` | PUT | `/api/v1/pages/:id/reading-order` | 읽기 순서 업데이트 |
 

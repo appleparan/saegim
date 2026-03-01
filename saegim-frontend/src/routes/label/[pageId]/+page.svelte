@@ -15,7 +15,7 @@
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
   import { getPage, savePage, extractElementText } from '$lib/api/pages'
-  import { listPages, getDocumentStatus } from '$lib/api/documents'
+  import { listPages, getDocumentStatus, reExtractDocument } from '$lib/api/documents'
   import { ApiError, NetworkError } from '$lib/api/client'
   import type { DocumentStatus, PageResponse, PageSummary } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
@@ -26,9 +26,11 @@
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
   let documentStatus = $state<DocumentStatus | undefined>(undefined)
+  let reExtractVersion = $state(0)
   let imageUrl = $state('')
   let saving = $state(false)
   let shortcutHelpOpen = $state(false)
+  let statusPollTimer = $state<ReturnType<typeof setInterval> | null>(null)
 
   let renderMode = $derived<'pdfjs' | 'image' | 'none'>(
     currentPageProxy ? 'pdfjs' : pageData ? 'image' : 'none',
@@ -59,6 +61,9 @@
       getDocumentStatus(data.document_id)
         .then((status) => {
           documentStatus = status.status
+          if (status.status === 'extracting') {
+            startStatusPolling(data.document_id)
+          }
         })
         .catch(() => {
           documentStatus = undefined
@@ -183,6 +188,62 @@
     }
   }
 
+  function stopStatusPolling() {
+    if (statusPollTimer) {
+      clearInterval(statusPollTimer)
+      statusPollTimer = null
+    }
+  }
+
+  function startStatusPolling(documentId: string) {
+    stopStatusPolling()
+    statusPollTimer = setInterval(async () => {
+      try {
+        const status = await getDocumentStatus(documentId)
+        documentStatus = status.status
+        if (status.status !== 'extracting') {
+          stopStatusPolling()
+          // Reload page data to get new auto_extracted_data
+          const currentPageId = page.params.pageId
+          if (currentPageId) {
+            const data = await getPage(currentPageId)
+            pageData = data
+          }
+          reExtractVersion++
+        }
+      } catch {
+        // Polling failures are non-critical
+      }
+    }, 3000)
+  }
+
+  async function handleReExtract() {
+    if (!pageData?.document_id) return
+    if (!confirm('현재 OCR 엔진으로 전체 페이지를 재추출하시겠습니까?')) return
+    try {
+      const result = await reExtractDocument(pageData.document_id)
+      documentStatus = result.status
+      if (result.status === 'extracting') {
+        startStatusPolling(pageData.document_id)
+      } else if (result.status === 'ready') {
+        // Synchronous extraction completed (e.g. pdfminer), reload page data
+        const currentPageId = page.params.pageId
+        if (currentPageId) {
+          const data = await getPage(currentPageId)
+          pageData = data
+        }
+        reExtractVersion++
+      }
+      uiStore.showNotification('재추출이 시작되었습니다', 'success')
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        uiStore.showNotification('이미 추출이 진행 중입니다', 'info')
+      } else {
+        uiStore.showNotification('재추출 요청에 실패했습니다', 'error')
+      }
+    }
+  }
+
   function handleBeforeUnload(e: BeforeUnloadEvent) {
     if (annotationStore.isDirty) {
       e.preventDefault()
@@ -190,7 +251,7 @@
   }
 
   $effect(() => {
-    page.params.pageId
+    void page.params.pageId
     untrack(() => loadPage())
   })
 
@@ -200,6 +261,7 @@
     return () => {
       window.removeEventListener('keydown', handleKeydown)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      stopStatusPolling()
       pdfStore.destroy()
     }
   })
@@ -273,9 +335,12 @@
         {#if pageData}
           <ExtractionPreview
             pageId={page.params.pageId!}
+            documentId={pageData.document_id}
             autoExtractedData={pageData.auto_extracted_data}
             {documentStatus}
+            {reExtractVersion}
             onAccepted={handleExtractionAccepted}
+            onReExtract={handleReExtract}
           />
         {/if}
         <div class="min-h-0 flex-1 overflow-y-auto">

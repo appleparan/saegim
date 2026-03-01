@@ -64,7 +64,6 @@
     }
 
     // Clear previous text layer content — intentional DOM manipulation for PDF.js
-    // eslint-disable-next-line svelte/no-dom-manipulating
     textLayerEl.innerHTML = ''
     textLayerEl.style.width = `${viewport.width}px`
     textLayerEl.style.height = `${viewport.height}px`

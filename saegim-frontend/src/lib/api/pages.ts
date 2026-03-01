@@ -24,6 +24,11 @@ export async function acceptExtraction(pageId: string): Promise<PageResponse> {
   return api.post<PageResponse>(`/api/v1/pages/${pageId}/accept-extraction`)
 }
 
+/** Force-accept auto-extracted data, overwriting existing annotations. */
+export async function forceAcceptExtraction(pageId: string): Promise<PageResponse> {
+  return api.post<PageResponse>(`/api/v1/pages/${pageId}/force-accept-extraction`)
+}
+
 /** Update reading order of layout elements. */
 export async function updateReadingOrder(
   pageId: string,

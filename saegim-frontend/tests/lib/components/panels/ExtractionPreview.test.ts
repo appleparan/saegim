@@ -11,6 +11,11 @@ vi.mock('$lib/api/pages', () => ({
       annotation_data: { layout_dets: [], page_info: {}, page_attribute: {} },
     }),
   ),
+  forceAcceptExtraction: vi.fn(() =>
+    Promise.resolve({
+      annotation_data: { layout_dets: [], page_info: {}, page_attribute: {} },
+    }),
+  ),
 }))
 
 // Mock the UI store
@@ -46,9 +51,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: null,
         documentStatus: 'extracting',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -60,9 +67,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: autoData,
         documentStatus: 'ready',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -76,9 +85,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: autoData,
         documentStatus: 'ready',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -91,9 +102,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: autoData,
         documentStatus: 'ready',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -109,9 +122,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: null,
         documentStatus: 'ready',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -123,8 +138,10 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: null,
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -138,9 +155,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: autoData,
         documentStatus: 'ready',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
@@ -154,9 +173,11 @@ describe('ExtractionPreview', () => {
     render(ExtractionPreview, {
       props: {
         pageId: 'page-1',
+        documentId: 'doc-1',
         autoExtractedData: null,
         documentStatus: 'ready',
         onAccepted: vi.fn(),
+        onReExtract: vi.fn(),
       },
     })
 
