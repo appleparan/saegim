@@ -148,6 +148,28 @@ class AnnotationStore {
     return this.relations.filter((r) => r.source_anno_id === annoId || r.target_anno_id === annoId)
   }
 
+  reorderElements(orderMap: Record<number, number>): void {
+    if (!this.annotationData) return
+    this.annotationData = {
+      ...this.annotationData,
+      layout_dets: this.annotationData.layout_dets.map((el) =>
+        el.anno_id in orderMap ? { ...el, order: orderMap[el.anno_id] } : el,
+      ),
+    }
+    this.isDirty = true
+  }
+
+  swapElementOrder(annoId1: number, annoId2: number): void {
+    if (!this.annotationData) return
+    const el1 = this.annotationData.layout_dets.find((el) => el.anno_id === annoId1)
+    const el2 = this.annotationData.layout_dets.find((el) => el.anno_id === annoId2)
+    if (!el1 || !el2) return
+    this.reorderElements({
+      [annoId1]: el2.order,
+      [annoId2]: el1.order,
+    })
+  }
+
   updatePageAttribute(updates: Partial<PageAttribute>): void {
     if (!this.annotationData) return
     this.annotationData = {

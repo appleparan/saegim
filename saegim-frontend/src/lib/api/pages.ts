@@ -24,6 +24,16 @@ export async function acceptExtraction(pageId: string): Promise<PageResponse> {
   return api.post<PageResponse>(`/api/v1/pages/${pageId}/accept-extraction`)
 }
 
+/** Update reading order of layout elements. */
+export async function updateReadingOrder(
+  pageId: string,
+  orderMap: Record<string, number>,
+): Promise<PageResponse> {
+  return api.put<PageResponse>(`/api/v1/pages/${pageId}/reading-order`, {
+    order_map: orderMap,
+  })
+}
+
 /** Request OCR text extraction for a specific region on the page. */
 export async function extractElementText(
   pageId: string,
