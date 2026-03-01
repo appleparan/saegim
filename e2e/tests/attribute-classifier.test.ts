@@ -8,7 +8,7 @@ import {
   getPage,
   deleteProject,
 } from "../helpers/api";
-import { ensureTestPdf, getTestPdfPath } from "../helpers/pdf";
+import { ensureFullPdf, getFullPdfPath } from "../helpers/pdf";
 
 const PROJECT_NAME = `Attribute Classifier E2E ${Date.now()}`;
 
@@ -19,12 +19,12 @@ let pageId: string;
 describe("Auto Attribute Classifier (pdfminer fallback)", () => {
   beforeAll(async () => {
     await waitForBackendReady();
-    await ensureTestPdf();
+    await ensureFullPdf();
 
     const { data: project } = await createProject(PROJECT_NAME, "E2E attribute classifier test");
     projectId = project.id;
 
-    const { data: doc } = await uploadPdf(projectId, getTestPdfPath());
+    const { data: doc } = await uploadPdf(projectId, getFullPdfPath());
     documentId = doc.id;
 
     // Wait for processing to complete
