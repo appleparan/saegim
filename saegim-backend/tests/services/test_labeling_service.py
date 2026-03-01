@@ -449,9 +449,7 @@ class TestAddRelation:
                 ],
             },
         }
-        updated_record = _make_page_record(
-            page_id, document_id, annotation_data=updated_annotation
-        )
+        updated_record = _make_page_record(page_id, document_id, annotation_data=updated_annotation)
 
         relation = {'source_anno_id': 0, 'target_anno_id': 1, 'relation_type': 'figure_caption'}
 
@@ -610,6 +608,7 @@ class TestUpdateReadingOrder:
             result = await labeling_service.update_reading_order(mock_pool, page_id, {'0': 1})
 
         assert result is None
+
 
 class TestDeleteElement:
     @pytest.mark.asyncio
