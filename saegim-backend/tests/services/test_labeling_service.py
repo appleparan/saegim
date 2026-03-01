@@ -369,7 +369,7 @@ class TestAddRelation:
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
             mock_repo.get_by_id = AsyncMock(return_value=record)
-            with pytest.raises(ValueError, match='Source element.*anno_id 99'):
+            with pytest.raises(ValueError, match=r'Source element.*anno_id 99'):
                 await labeling_service.add_relation(
                     mock_pool,
                     page_id,
@@ -389,7 +389,7 @@ class TestAddRelation:
 
         with patch.object(labeling_service, 'page_repo') as mock_repo:
             mock_repo.get_by_id = AsyncMock(return_value=record)
-            with pytest.raises(ValueError, match='Target element.*anno_id 99'):
+            with pytest.raises(ValueError, match=r'Target element.*anno_id 99'):
                 await labeling_service.add_relation(
                     mock_pool,
                     page_id,

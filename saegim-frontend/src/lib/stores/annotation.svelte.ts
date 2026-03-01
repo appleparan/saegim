@@ -145,9 +145,7 @@ class AnnotationStore {
   }
 
   getRelationsForElement(annoId: number): readonly import('$lib/types/omnidocbench').Relation[] {
-    return this.relations.filter(
-      (r) => r.source_anno_id === annoId || r.target_anno_id === annoId,
-    )
+    return this.relations.filter((r) => r.source_anno_id === annoId || r.target_anno_id === annoId)
   }
 
   updatePageAttribute(updates: Partial<PageAttribute>): void {
