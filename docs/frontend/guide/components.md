@@ -62,7 +62,7 @@
 ## UI Components (`src/lib/components/ui/`) — shadcn-svelte
 
 shadcn-svelte 기반 컴포넌트. bits-ui 헤드리스 프리미티브 + Tailwind CSS v4 스타일.
-전체 목록: button, badge, card, dialog, input, label, select, separator, switch, tabs, textarea.
+전체 목록: button, badge, card, dialog, input, label, popover, select, separator, switch, tabs, textarea.
 
 ### Button (`ui/button`)
 
@@ -104,6 +104,7 @@ Toggle 대체. `checked` → `onCheckedChange` 패턴.
 - **Badge**: 상태 표시 (`default`, `secondary`, `destructive`, `outline`)
 - **Card**: 카드 레이아웃 (Card, CardHeader, CardTitle, CardContent)
 - **Dialog**: 모달 (DialogTrigger, DialogContent, DialogHeader, DialogFooter)
+- **Popover**: 팝오버 (PopoverTrigger, PopoverContent, PopoverClose)
 - **Input / Textarea**: 폼 입력 (자동 테마 적용)
 - **Label**: 폼 라벨
 - **Select**: 드롭다운 (SelectTrigger, SelectContent, SelectItem)
@@ -154,8 +155,19 @@ Toggle 대체. `checked` → `onCheckedChange` 패턴.
 | `showSave` | `boolean` | `false` | 저장 버튼 표시 |
 | `onsave` | `() => void` | - | 저장 핸들러 |
 | `saving` | `boolean` | `false` | 저장 중 상태 |
+| `showShortcutHelp` | `boolean` | `false` | 단축키 도움말 버튼 표시 |
+| `shortcutHelpOpen` | `boolean` | `false` | 단축키 도움말 팝오버 열림 상태 (bindable) |
 
 알림 토스트도 Header 내에서 렌더링 (`uiStore.notification`).
+
+### ShortcutHelp
+
+키보드 단축키 도움말 팝오버. Header에 포함되며 `showShortcutHelp` prop으로 제어.
+키보드 아이콘 클릭 또는 `?` 키로 토글. 카테고리별(도구/편집/보기/탐색/도움말) 그룹핑.
+
+| Prop | Type | Default | 설명 |
+| ------ | ------ | --------- | ------ |
+| `open` | `boolean` | `false` | 팝오버 열림 상태 (bindable) |
 
 ### ThemeToggle
 

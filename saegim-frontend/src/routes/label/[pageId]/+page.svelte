@@ -28,6 +28,7 @@
   let documentStatus = $state<DocumentStatus | undefined>(undefined)
   let imageUrl = $state('')
   let saving = $state(false)
+  let shortcutHelpOpen = $state(false)
 
   let renderMode = $derived<'pdfjs' | 'image' | 'none'>(
     currentPageProxy ? 'pdfjs' : pageData ? 'image' : 'none',
@@ -116,9 +117,11 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    // Ignore shortcuts when typing in input/textarea
-    const tag = (e.target as HTMLElement)?.tagName
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+    // Ignore shortcuts when typing in input/textarea/contenteditable
+    const target = e.target as HTMLElement
+    const tag = target?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable)
+      return
 
     if (e.key === 's' && !e.ctrlKey && !e.metaKey) {
       canvasStore.setTool('select')
@@ -141,6 +144,8 @@
       navigateToAdjacentPage(-1)
     } else if (e.key === ']') {
       navigateToAdjacentPage(1)
+    } else if (e.key === '?') {
+      shortcutHelpOpen = !shortcutHelpOpen
     }
   }
 
@@ -201,7 +206,14 @@
 </script>
 
 <div class="flex h-full flex-col">
-  <Header title={pageData?.project_name ?? '레이블링'} showSave onsave={handleSave} {saving} />
+  <Header
+    title={pageData?.project_name ?? '레이블링'}
+    showSave
+    onsave={handleSave}
+    {saving}
+    showShortcutHelp
+    bind:shortcutHelpOpen
+  />
 
   {#if pageData?.project_id}
     <nav class="bg-card border-border flex h-9 shrink-0 items-center border-b px-4 text-sm">
