@@ -23,6 +23,9 @@ FROM ${BUILDER_IMAGE} AS builder
 
 ARG TORCH_EXTRA=cpu
 
+# Install curl first (needed by uv installer)
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Install uv
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
@@ -46,9 +49,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     wget \
     gnupg2 \
-    ca-certificates \
     git \
-    curl \
     build-essential \
     libssl-dev \
     zlib1g-dev \
