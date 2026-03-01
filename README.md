@@ -8,13 +8,21 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 
 ## 아키텍처
 
-```text
-Svelte 5 (:5173)              FastAPI (:5000)              PostgreSQL
-┌──────────────────┐          ┌──────────────────┐         ┌──────────┐
-│ PDF.js + Konva.js│  REST    │ PDF 변환, CRUD    │ asyncpg │          │
-│ Runes 상태관리     │◄──JSON──►│ Export, Service  │◄──SQL──►│  JSONB   │
-│ 3-Panel 에디터    │           │ Repository 패턴   │         │          │
-└──────────────────┘          └──────────────────┘         └──────────┘
+```mermaid
+graph LR
+    subgraph "Svelte 5 (:5173)"
+        FE["PDF.js + Konva.js<br/>Runes 상태관리<br/>3-Panel 에디터"]
+    end
+    subgraph "FastAPI (:5000)"
+        BE["PDF 변환, CRUD<br/>Export, Service<br/>Repository 패턴"]
+    end
+    subgraph PostgreSQL
+        DB["JSONB"]
+    end
+    FE -- "REST / JSON" --> BE
+    BE -- "REST / JSON" --> FE
+    BE -- "asyncpg / SQL" --> DB
+    DB -- "asyncpg / SQL" --> BE
 ```
 
 ## 기술 스택
