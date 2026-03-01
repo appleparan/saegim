@@ -87,6 +87,33 @@ class ElementCreate(BaseModel):
     ignore: bool = Field(default=False)
 
 
+RELATION_TYPES = frozenset(
+    {
+        'parent_son',
+        'figure_caption',
+        'table_caption',
+        'table_footnote',
+        'equation_caption',
+        'code_caption',
+    }
+)
+
+
+class RelationCreate(BaseModel):
+    """Schema for creating a relation between two elements."""
+
+    source_anno_id: int = Field(ge=0)
+    target_anno_id: int = Field(ge=0)
+    relation_type: str = Field(default='parent_son', min_length=1)
+
+
+class RelationDelete(BaseModel):
+    """Schema for deleting a relation between two elements."""
+
+    source_anno_id: int = Field(ge=0)
+    target_anno_id: int = Field(ge=0)
+
+
 class ExtractTextRequest(BaseModel):
     """Schema for requesting OCR text extraction from a drawn region."""
 

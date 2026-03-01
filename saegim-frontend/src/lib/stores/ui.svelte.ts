@@ -2,7 +2,7 @@
  * UI state management using Svelte 5 runes.
  */
 
-export type PanelTab = 'elements' | 'attributes' | 'text'
+export type PanelTab = 'elements' | 'attributes' | 'text' | 'relations'
 export type NotificationType = 'info' | 'error' | 'success'
 
 export interface Notification {

@@ -4,11 +4,13 @@
   import AttributePanel from '$lib/components/panels/AttributePanel.svelte'
   import PageAttributePanel from '$lib/components/panels/PageAttributePanel.svelte'
   import TextEditor from '$lib/components/panels/TextEditor.svelte'
+  import RelationPanel from '$lib/components/panels/RelationPanel.svelte'
 
   const tabs: { key: PanelTab; label: string }[] = [
     { key: 'elements', label: '요소' },
     { key: 'attributes', label: '속성' },
     { key: 'text', label: '텍스트' },
+    { key: 'relations', label: '관계' },
   ]
 </script>
 
@@ -37,6 +39,8 @@
         <PageAttributePanel />
       {:else if uiStore.activePanel === 'text'}
         <TextEditor />
+      {:else if uiStore.activePanel === 'relations'}
+        <RelationPanel />
       {/if}
     </div>
   </div>
