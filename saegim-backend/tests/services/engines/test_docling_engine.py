@@ -11,7 +11,6 @@ import pytest
 from saegim.services.engines.base import BaseOCREngine
 from saegim.services.engines.docling_engine import DoclingEngine
 
-
 # -- Sample DocTags for testing --
 
 DOCTAGS_TEXT_ONLY = (
@@ -226,10 +225,14 @@ class TestCoordinateScaling:
         scale_x = 1224.0 / 500.0  # 2.448
         scale_y = 1584.0 / 500.0  # 3.168
         expected = [
-            50 * scale_x, 100 * scale_y,
-            400 * scale_x, 100 * scale_y,
-            400 * scale_x, 150 * scale_y,
-            50 * scale_x, 150 * scale_y,
+            50 * scale_x,
+            100 * scale_y,
+            400 * scale_x,
+            100 * scale_y,
+            400 * scale_x,
+            150 * scale_y,
+            50 * scale_x,
+            150 * scale_y,
         ]
         assert poly == pytest.approx(expected)
 

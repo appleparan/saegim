@@ -39,7 +39,7 @@ async def list_project_documents(project_id: uuid.UUID) -> list[DocumentListResp
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
     records = await document_repo.list_by_project(pool, project_id)
-    return [DocumentListResponse(**dict(r)) for r in records]
+    return [DocumentListResponse.model_validate(dict(r)) for r in records]
 
 
 @router.post(
@@ -131,7 +131,7 @@ async def get_document(document_id: uuid.UUID) -> DocumentResponse:
     record = await document_repo.get_by_id(pool, document_id)
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
-    return DocumentResponse(**dict(record))
+    return DocumentResponse.model_validate(dict(record))
 
 
 @router.get('/documents/{document_id}/status', response_model=DocumentStatusResponse)
@@ -190,4 +190,4 @@ async def list_document_pages(document_id: uuid.UUID) -> list[PageListResponse]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
 
     pages = await page_repo.list_by_document(pool, document_id)
-    return [PageListResponse(**dict(r)) for r in pages]
+    return [PageListResponse.model_validate(dict(r)) for r in pages]

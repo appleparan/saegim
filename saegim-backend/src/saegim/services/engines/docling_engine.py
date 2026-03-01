@@ -296,7 +296,7 @@ class DoclingEngine(BaseOCREngine):
             self._model = AutoModelForImageTextToText.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16 if self._device == 'cuda' else torch.float32,
-            ).to(self._device)
+            ).to(self._device)  # type: ignore[invalid-argument-type]
 
             logger.info('DoclingEngine model loaded successfully')
         except ImportError as exc:
