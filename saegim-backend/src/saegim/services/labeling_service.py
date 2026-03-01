@@ -356,6 +356,75 @@ async def delete_relation(
     }
 
 
+async def update_reading_order(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+    order_map: dict[str, int],
+) -> dict[str, Any] | None:
+    """Update reading order for layout elements.
+
+    Validates that all anno_ids in the map exist in the page's layout_dets,
+    then updates each element's order field.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        order_map: Mapping of anno_id (as string) to new order (int).
+
+    Returns:
+        dict or None: Updated page data if found and valid.
+    """
+    parsed_map: dict[int, int] = {int(k): v for k, v in order_map.items()}
+
+    record = await page_repo.get_by_id(pool, page_id)
+    if record is None:
+        return None
+
+    annotation = record['annotation_data']
+    if isinstance(annotation, str):
+        annotation = json.loads(annotation)
+    annotation = annotation or {}
+
+    layout_dets = annotation.get('layout_dets', [])
+    existing_ids = {el.get('anno_id') for el in layout_dets}
+
+    for anno_id in parsed_map:
+        if anno_id not in existing_ids:
+            return None
+
+    updated_dets = [
+        {**el, 'order': parsed_map[el['anno_id']]} if el.get('anno_id') in parsed_map else el
+        for el in layout_dets
+    ]
+    updated_annotation = {**annotation, 'layout_dets': updated_dets}
+
+    result = await page_repo.update_annotation(pool, page_id, updated_annotation)
+    if result is None:
+        return None
+
+    result_annotation = result['annotation_data']
+    if isinstance(result_annotation, str):
+        result_annotation = json.loads(result_annotation)
+
+    auto_extracted = result['auto_extracted_data']
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+
+    return {
+        'id': result['id'],
+        'document_id': result['document_id'],
+        'page_no': result['page_no'],
+        'width': result['width'],
+        'height': result['height'],
+        'image_path': result['image_path'],
+        'annotation_data': result_annotation or {},
+        'auto_extracted_data': auto_extracted,
+        'status': result['status'],
+        'assigned_to': result['assigned_to'],
+        'updated_at': result['updated_at'],
+    }
+
+
 async def delete_element(
     pool: asyncpg.Pool,
     page_id: uuid.UUID,

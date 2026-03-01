@@ -491,6 +491,126 @@ class TestDeleteRelation:
         assert result['annotation_data']['extra']['relation'] == []
 
 
+class TestUpdateReadingOrder:
+    @pytest.mark.asyncio
+    async def test_returns_none_when_page_not_found(self, mock_pool, page_id):
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=None)
+            result = await labeling_service.update_reading_order(
+                mock_pool, page_id, {'0': 1, '1': 0}
+            )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_for_invalid_anno_id(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [{'anno_id': 0, 'order': 0, 'category_type': 'text_block'}],
+            },
+        )
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            result = await labeling_service.update_reading_order(mock_pool, page_id, {'99': 0})
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_updates_orders_correctly(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [
+                    {'anno_id': 0, 'order': 0, 'category_type': 'text_block'},
+                    {'anno_id': 1, 'order': 1, 'category_type': 'figure'},
+                ],
+            },
+        )
+        updated_record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [
+                    {'anno_id': 0, 'order': 1, 'category_type': 'text_block'},
+                    {'anno_id': 1, 'order': 0, 'category_type': 'figure'},
+                ],
+            },
+        )
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.update_annotation = AsyncMock(return_value=updated_record)
+            result = await labeling_service.update_reading_order(
+                mock_pool, page_id, {'0': 1, '1': 0}
+            )
+
+        assert result is not None
+        call_annotation = mock_repo.update_annotation.call_args[0][2]
+        orders = {el['anno_id']: el['order'] for el in call_annotation['layout_dets']}
+        assert orders == {0: 1, 1: 0}
+
+    @pytest.mark.asyncio
+    async def test_partial_update_leaves_others_unchanged(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [
+                    {'anno_id': 0, 'order': 0, 'category_type': 'text_block'},
+                    {'anno_id': 1, 'order': 1, 'category_type': 'figure'},
+                    {'anno_id': 2, 'order': 2, 'category_type': 'table'},
+                ],
+            },
+        )
+        updated_record = _make_page_record(page_id, document_id, annotation_data={})
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.update_annotation = AsyncMock(return_value=updated_record)
+            await labeling_service.update_reading_order(mock_pool, page_id, {'0': 2, '2': 0})
+
+        call_annotation = mock_repo.update_annotation.call_args[0][2]
+        orders = {el['anno_id']: el['order'] for el in call_annotation['layout_dets']}
+        assert orders == {0: 2, 1: 1, 2: 0}
+
+    @pytest.mark.asyncio
+    async def test_handles_json_string_annotation(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data='{"layout_dets": [{"anno_id": 0, "order": 0}]}',
+        )
+        updated_record = _make_page_record(page_id, document_id, annotation_data={})
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.update_annotation = AsyncMock(return_value=updated_record)
+            await labeling_service.update_reading_order(mock_pool, page_id, {'0': 5})
+
+        call_annotation = mock_repo.update_annotation.call_args[0][2]
+        assert call_annotation['layout_dets'][0]['order'] == 5
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_update_annotation_fails(self, mock_pool, page_id, document_id):
+        record = _make_page_record(
+            page_id,
+            document_id,
+            annotation_data={
+                'layout_dets': [{'anno_id': 0, 'order': 0}],
+            },
+        )
+
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id = AsyncMock(return_value=record)
+            mock_repo.update_annotation = AsyncMock(return_value=None)
+            result = await labeling_service.update_reading_order(mock_pool, page_id, {'0': 1})
+
+        assert result is None
+
 class TestDeleteElement:
     @pytest.mark.asyncio
     async def test_returns_none_when_page_not_found(self, mock_pool, page_id):
