@@ -3,8 +3,11 @@
 ## 개발 환경 설정
 
 ```bash
-# 의존성 설치
-uv sync --group dev --group docs
+# 의존성 설치 (CPU only)
+uv sync --group dev --group docs --extra cpu
+
+# GPU 사용 시 CUDA 버전에 맞는 extra 선택
+# uv sync --group dev --group docs --extra cu128
 
 # pre-commit 훅 설치
 uvx pre-commit install
@@ -63,32 +66,41 @@ uv run pytest tests/services/test_labeling_service.py::TestAddElement -v
 
 ```text
 tests/
-├── conftest.py                     # 공통 픽스처
-├── api/                            # API 라우터 테스트
-│   ├── test_app.py                 # 앱 설정
-│   ├── test_health.py              # 헬스체크
-│   ├── test_projects.py            # 프로젝트 CRUD
-│   ├── test_project_ocr_config.py  # OCR 엔진 설정 API (engine_type CRUD)
-│   ├── test_documents.py           # 문서 업로드/조회
-│   ├── test_pages.py               # 페이지 레이블링, 읽기 순서, 관계 CRUD
-│   ├── test_users.py               # 사용자 관리
-│   ├── test_export.py              # 데이터 내보내기
-│   └── test_settings.py            # 설정 검증
-├── services/                       # 서비스 레이어 테스트
-│   ├── engines/                    # OCR 엔진 테스트
-│   │   ├── test_base.py            # BaseOCREngine ABC
-│   │   ├── test_factory.py         # build_engine() 팩토리
+├── conftest.py                        # 공통 픽스처
+├── api/                               # API 라우터 테스트
+│   ├── test_app.py                    # 앱 설정
+│   ├── test_health.py                 # 헬스체크
+│   ├── test_projects.py               # 프로젝트 CRUD
+│   ├── test_project_ocr_config.py     # OCR 엔진 설정 API
+│   ├── test_documents.py              # 문서 업로드/조회
+│   ├── test_pages.py                  # 페이지, 읽기 순서, 관계 CRUD
+│   ├── test_users.py                  # 사용자 관리
+│   ├── test_export.py                 # 데이터 내보내기
+│   └── test_settings.py              # 설정 검증
+├── services/                          # 서비스 레이어 테스트
+│   ├── engines/                       # OCR 엔진 테스트
+│   │   ├── test_base.py               # BaseOCREngine ABC
+│   │   ├── test_factory.py            # build_engine() 팩토리
 │   │   ├── test_pdfminer_engine.py
 │   │   ├── test_commercial_api_engine.py
 │   │   ├── test_integrated_server_engine.py
-│   │   └── test_split_pipeline_engine.py
-│   ├── test_document_service.py    # PDF 업로드/변환
-│   ├── test_labeling_service.py    # 어노테이션 관리, 읽기 순서, 관계 CRUD
-│   ├── test_ocr_connection_test.py # 연결 테스트
-│   ├── test_ocr_pipeline.py        # 파이프라인 오케스트레이터
-│   └── test_export_service.py      # 내보내기 서비스
-├── schemas/                       # 스키마 테스트
-│   └── test_page_schema.py        # PageResponse 스키마 (URL 계산)
+│   │   ├── test_split_pipeline_engine.py
+│   │   └── test_docling_engine.py
+│   ├── test_document_service.py       # PDF 업로드/변환
+│   ├── test_labeling_service.py       # 어노테이션, 읽기 순서, 관계
+│   ├── test_attribute_classifier.py   # 속성 자동 분류
+│   ├── test_extraction_service.py     # 텍스트 추출
+│   ├── test_text_extraction_service.py  # 영역 OCR 추출
+│   ├── test_gemini_ocr_service.py     # Gemini VLM 프로바이더
+│   ├── test_vllm_ocr_service.py       # vLLM 프로바이더
+│   ├── test_ppstructure_service.py    # PP-StructureV3 클라이언트
+│   ├── test_ocr_provider.py           # OCR 프로바이더 공통
+│   ├── test_ocr_connection_test.py    # 연결 테스트
+│   ├── test_ocr_pipeline.py           # 파이프라인 오케스트레이터
+│   ├── test_sample_pdf_extraction.py  # 샘플 PDF 추출
+│   └── test_export_service.py         # 내보내기 서비스
+├── schemas/                           # 스키마 테스트
+│   └── test_page_schema.py            # PageResponse (URL 계산)
 ```
 
 ### 테스트 패턴
