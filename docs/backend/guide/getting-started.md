@@ -28,9 +28,24 @@ cd saegim/saegim-backend
 uv python install 3.14
 uv python pin 3.14
 
-# 의존성 설치 (개발 + 문서)
-uv sync --group dev --group docs
+# 의존성 설치 (개발 + 문서, CPU only)
+uv sync --group dev --group docs --extra cpu
+
+# GPU 사용 시 CUDA 버전에 맞는 extra 선택
+uv sync --group dev --group docs --extra cu128   # CUDA 12.8
+uv sync --group dev --group docs --extra cu126   # CUDA 12.6
+uv sync --group dev --group docs --extra cu130   # CUDA 13.0
 ```
+
+> **참고:** `--extra` 플래그로 PyTorch 설치 변형을 선택합니다.
+> Docling 등 OCR 엔진이 PyTorch를 필요로 하므로 반드시 하나를 선택해야 합니다.
+>
+> | Extra | 설명 | GPU 필요 |
+> | ----- | ---- | -------- |
+> | `cpu` | CPU 전용 (경량) | X |
+> | `cu126` | CUDA 12.6 | O |
+> | `cu128` | CUDA 12.8 | O |
+> | `cu130` | CUDA 13.0 | O |
 
 ### 3. PostgreSQL 설정
 

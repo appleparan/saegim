@@ -140,7 +140,7 @@ docker compose up -d --build
 ```bash
 # 백엔드
 cd saegim-backend
-uv sync --group dev --group docs
+uv sync --group dev --group docs --extra cpu    # CPU only (또는 --extra cu128)
 uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
 
 # 프론트엔드

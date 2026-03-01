@@ -156,7 +156,8 @@ CREATE DATABASE labeling OWNER labeling;
 cd saegim-backend
 uv python install 3.14
 uv python pin 3.14
-uv sync --group dev --group docs
+uv sync --group dev --group docs --extra cpu    # CPU only
+# uv sync --group dev --group docs --extra cu128  # CUDA 12.8
 
 # 마이그레이션
 psql -U labeling -d labeling -f migrations/001_init.sql
