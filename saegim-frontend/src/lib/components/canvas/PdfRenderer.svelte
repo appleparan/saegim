@@ -4,6 +4,7 @@
   import { TextLayer } from 'pdfjs-dist'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { PDF_BASE_SCALE } from '$lib/stores/pdf.svelte'
+  import { getDevicePixelRatio } from '$lib/utils/dpr'
 
   interface Props {
     pageProxy: PDFPageProxy
@@ -86,7 +87,8 @@
   function scheduleRerender(): void {
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
-      const targetScale = Math.min(PDF_BASE_SCALE * canvasStore.scale, MAX_RERENDER_SCALE)
+      const dpr = getDevicePixelRatio()
+      const targetScale = Math.min(PDF_BASE_SCALE * canvasStore.scale * dpr, MAX_RERENDER_SCALE)
       if (Math.abs(targetScale - renderingScale) > 0.25) {
         void renderCanvas(pageProxy, targetScale)
       }
@@ -99,7 +101,9 @@
     const page = pageProxy
     if (page && canvasEl) {
       untrack(() => {
-        void renderCanvas(page, PDF_BASE_SCALE)
+        const dpr = getDevicePixelRatio()
+        const initialScale = Math.min(PDF_BASE_SCALE * dpr, MAX_RERENDER_SCALE)
+        void renderCanvas(page, initialScale)
         void renderTextLayer(page)
       })
     }
@@ -109,6 +113,17 @@
   $effect(() => {
     const _scale = canvasStore.scale
     scheduleRerender()
+  })
+
+  // Re-render when device pixel ratio changes (e.g. moving between monitors)
+  $effect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+    function onChange() {
+      scheduleRerender()
+    }
+    mql.addEventListener('change', onChange)
+    return () => mql.removeEventListener('change', onChange)
   })
 
   // Cleanup on unmount
