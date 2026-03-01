@@ -12,7 +12,9 @@
 
   let { pageProxy }: Props = $props()
 
+  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let canvasEl: HTMLCanvasElement
+  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let textLayerEl: HTMLDivElement
   let renderingScale = $state(PDF_BASE_SCALE)
   const TEXT_LAYER_SCALE = PDF_BASE_SCALE

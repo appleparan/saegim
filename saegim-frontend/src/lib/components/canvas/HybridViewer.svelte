@@ -32,7 +32,9 @@
   let { pageProxy, imageUrl, width, height, onOcrRequest }: Props = $props()
 
   // --- DOM refs ---
+  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let containerEl: HTMLDivElement
+  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let konvaContainerEl: HTMLDivElement
 
   // --- Konva ---

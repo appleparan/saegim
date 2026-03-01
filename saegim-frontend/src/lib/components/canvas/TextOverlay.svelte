@@ -16,6 +16,7 @@
   let textElements = $derived(annotationStore.elements.filter(isTextBlock))
 
   // --- Text selection → bbox mapping ---
+  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let transformContainerEl: HTMLDivElement
   let showCreateBbox = $state(false)
   let createBboxRect = $state<{ x: number; y: number; width: number; height: number } | null>(null)

@@ -251,7 +251,7 @@
   }
 
   $effect(() => {
-    page.params.pageId
+    void page.params.pageId
     untrack(() => loadPage())
   })
 

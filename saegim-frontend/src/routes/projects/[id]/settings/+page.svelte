@@ -86,7 +86,7 @@
   }
 
   $effect(() => {
-    page.params.id
+    void page.params.id
     untrack(() => loadData())
   })
 </script>
