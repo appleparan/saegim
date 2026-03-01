@@ -16,9 +16,9 @@ describe('OcrSettingsPanel', () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
     expect(screen.getByText('pdfminer')).toBeTruthy()
-    expect(screen.getByText('상업용 VLM API')).toBeTruthy()
-    expect(screen.getByText('통합 파이프라인 서버')).toBeTruthy()
-    expect(screen.getByText('분리 파이프라인')).toBeTruthy()
+    expect(screen.getByText('Gemini API')).toBeTruthy()
+    expect(screen.getByText('vLLM 서버')).toBeTruthy()
+    expect(screen.getByText('Docling + OCR')).toBeTruthy()
   })
 
   it('does not show sub-config when pdfminer is selected', () => {
@@ -32,7 +32,7 @@ describe('OcrSettingsPanel', () => {
   it('shows commercial API config when selected', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const caButton = screen.getByText('상업용 VLM API')
+    const caButton = screen.getByText('Gemini API')
     await fireEvent.click(caButton)
 
     expect(screen.getByText('Google Gemini')).toBeTruthy()
@@ -54,11 +54,11 @@ describe('OcrSettingsPanel', () => {
     expect(screen.getByLabelText('API Key')).toBeTruthy()
   })
 
-  it('shows integrated server config when selected', async () => {
+  it('shows vLLM server config when selected', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const isButton = screen.getByText('통합 파이프라인 서버')
-    await fireEvent.click(isButton)
+    const vllmButton = screen.getByText('vLLM 서버')
+    await fireEvent.click(vllmButton)
 
     expect(screen.getByLabelText('호스트')).toBeTruthy()
     expect(screen.getByLabelText('포트')).toBeTruthy()
@@ -68,10 +68,10 @@ describe('OcrSettingsPanel', () => {
   it('shows split pipeline config when selected', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const spButton = screen.getByText('분리 파이프라인')
+    const spButton = screen.getByText('Docling + OCR')
     await fireEvent.click(spButton)
 
-    expect(screen.getByLabelText('레이아웃 서버 URL')).toBeTruthy()
+    expect(screen.getByLabelText('Docling 모델')).toBeTruthy()
     expect(screen.getByText('OCR 프로바이더')).toBeTruthy()
   })
 
@@ -114,18 +114,18 @@ describe('OcrSettingsPanel', () => {
     expect(saved.commercial_api.api_key).toBe('test-key')
   })
 
-  it('calls onsave with correct integrated_server config', async () => {
+  it('calls onsave with correct vllm config', async () => {
     const onsave = vi.fn()
-    const isConfig: OcrConfigResponse = {
-      engine_type: 'integrated_server',
-      integrated_server: {
+    const vllmConfig: OcrConfigResponse = {
+      engine_type: 'vllm',
+      vllm: {
         host: 'myhost',
         port: 9999,
         model: 'datalab-to/chandra',
       },
     }
     render(OcrSettingsPanel, {
-      props: { config: isConfig, onsave },
+      props: { config: vllmConfig, onsave },
     })
 
     const saveButton = screen.getByText('설정 저장')
@@ -133,16 +133,16 @@ describe('OcrSettingsPanel', () => {
 
     expect(onsave).toHaveBeenCalledOnce()
     const saved = onsave.mock.calls[0][0]
-    expect(saved.engine_type).toBe('integrated_server')
-    expect(saved.integrated_server.host).toBe('myhost')
-    expect(saved.integrated_server.port).toBe(9999)
-    expect(saved.integrated_server.model).toBe('datalab-to/chandra')
+    expect(saved.engine_type).toBe('vllm')
+    expect(saved.vllm.host).toBe('myhost')
+    expect(saved.vllm.port).toBe(9999)
+    expect(saved.vllm.model).toBe('datalab-to/chandra')
   })
 
   it('disables save button when commercial_api Gemini has no API key', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const caButton = screen.getByText('상업용 VLM API')
+    const caButton = screen.getByText('Gemini API')
     await fireEvent.click(caButton)
 
     const saveButton = screen.getByText('설정 저장')
@@ -165,7 +165,7 @@ describe('OcrSettingsPanel', () => {
   it('shows connection test button for non-pdfminer engines', async () => {
     render(OcrSettingsPanel, { props: { config: defaultConfig } })
 
-    const caButton = screen.getByText('상업용 VLM API')
+    const caButton = screen.getByText('Gemini API')
     await fireEvent.click(caButton)
 
     expect(screen.getByText('연결 테스트')).toBeTruthy()

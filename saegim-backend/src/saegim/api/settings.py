@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # Server Settings
     max_workers: int = Field(default=1, description='Maximum number of workers')
 
+    # OCR API Keys (optional, pre-filled in UI when available)
+    gemini_api_key: str = Field(default='', description='Gemini API key from environment')
+
 
 @lru_cache
 def get_settings() -> Settings:

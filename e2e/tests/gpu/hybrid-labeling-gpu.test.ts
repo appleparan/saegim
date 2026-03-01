@@ -34,8 +34,8 @@ describe("GPU Hybrid Labeling — API Verification", () => {
     projectId = project.id;
 
     await updateOcrConfig(projectId, {
-      engine_type: "integrated_server",
-      integrated_server: {
+      engine_type: "vllm",
+      vllm: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,

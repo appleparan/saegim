@@ -100,6 +100,10 @@ class OcrConfigResponse(BaseModel):
     commercial_api: CommercialApiConfig | None = None
     vllm: VllmServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
+    env_gemini_api_key: str = Field(
+        default='',
+        description='Gemini API key from server environment (for UI pre-fill)',
+    )
 
 
 class OcrConnectionTestResponse(BaseModel):

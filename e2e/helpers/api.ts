@@ -60,15 +60,18 @@ interface ExportResponse {
 }
 
 interface OcrConfigResponse {
-  engine_type: 'commercial_api' | 'integrated_server' | 'split_pipeline' | 'pdfminer'
+  engine_type: 'commercial_api' | 'vllm' | 'split_pipeline' | 'pdfminer'
   commercial_api?: { provider: string; api_key?: string; model: string } | null
-  integrated_server?: { host: string; port: number; model?: string } | null
+  vllm?: { host: string; port: number; model?: string } | null
   split_pipeline?: {
-    layout_server_url: string
+    docling_model_name: string
     ocr_provider: string
     ocr_api_key?: string
+    ocr_host?: string
+    ocr_port?: number
     ocr_model?: string
   } | null
+  env_gemini_api_key?: string
 }
 
 interface OcrConnectionTestResponse {

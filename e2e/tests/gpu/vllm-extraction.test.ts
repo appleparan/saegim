@@ -36,21 +36,21 @@ describe("vLLM + Chandra OCR Extraction (GPU)", () => {
     projectId = project.id;
 
     const { data, status } = await updateOcrConfig(projectId, {
-      engine_type: "integrated_server",
-      integrated_server: {
+      engine_type: "vllm",
+      vllm: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,
       },
     });
     expect(status).toBe(200);
-    expect(data.engine_type).toBe("integrated_server");
+    expect(data.engine_type).toBe("vllm");
   });
 
   test("02 - vLLM connection test succeeds", async () => {
     const { data, status } = await testOcrConnection(projectId, {
-      engine_type: "integrated_server",
-      integrated_server: {
+      engine_type: "vllm",
+      vllm: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,
