@@ -14,6 +14,7 @@ from saegim.schemas.page import (
     PageAnnotationUpdate,
     PageAttributeUpdate,
     PageResponse,
+    ReadingOrderUpdate,
     RelationCreate,
     RelationDelete,
 )
@@ -246,6 +247,33 @@ async def delete_relation(page_id: uuid.UUID, body: RelationDelete) -> PageRespo
     )
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Page not found')
+    return PageResponse(**result)
+
+
+@router.put('/pages/{page_id}/reading-order', response_model=PageResponse)
+async def update_reading_order(
+    page_id: uuid.UUID,
+    body: ReadingOrderUpdate,
+) -> PageResponse:
+    """Update reading order of layout elements.
+
+    Args:
+        page_id: Page UUID.
+        body: Reading order update with anno_id-to-order mapping.
+
+    Returns:
+        PageResponse: Updated page data.
+
+    Raises:
+        HTTPException: If page not found or invalid annotation IDs.
+    """
+    pool = get_pool()
+    result = await labeling_service.update_reading_order(pool, page_id, body.order_map)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Page not found or invalid annotation IDs',
+        )
     return PageResponse(**result)
 
 

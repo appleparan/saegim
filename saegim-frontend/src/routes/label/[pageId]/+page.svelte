@@ -133,6 +133,8 @@
     } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault()
       handleSave()
+    } else if (e.key === 'o' || e.key === 'O') {
+      canvasStore.toggleReadingOrder()
     } else if (e.key === 'Escape') {
       annotationStore.selectElement(null)
     } else if (e.key === '[') {

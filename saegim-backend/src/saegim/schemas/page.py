@@ -114,6 +114,27 @@ class RelationDelete(BaseModel):
     target_anno_id: int = Field(ge=0)
 
 
+class ReadingOrderUpdate(BaseModel):
+    """Schema for updating reading order of layout elements."""
+
+    order_map: dict[str, int] = Field(
+        description='Mapping of anno_id (string) to new order (int).',
+    )
+
+    @model_validator(mode='after')
+    def validate_order_values(self) -> 'ReadingOrderUpdate':
+        """Ensure no duplicate or negative order values."""
+        orders = list(self.order_map.values())
+        if len(orders) != len(set(orders)):
+            msg = 'Duplicate order values are not allowed'
+            raise ValueError(msg)
+        for v in orders:
+            if v < 0:
+                msg = 'Order values must be non-negative'
+                raise ValueError(msg)
+        return self
+
+
 class ExtractTextRequest(BaseModel):
     """Schema for requesting OCR text extraction from a drawn region."""
 

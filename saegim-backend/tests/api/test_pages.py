@@ -220,3 +220,46 @@ class TestPageEndpoints:
             )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_update_reading_order(self, client: TestClient, sample_page_record):
+        page_id = sample_page_record['id']
+        with patch(
+            'saegim.services.labeling_service.update_reading_order',
+            new_callable=AsyncMock,
+            return_value=sample_page_record,
+        ):
+            response = client.put(
+                f'/api/v1/pages/{page_id}/reading-order',
+                json={'order_map': {'0': 1, '1': 0}},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_update_reading_order_not_found(self, client: TestClient):
+        with patch(
+            'saegim.services.labeling_service.update_reading_order',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.put(
+                '/api/v1/pages/00000000-0000-0000-0000-000000000000/reading-order',
+                json={'order_map': {'0': 0}},
+            )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_update_reading_order_duplicate_values(self, client: TestClient):
+        response = client.put(
+            '/api/v1/pages/00000000-0000-0000-0000-000000000000/reading-order',
+            json={'order_map': {'0': 1, '1': 1}},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_update_reading_order_negative_value(self, client: TestClient):
+        response = client.put(
+            '/api/v1/pages/00000000-0000-0000-0000-000000000000/reading-order',
+            json={'order_map': {'0': -1}},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

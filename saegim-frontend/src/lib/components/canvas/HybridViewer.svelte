@@ -16,6 +16,7 @@
   import BboxLayer from './BboxLayer.svelte'
   import BboxDrawTool from './BboxDrawTool.svelte'
   import TextOverlay from './TextOverlay.svelte'
+  import ReadingOrderOverlay from './ReadingOrderOverlay.svelte'
   import PdfRenderer from './PdfRenderer.svelte'
   import RelationOverlay from './RelationOverlay.svelte'
 
@@ -322,6 +323,9 @@
   {#if !pageProxy}
     <TextOverlay pointerEvents={textPointerEvents} />
   {/if}
+
+  <!-- Layer 3.5: Reading order overlay (z-index: 25) -->
+  <ReadingOrderOverlay />
 
   <!-- Layer 4: Relation arrows overlay (z-index: 30) -->
   <RelationOverlay />
