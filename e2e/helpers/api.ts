@@ -284,6 +284,31 @@ export async function acceptExtraction(
   return { data, duration }
 }
 
+export async function forceAcceptExtraction(
+  pageId: string,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('POST', `/pages/${pageId}/force-accept-extraction`)
+}
+
+interface DocumentStatusResponse {
+  id: string
+  status: string
+  total_pages: number
+  processed_pages: number
+}
+
+export async function getDocumentStatus(
+  documentId: string,
+): Promise<{ data: DocumentStatusResponse; status: number; duration: number }> {
+  return request<DocumentStatusResponse>('GET', `/documents/${documentId}/status`)
+}
+
+export async function reExtractDocument(
+  documentId: string,
+): Promise<{ data: DocumentStatusResponse; status: number; duration: number }> {
+  return request<DocumentStatusResponse>('POST', `/documents/${documentId}/re-extract`)
+}
+
 export async function exportProject(
   projectId: string,
 ): Promise<{ data: ExportResponse; duration: number }> {

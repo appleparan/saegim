@@ -12,17 +12,46 @@
     documentId: string
     autoExtractedData: AnnotationData | null
     documentStatus?: DocumentStatus
+    reExtractVersion?: number
     onAccepted: (data: AnnotationData) => void
     onReExtract: () => void
   }
 
-  let { pageId, documentId, autoExtractedData, documentStatus, onAccepted, onReExtract }: Props =
-    $props()
+  let {
+    pageId,
+    documentId,
+    autoExtractedData,
+    documentStatus,
+    reExtractVersion,
+    onAccepted,
+    onReExtract,
+  }: Props = $props()
 
   let dismissed = $state(false)
   let loading = $state(false)
+  let wasExtracting = $state(false)
+  let lastSeenVersion = $state(0)
 
   let isExtracting = $derived(documentStatus === 'extracting')
+
+  // Reset dismissed when extraction completes (extracting → ready)
+  $effect(() => {
+    if (isExtracting) {
+      wasExtracting = true
+    } else if (wasExtracting) {
+      wasExtracting = false
+      dismissed = false
+    }
+  })
+
+  // Reset dismissed when reExtractVersion changes (handles pdfminer sync case)
+  $effect(() => {
+    const version = reExtractVersion ?? 0
+    if (version > lastSeenVersion) {
+      lastSeenVersion = version
+      dismissed = false
+    }
+  })
 
   let hasAutoData = $derived(
     autoExtractedData !== null &&
@@ -34,10 +63,10 @@
 
   // Show accept/dismiss when auto data exists and no annotations
   let showAccept = $derived(hasAutoData && annotationEmpty && !dismissed)
-  // Show force-accept when auto data exists but annotations also exist
-  let showForceAccept = $derived(hasAutoData && !annotationEmpty && !dismissed)
-
-  let visible = $derived(showAccept || showForceAccept || isExtracting)
+  // Show force-accept only after an explicit re-extract (reExtractVersion > 0)
+  let showForceAccept = $derived(
+    hasAutoData && !annotationEmpty && !dismissed && (reExtractVersion ?? 0) > 0,
+  )
 
   let canReExtract = $derived(
     documentStatus === 'ready' ||
@@ -69,6 +98,7 @@
     try {
       const response = await acceptExtraction(pageId)
       onAccepted(response.annotation_data as AnnotationData)
+      dismissed = true
       uiStore.showNotification('자동 추출 결과가 반영되었습니다', 'success')
     } catch {
       uiStore.showNotification('자동 추출 수락에 실패했습니다', 'error')
@@ -82,6 +112,7 @@
     try {
       const response = await forceAcceptExtraction(pageId)
       onAccepted(response.annotation_data as AnnotationData)
+      dismissed = true
       uiStore.showNotification('자동 추출 결과가 반영되었습니다 (기존 주석 대체)', 'success')
     } catch {
       uiStore.showNotification('자동 추출 수락에 실패했습니다', 'error')

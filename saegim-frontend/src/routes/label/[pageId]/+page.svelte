@@ -26,6 +26,7 @@
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
   let documentStatus = $state<DocumentStatus | undefined>(undefined)
+  let reExtractVersion = $state(0)
   let imageUrl = $state('')
   let saving = $state(false)
   let shortcutHelpOpen = $state(false)
@@ -208,6 +209,7 @@
             const data = await getPage(currentPageId)
             pageData = data
           }
+          reExtractVersion++
         }
       } catch {
         // Polling failures are non-critical
@@ -230,6 +232,7 @@
           const data = await getPage(currentPageId)
           pageData = data
         }
+        reExtractVersion++
       }
       uiStore.showNotification('재추출이 시작되었습니다', 'success')
     } catch (e) {
@@ -335,6 +338,7 @@
             documentId={pageData.document_id}
             autoExtractedData={pageData.auto_extracted_data}
             {documentStatus}
+            {reExtractVersion}
             onAccepted={handleExtractionAccepted}
             onReExtract={handleReExtract}
           />
