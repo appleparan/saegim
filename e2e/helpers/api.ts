@@ -244,6 +244,27 @@ export async function deleteElement(
   return { data, duration }
 }
 
+export async function addRelation(
+  pageId: string,
+  sourceAnnoId: number,
+  targetAnnoId: number,
+  relationType: string,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('POST', `/pages/${pageId}/relations`, {
+    body: { source_anno_id: sourceAnnoId, target_anno_id: targetAnnoId, relation_type: relationType },
+  })
+}
+
+export async function deleteRelation(
+  pageId: string,
+  sourceAnnoId: number,
+  targetAnnoId: number,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('DELETE', `/pages/${pageId}/relations`, {
+    body: { source_anno_id: sourceAnnoId, target_anno_id: targetAnnoId },
+  })
+}
+
 export async function acceptExtraction(
   pageId: string,
 ): Promise<{ data: PageResponse; duration: number }> {
