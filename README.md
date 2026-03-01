@@ -89,21 +89,33 @@ cp .env.example .env
 # 필요 시 .env 파일을 수정합니다
 ```
 
-#### 이미지 빌드 및 실행
+#### CPU 모드 (기본)
 
 ```bash
-# 이미지 빌드
-docker compose build
+# 빌드 + 실행
+make up
+# 또는: docker compose up -d --build
 
-# 캐시 무시하고 재빌드
-docker compose build --no-cache
-
-# 백그라운드로 실행
-docker compose up -d
-
-# 빌드 + 실행 한번에
-docker compose up -d --build
+# 중지
+make down
 ```
+
+#### GPU 모드
+
+NVIDIA GPU + [NVIDIA Container Toolkit][nvidia-toolkit]이 필요합니다.
+
+[nvidia-toolkit]: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+
+```bash
+# GPU 빌드 + 실행 (vLLM, PP-StructureV3 포함)
+make up-gpu
+# 또는: docker compose --env-file .env --env-file .env.gpu --profile gpu up -d --build
+
+# 중지
+make down-gpu
+```
+
+> `.env.gpu`에서 CUDA 버전과 PyTorch extra를 변경할 수 있습니다 (기본: CUDA 13.0, cu130).
 
 #### 접속
 
@@ -119,13 +131,11 @@ docker compose up -d --build
 
 ```bash
 # 로그 확인
-docker compose logs -f
+make logs
+# 또는: docker compose logs -f
 
 # 특정 서비스 로그
 docker compose logs -f backend
-
-# 서비스 중지
-docker compose down
 
 # 볼륨 포함 삭제 (DB 데이터 초기화)
 docker compose down -v
@@ -239,8 +249,14 @@ saegim/
 │   ├── docker-compose.e2e.yml      # 기본 + GPU 프로파일
 │   ├── tests/                      # 기본 테스트
 │   └── tests/gpu/                  # GPU 전용 테스트 (vLLM)
-├── docker-compose.yml              # 개발/배포용
-├── docker-compose.chandra.yml      # vLLM Chandra 독립 실행용
+├── docker-compose.yml              # 개발/배포용 (--profile gpu으로 GPU 서비스 활성화)
+├── Makefile                        # make up / make up-gpu 편의 명령
+├── .env.gpu                        # GPU 빌드 설정 (CUDA 13.0)
+├── k8s/
+│   ├── base/                       # Kustomize 공통 매니페스트
+│   └── overlays/
+│       ├── cpu/                    # CPU 전용 배포
+│       └── gpu/                    # GPU 배포 (vLLM 포함)
 └── AGENTS.md                       # 플래닝 가이드
 ```
 
