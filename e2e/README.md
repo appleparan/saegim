@@ -35,7 +35,7 @@ bun run docker:down
 
 ## GPU 테스트 (vLLM + Chandra)
 
-`gpu` 프로파일은 기본 서비스에 vLLM 서버를 추가한다. vLLM은 `richarddavison/chandra-fp8` 모델을 로드하며,
+`gpu` 프로파일은 기본 서비스에 vLLM 서버를 추가한다. vLLM은 `prithivMLmods/chandra-FP8-Latest` 모델을 로드하며,
 **24GB+ VRAM GPU**가 필요하다.
 
 ### 요구사항
@@ -105,7 +105,7 @@ e2e/
 | postgres | 기본 | 25432 | PostgreSQL 18 |
 | backend | 기본 | 25000 | FastAPI 서버 |
 | frontend | 기본 | 23000 | SvelteKit (Nginx) |
-| vllm | gpu | 28000 | vLLM OpenAI API (richarddavison/chandra-fp8) |
+| vllm | gpu | 28000 | vLLM OpenAI API (prithivMLmods/chandra-FP8-Latest) |
 
 ## 환경변수
 

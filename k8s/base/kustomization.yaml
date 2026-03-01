@@ -14,8 +14,9 @@ resources:
   - backend-deployment.yaml
   - frontend-deployment.yaml
 
-commonLabels:
-  app.kubernetes.io/managed-by: kustomize
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
 
 images:
   - name: saegim-backend

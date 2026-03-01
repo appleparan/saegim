@@ -25,27 +25,37 @@ cp .env.example .env
 | `FE_PORT` | `13000` | 프론트엔드 호스트 포트 |
 | `PG_PORT` | `15432` | PostgreSQL 호스트 포트 |
 
-### 2. 전체 실행 (CPU 모드)
+### 2. CPU 모드 실행 (기본)
 
 ```bash
-docker compose up -d
+make up
+# 또는: docker compose up -d --build
 ```
 
 시작 순서: PostgreSQL → Backend (healthcheck 통과 후) → Frontend
 
-### 3. 전체 실행 (GPU 모드)
+### 3. GPU 모드 실행
 
-NVIDIA GPU가 있는 환경에서 GPU 가속 백엔드를 사용하려면:
+NVIDIA GPU가 있는 환경에서 GPU 서비스(vLLM, PP-StructureV3)를 함께 사용하려면:
 
 ```bash
-docker compose --profile gpu up -d
+make up-gpu
+# 또는: docker compose --env-file .env --env-file .env.gpu --profile gpu up -d --build
 ```
 
 !!! note
-    GPU 모드에서는 `backend` 대신 `backend-gpu` 서비스가 실행됩니다.
+    GPU 모드에서는 백엔드가 CUDA 13.0 이미지로 빌드되고,
+    vLLM과 PP-StructureV3 서비스가 추가로 실행됩니다.
     [NVIDIA Container Toolkit][nvidia-toolkit]이 설치되어 있어야 합니다.
 
 [nvidia-toolkit]: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+
+`.env.gpu`에서 GPU 빌드 설정을 변경할 수 있습니다:
+
+| 변수 | 기본값 | 설명 |
+| ------ | -------- | ------ |
+| `BASE_IMAGE` | `nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04` | 베이스 이미지 (양쪽 스테이지 공통) |
+| `TORCH_EXTRA` | `cu130` | PyTorch CUDA 버전 (`cpu`, `cu126`, `cu128`, `cu130`) |
 
 ## 접속 확인
 
@@ -63,14 +73,18 @@ docker compose --profile gpu up -d
 curl http://localhost:15000/api/v1/health
 
 # 서비스 상태 확인
-docker compose ps
+make ps
+# 또는: docker compose ps -a
 ```
 
 ## 중지 및 정리
 
 ```bash
-# 서비스 중지
-docker compose down
+# CPU 모드 중지
+make down
+
+# GPU 모드 중지
+make down-gpu
 
 # 서비스 중지 + 데이터 삭제 (PostgreSQL 데이터 포함)
 docker compose down -v
@@ -103,8 +117,22 @@ docker compose logs postgres
 코드 변경 후 이미지를 갱신하려면:
 
 ```bash
-docker compose up -d --build
+make up
+# 또는: docker compose up -d --build
 ```
+
+## Makefile 명령어 요약
+
+| 명령 | 설명 |
+| ------ | ------ |
+| `make up` | CPU 모드 빌드 + 실행 |
+| `make down` | CPU 모드 중지 |
+| `make up-gpu` | GPU 모드 빌드 + 실행 |
+| `make down-gpu` | GPU 모드 중지 |
+| `make build` | CPU 이미지 빌드만 |
+| `make build-gpu` | GPU 이미지 빌드만 |
+| `make logs` | 로그 스트리밍 |
+| `make ps` | 서비스 상태 확인 |
 
 ## 다음 단계
 

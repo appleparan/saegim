@@ -2,39 +2,51 @@
 
 ## 이미지 빌드
 
-### 백엔드 (CPU)
+### 백엔드
+
+백엔드는 단일 멀티스테이지 Dockerfile로 CPU/GPU 모두 지원합니다.
+빌드 ARG로 모드를 전환합니다.
+
+#### CPU 모드 (기본)
 
 ```bash
-docker build -t saegim-backend \
-  -f saegim-backend/Dockerfile \
-  saegim-backend/
+# 프로덕션 이미지
+docker build -t saegim-backend saegim-backend/
+
+# 개발 이미지 (dev 의존성 포함)
+docker build -t saegim-backend-dev --target development saegim-backend/
 ```
 
-- 베이스: `python:3.13-slim`
-- uv로 의존성 설치 (lock 파일 기반)
-- 비루트 사용자 `appuser` (UID 1000)
-
-### 백엔드 (GPU - source)
+#### GPU 모드
 
 ```bash
+# 프로덕션 GPU 이미지 (CUDA 13.0)
 docker build -t saegim-backend-gpu \
-  -f saegim-backend/Dockerfile.source \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+  --build-arg TORCH_EXTRA=cu130 \
+  saegim-backend/
+
+# 개발 GPU 이미지
+docker build -t saegim-backend-gpu-dev \
+  --target development \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+  --build-arg TORCH_EXTRA=cu130 \
   saegim-backend/
 ```
 
-- 베이스: `nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04`
-- 개발용 (빌드 도구 포함)
+#### 빌드 ARG 설명
 
-### 백엔드 (GPU - package)
+| ARG | 기본값 | 설명 |
+| ------ | -------- | ------ |
+| `BASE_IMAGE` | `ubuntu:noble` | 베이스 이미지 (양쪽 스테이지 공통) |
+| `TORCH_EXTRA` | `cpu` | PyTorch extra (`cpu`, `cu126`, `cu128`, `cu130`) |
 
-```bash
-docker build -t saegim-backend-gpu \
-  -f saegim-backend/Dockerfile.package \
-  saegim-backend/
-```
+#### 빌드 타겟 (Multi-stage)
 
-- 멀티 스테이지 빌드 (builder → runtime)
-- wheel 패키징으로 런타임 이미지 최적화
+| 타겟 | 용도 | 설명 |
+| ------ | ------ | ------ |
+| `development` | 개발 | 전체 소스 + dev 의존성 |
+| `production` | 운영 | 최소 런타임, 프로덕션 deps만 포함 |
 
 ### 프론트엔드
 
@@ -54,10 +66,14 @@ docker build -t saegim-frontend \
 
 | 서비스 | 이미지 | 포트 | 프로파일 |
 | -------- | -------- | ------ | ---------- |
-| `postgres` | `postgres:16` | 5432 | default |
-| `backend` | `Dockerfile` (CPU) | 5000 | default |
-| `backend-gpu` | `Dockerfile.source` (GPU) | 5000 | gpu |
-| `frontend` | `saegim-frontend` | 3000→80 | default |
+| `postgres` | `postgres:18.2-trixie` | 15432→5432 | 기본 |
+| `backend` | `Dockerfile` (CPU/GPU) | 15000→5000 | 기본 |
+| `frontend` | `saegim-frontend` | 13000→80 | 기본 |
+| `ppstructure` | PaddlePaddle | 18811 | `gpu` |
+| `vllm` | `vllm-openai:v0.15.1` | 18000→8000 | `gpu` |
+
+백엔드 이미지의 CPU/GPU 전환은 `BASE_IMAGE`, `TORCH_EXTRA` 환경변수로 제어합니다.
+GPU 서비스(vLLM, ppstructure)는 `--profile gpu`으로 활성화합니다.
 
 ### 네트워크
 
@@ -68,8 +84,9 @@ docker build -t saegim-frontend \
 
 | 볼륨 | 경로 | 설명 |
 | ------ | ------ | ------ |
-| `postgres_data` | `/var/lib/postgresql/data` | PostgreSQL 영구 데이터 |
+| `postgres_data` | `/var/lib/postgresql` | PostgreSQL 영구 데이터 |
 | `./storage` | `/workspace/storage` | PDF 원본 및 페이지 이미지 |
+| `vllm_cache` | `/root/.cache/huggingface` | HuggingFace 모델 캐시 (GPU 모드) |
 
 ### 의존성 순서
 
@@ -80,28 +97,48 @@ postgres (healthy) → backend (healthy) → frontend
 - `postgres`: `pg_isready` healthcheck 통과 후 backend 시작
 - `backend`: `/api/v1/health` healthcheck 통과 후 frontend 시작
 
-## GPU 프로파일
+## CPU/GPU 전환
 
-### 사전 요구사항
+### CPU 모드
+
+```bash
+make up
+# 또는: docker compose up -d --build
+```
+
+### GPU 모드
+
+```bash
+make up-gpu
+# 또는: docker compose --env-file .env --env-file .env.gpu --profile gpu up -d --build
+```
+
+GPU 모드에서는:
+
+1. 백엔드가 CUDA 베이스 이미지로 빌드됨 (`nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04`)
+2. PyTorch가 `--extra cu130`으로 설치됨
+3. vLLM과 PP-StructureV3 서비스가 추가 실행됨
+
+### `.env.gpu` 파일
+
+```bash
+# GPU build settings
+BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
+TORCH_EXTRA=cu130
+```
+
+다른 CUDA 버전을 사용하려면 이 파일을 수정합니다.
+
+### GPU 사전 요구사항
 
 - NVIDIA GPU 드라이버
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-### 실행
-
-```bash
-# GPU 모드 시작
-docker compose --profile gpu up -d
-
-# GPU 모드에서는 backend 대신 backend-gpu가 5000 포트 사용
-docker compose --profile gpu ps
-```
-
-### 확인
+### GPU 확인
 
 ```bash
 # GPU 인식 확인
-docker compose --profile gpu exec backend-gpu nvidia-smi
+docker compose --profile gpu exec backend nvidia-smi
 ```
 
 ## 환경 변수
@@ -110,7 +147,7 @@ docker compose --profile gpu exec backend-gpu nvidia-smi
 
 | 변수 | 기본값 | 설명 |
 | ------ | -------- | ------ |
-| `DATABASE_URL` | `postgresql://labeling:labeling@localhost:15432/labeling` | DB 연결 URL |
+| `DATABASE_URL` | `postgresql://labeling:labeling@postgres:5432/labeling` | DB 연결 URL |
 | `API_HOST` | `0.0.0.0` | 바인드 호스트 |
 | `API_PORT` | `5000` | API 포트 |
 | `DEBUG` | `false` | 디버그 모드 (Swagger UI 활성화) |
@@ -127,12 +164,25 @@ docker compose --profile gpu exec backend-gpu nvidia-smi
 | ------ | -------- | ------ |
 | `VITE_API_URL` | `http://localhost:15000` | 백엔드 API URL (빌드 시점) |
 
+### vLLM 설정 (GPU 모드)
+
+| 변수 | 기본값 | 설명 |
+| ------ | -------- | ------ |
+| `VLLM_MODEL` | `prithivMLmods/chandra-FP8-Latest` | vLLM 모델 |
+| `VLLM_GPU_UTIL` | `0.9` | GPU 메모리 사용률 |
+| `VLLM_MAX_SEQS` | `4` | 최대 동시 시퀀스 |
+| `VLLM_MAX_MODEL_LEN` | `32768` | 최대 모델 길이 |
+| `VLLM_MAX_BATCHED_TOKENS` | `65536` | 최대 배치 토큰 |
+| `HF_CACHE_DIR` | `vllm_cache` (Docker 볼륨) | HuggingFace 캐시 경로 |
+
 ## 헬스체크
 
 | 서비스 | 엔드포인트 | 간격 |
 | -------- | ----------- | ------ |
 | PostgreSQL | `pg_isready -U labeling -d labeling` | 5초 |
-| Backend | `curl http://localhost:15000/api/v1/health` | 10초 |
+| Backend | `curl http://localhost:5000/api/v1/health` | 10초 |
+| vLLM | `curl http://localhost:8000/health` | 30초 |
+| PP-StructureV3 | `curl http://localhost:18811/health` | 10초 |
 | Frontend | nginx 기본 (포트 80) | - |
 
 ## 개발 팁
@@ -151,7 +201,7 @@ docker compose build --no-cache
 
 ```bash
 # 전체 로그
-docker compose logs -f
+make logs
 
 # 특정 서비스
 docker compose logs -f backend
@@ -171,7 +221,7 @@ docker compose exec postgres psql -U labeling -d labeling
 ```bash
 # PostgreSQL 데이터 초기화 후 재시작
 docker compose down -v
-docker compose up -d
+make up
 ```
 
 마이그레이션 SQL은 PostgreSQL 컨테이너 초기화 시 자동 실행됩니다

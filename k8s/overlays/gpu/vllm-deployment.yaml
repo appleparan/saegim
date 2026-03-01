@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: saegim
+  labels:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/component: inference
+    app.kubernetes.io/part-of: saegim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm
+        app.kubernetes.io/component: inference
+        app.kubernetes.io/part-of: saegim
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.15.1
+          args:
+            - "--model"
+            - "prithivMLmods/chandra-FP8-Latest"
+            - "--gpu-memory-utilization"
+            - "0.9"
+            - "--max-num-seqs"
+            - "4"
+            - "--max-model-len"
+            - "32768"
+            - "--max-num-batched-token"
+            - "65536"
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: HF_HOME
+              value: "/root/.cache/huggingface"
+            - name: VLLM_ATTENTION_BACKEND
+              value: "TORCH_SDPA"
+          ports:
+            - containerPort: 8000
+              name: http
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+          resources:
+            requests:
+              cpu: "1"
+              memory: 4Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: 1
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      volumes:
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: vllm-hf-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  namespace: saegim
+  labels:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/component: inference
+    app.kubernetes.io/part-of: saegim
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: vllm

@@ -137,8 +137,16 @@ uv run mkdocs serve
 ## Docker (선택사항)
 
 ```bash
-# 이미지 빌드
-docker build -t saegim-backend -f Dockerfile.source .
+# CPU 이미지 빌드 (프로덕션)
+docker build -t saegim-backend .
+
+# CPU 이미지 빌드 (개발, dev 의존성 포함)
+docker build -t saegim-backend-dev --target development .
+
+# GPU 이미지 빌드 (CUDA 13.0)
+docker build -t saegim-backend-gpu \
+  --build-arg BASE_IMAGE=nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04 \
+  --build-arg TORCH_EXTRA=cu130 .
 
 # 실행
 docker run -p 5000:5000 \

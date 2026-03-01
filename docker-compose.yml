@@ -1,3 +1,9 @@
+# Usage:
+#   CPU mode:  docker compose up -d --build
+#   GPU mode:  docker compose --env-file .env --env-file .env.gpu --profile gpu up -d --build
+#
+# See also: make up / make up-gpu
+
 services:
   postgres:
     image: postgres:18.2-trixie
@@ -24,6 +30,10 @@ services:
     build:
       context: ./saegim-backend
       dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-ubuntu:noble}
+        TORCH_EXTRA: ${TORCH_EXTRA:-cpu}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://labeling:${DB_PASSWORD:-labeling}@postgres:5432/labeling
@@ -62,16 +72,28 @@ services:
     networks:
       - saegim-net
 
-  # Optional: PP-StructureV3 layout detection server
-  # Enable with: docker compose --profile ppstructure up
-  ppstructure:
-    image: registry.baidubce.com/paddlepaddle/paddlex:3.0.1-paddleocr1.1.0
+  # Optional: vLLM server for Chandra OCR
+  # Enable with: docker compose --profile gpu up
+  vllm:
+    image: vllm/vllm-openai:v0.15.1
     profiles:
-      - ppstructure
+      - gpu
     restart: unless-stopped
-    command: paddlex_serving --model PP-StructureV3 --host 0.0.0.0 --port 18811
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      HF_HOME: /root/.cache/huggingface
+      VLLM_ATTENTION_BACKEND: TORCH_SDPA
+    command: >
+      --model ${VLLM_MODEL:-prithivMLmods/chandra-FP8-Latest}
+      --gpu-memory-utilization ${VLLM_GPU_UTIL:-0.9}
+      --max-num-seqs ${VLLM_MAX_SEQS:-4}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-32768}
+      --max-num-batched-token ${VLLM_MAX_BATCHED_TOKENS:-65536}
     ports:
-      - "${PPSTRUCTURE_PORT:-18811}:18811"
+      - "${VLLM_PORT:-18000}:8000"
+    ipc: host
+    volumes:
+      - ${HF_CACHE_DIR:-vllm_cache}:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -80,53 +102,13 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:18811/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
     networks:
       - saegim-net
-
-  # Optional: vLLM server for Chandra OCR
-  # Enable with: docker compose --profile vllm up
-  # vllm:
-  #   image: vllm/vllm-openai:v0.15.1
-  #   profiles:
-  #     - vllm
-  #   restart: unless-stopped
-  #   environment:
-  #     NVIDIA_VISIBLE_DEVICES: all
-  #     HF_HOME: /root/.cache/huggingface
-  #     VLLM_ATTENTION_BACKEND: TORCH_SDPA
-  #   command: >
-  #     --model datalab-to/chandra
-  #     --gpu-memory-utilization 0.8
-  #     --no-enforce-eager
-  #     --max-num-seqs 4
-  #     --dtype bfloat16
-  #     --max-model-len 8192
-  #     --max-num-batched-token 8192
-  #   ports:
-  #     - "${VLLM_PORT:-18000}:8000"
-  #   ipc: host
-  #   volumes:
-  #     - vllm_cache:/root/.cache/huggingface
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: 1
-  #             capabilities: [gpu]
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 20
-  #     start_period: 120s
-  #   networks:
-  #     - saegim-net
 
 volumes:
   postgres_data:

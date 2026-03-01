@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saegim-config
+  namespace: saegim
+data:
+  VLLM_BASE_URL: "http://vllm:8000"

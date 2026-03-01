@@ -54,7 +54,7 @@ PDF 업로드
 모델 이름 기반으로 PP-StructureV3 / vLLM 백엔드를 자동 선택한다:
 
 - `PP-` 접두사 모델 (예: `PP-StructureV3`): PP-StructureV3 + PP-OCR 내장
-- 그 외 모델 (예: `datalab-to/chandra`, `richarddavison/chandra-fp8`): vLLM OpenAI-compatible API
+- 그 외 모델 (예: `datalab-to/chandra`, `prithivMLmods/chandra-FP8-Latest`): vLLM OpenAI-compatible API
 
 ```text
 PDF 업로드
