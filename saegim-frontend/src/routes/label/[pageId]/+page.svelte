@@ -16,13 +16,16 @@
   import { untrack } from 'svelte'
   import { getPage, savePage, extractElementText } from '$lib/api/pages'
   import { listPages, getDocumentStatus, reExtractDocument } from '$lib/api/documents'
+  import { getOcrConfig } from '$lib/api/projects'
   import { ApiError, NetworkError } from '$lib/api/client'
-  import type { DocumentStatus, PageResponse, PageSummary } from '$lib/api/types'
+  import type { DocumentStatus, OcrConfigResponse, PageResponse, PageSummary } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
+  import { engineLabels } from '$lib/utils/ocr'
   import { resolveBackendAssetUrl, resolvePdfUrl } from '$lib/utils/url'
 
   let pageData = $state<PageResponse | null>(null)
+  let ocrConfig = $state<OcrConfigResponse | null>(null)
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
   let documentStatus = $state<DocumentStatus | undefined>(undefined)
@@ -49,6 +52,17 @@
       annotationStore.load(pageId, data.annotation_data)
       canvasStore.setImageDimensions(data.width, data.height)
       imageUrl = resolveBackendAssetUrl(data.image_url)
+
+      // Load OCR config (non-blocking)
+      if (data.project_id) {
+        getOcrConfig(data.project_id)
+          .then((config) => {
+            ocrConfig = config
+          })
+          .catch(() => {
+            ocrConfig = null
+          })
+      }
 
       // Load page list and document status (non-blocking)
       listPages(data.document_id)
@@ -292,6 +306,15 @@
       <span class="text-muted-foreground">{pageData.document_filename ?? '문서'}</span>
       <span class="text-muted-foreground mx-2">/</span>
       <span class="text-foreground font-medium">페이지 {pageData.page_no}</span>
+      {#if ocrConfig}
+        <a
+          href="/projects/{pageData.project_id}/settings"
+          class="bg-muted text-muted-foreground border-border hover:border-primary hover:text-primary ml-auto inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors"
+          title="OCR 엔진 설정"
+        >
+          {engineLabels[ocrConfig.engine_type] ?? ocrConfig.engine_type}
+        </a>
+      {/if}
     </nav>
   {/if}
 

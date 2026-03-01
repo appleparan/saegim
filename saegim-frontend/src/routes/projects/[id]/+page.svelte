@@ -10,10 +10,10 @@
     DocumentResponse,
     PageSummary,
     OcrConfigResponse,
-    EngineType,
   } from '$lib/api/types'
   import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
+  import { engineLabels } from '$lib/utils/ocr'
 
   const POLL_INTERVAL_MS = 5000
 
@@ -26,13 +26,6 @@
   let isUploading = $state(false)
   let expandedDoc = $state<string | null>(null)
   let pollTimer = $state<ReturnType<typeof setInterval> | null>(null)
-
-  const engineLabels: Record<EngineType, string> = {
-    pdfminer: 'pdfminer',
-    commercial_api: 'Gemini API',
-    vllm: 'vLLM',
-    split_pipeline: 'Docling + OCR',
-  }
 
   let fileInput: HTMLInputElement
   let isDragOver = $state(false)
