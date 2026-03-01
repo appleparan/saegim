@@ -11,7 +11,7 @@ saegim 레이블링 플랫폼의 백엔드. FastAPI + asyncpg 기반 REST API �
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **스키마** | Pydantic |
 | **PDF 처리** | pypdfium2 + pdfminer.six |
-| **OCR** | 4종 Strategy 패턴 (Gemini, vLLM/Chandra, PP-StructureV3, pdfminer) |
+| **OCR** | 4종 Strategy 패턴 (Gemini API, vLLM, Docling+OCR, pdfminer) |
 | **포맷터** | ruff format |
 | **린터** | ruff check |
 | **타입 체커** | ty |
@@ -24,7 +24,6 @@ saegim 레이블링 플랫폼의 백엔드. FastAPI + asyncpg 기반 REST API �
 saegim-backend/
 ├── src/saegim/
 │   ├── app.py                    # FastAPI 앱 팩토리
-│   ├── cli.py                    # CLI 진입점
 │   ├── api/
 │   │   └── routes/               # REST 엔드포인트
 │   ├── schemas/                  # Pydantic 모델 (EngineType, OcrConfig 등)
@@ -34,9 +33,10 @@ saegim-backend/
 │   │   │   ├── factory.py        # build_engine() 팩토리
 │   │   │   ├── pdfminer_engine.py
 │   │   │   ├── commercial_api_engine.py
-│   │   │   ├── integrated_server_engine.py
+│   │   │   ├── vllm_engine.py
 │   │   │   └── split_pipeline_engine.py
-│   │   ├── ppstructure_service.py   # PP-StructureV3 HTTP 클라이언트
+│   │   ├── layout_types.py          # LayoutRegion, LayoutDetector Protocol
+│   │   ├── docling_layout_service.py # Docling 레이아웃 감지
 │   │   ├── gemini_ocr_service.py    # Gemini VLM 프로바이더
 │   │   ├── vllm_ocr_service.py      # vLLM 프로바이더 (Chandra 등)
 │   │   └── ocr_pipeline.py          # 2단계 파이프라인 오케스트레이터
