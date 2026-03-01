@@ -12,9 +12,7 @@
 
   let { pageProxy }: Props = $props()
 
-  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let canvasEl: HTMLCanvasElement
-  // eslint-disable-next-line no-unassigned-vars -- Svelte bind:this
   let textLayerEl: HTMLDivElement
   let renderingScale = $state(PDF_BASE_SCALE)
   const TEXT_LAYER_SCALE = PDF_BASE_SCALE
@@ -66,7 +64,6 @@
     }
 
     // Clear previous text layer content — intentional DOM manipulation for PDF.js
-    // eslint-disable-next-line svelte/no-dom-manipulating
     textLayerEl.innerHTML = ''
     textLayerEl.style.width = `${viewport.width}px`
     textLayerEl.style.height = `${viewport.height}px`
