@@ -253,6 +253,55 @@ class TestUpdateOcrConfig:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_update_docling_default(self, client: TestClient, sample_project_record):
+        project_id = sample_project_record['id']
+        with (
+            patch(
+                'saegim.repositories.project_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_project_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.update_ocr_config',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.put(
+                f'/api/v1/projects/{project_id}/ocr-config',
+                json={'engine_type': 'docling'},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['engine_type'] == 'docling'
+
+    def test_update_docling_custom_model(self, client: TestClient, sample_project_record):
+        project_id = sample_project_record['id']
+        with (
+            patch(
+                'saegim.repositories.project_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_project_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.update_ocr_config',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.put(
+                f'/api/v1/projects/{project_id}/ocr-config',
+                json={
+                    'engine_type': 'docling',
+                    'docling': {'model_name': 'custom/model'},
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['engine_type'] == 'docling'
+        assert data['docling']['model_name'] == 'custom/model'
+
     def test_update_invalid_engine_type(
         self,
         client: TestClient,
