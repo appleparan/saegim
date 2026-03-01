@@ -25,6 +25,8 @@ bun run test:health        # health check
 bun run test:extraction    # pdfminer 추출 → 수락 워크플로우
 bun run test:ocr-config    # OCR 엔진 설정 API
 bun run test:attribute     # 속성 분류기
+bun run test:reading-order # 읽기 순서 CRUD
+bun run test:relations     # 관계 CRUD
 bun run test:benchmark     # API 벤치마크
 
 # 4. 정리
@@ -86,6 +88,8 @@ e2e/
 │   ├── extraction.test.ts          # pdfminer 추출 → 수락 워크플로우
 │   ├── ocr-config.test.ts          # OCR 엔진 설정 API (engine_type CRUD + validation)
 │   ├── attribute-classifier.test.ts  # 속성 분류기
+│   ├── reading-order.test.ts       # 읽기 순서 CRUD + 유효성 검증
+│   ├── relations.test.ts           # 관계 CRUD + 충돌 검증
 │   ├── benchmark.test.ts           # API 응답시간 벤치마크
 │   └── gpu/
 │       ├── vllm-extraction.test.ts       # vLLM chandra 추출 (GPU 전용)
