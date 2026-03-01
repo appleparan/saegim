@@ -1,5 +1,6 @@
 <script lang="ts">
   import { annotationStore } from '$lib/stores/annotation.svelte'
+  import { canvasStore } from '$lib/stores/canvas.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import { getCategoryColor } from '$lib/utils/color'
   import { CATEGORY_LABELS } from '$lib/types/categories'
@@ -100,6 +101,16 @@
       {annotationStore.elements.length}개 요소
     </p>
   </div>
+  <!-- svelte-ignore a11y_label_has_associated_control -->
+  <label class="flex cursor-pointer items-center gap-1.5" title="순서 표시 (O)">
+    <input
+      type="checkbox"
+      class="accent-primary h-3.5 w-3.5 rounded"
+      checked={canvasStore.showReadingOrder}
+      onchange={() => canvasStore.toggleReadingOrder()}
+    />
+    <span class="text-muted-foreground text-xs">순서</span>
+  </label>
 </div>
 
 <div class="flex-1 overflow-y-auto p-1.5">
