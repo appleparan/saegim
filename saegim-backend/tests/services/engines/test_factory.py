@@ -69,6 +69,25 @@ class TestBuildEngine:
         with pytest.raises(ValueError, match='Unknown engine_type'):
             build_engine({'some_key': 'value'})
 
+    def test_docling_engine(self):
+        config = {'engine_type': 'docling'}
+        engine = build_engine(config)
+        from saegim.services.engines.docling_engine import DoclingEngine
+
+        assert isinstance(engine, DoclingEngine)
+        assert engine.model_name == 'ibm-granite/granite-docling-258M'
+
+    def test_docling_engine_custom_model(self):
+        config = {
+            'engine_type': 'docling',
+            'docling': {'model_name': 'custom/model'},
+        }
+        engine = build_engine(config)
+        from saegim.services.engines.docling_engine import DoclingEngine
+
+        assert isinstance(engine, DoclingEngine)
+        assert engine.model_name == 'custom/model'
+
 
 class TestSplitPipelineOcrConfigExtraction:
     @patch(f'{_MODULE}._build_split_pipeline')

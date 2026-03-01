@@ -25,7 +25,7 @@ class ProjectResponse(BaseModel):
 
 # --- OCR Config schemas ---
 
-EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer']
+EngineType = Literal['commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer', 'docling']
 CommercialApiProvider = Literal['gemini', 'vllm']
 GeminiModel = Literal[
     'gemini-3.1-pro-preview',
@@ -81,6 +81,15 @@ class SplitPipelineConfig(BaseModel):
     )
 
 
+class DoclingConfig(BaseModel):
+    """Docling layout detection engine configuration."""
+
+    model_name: str = Field(
+        default='ibm-granite/granite-docling-258M',
+        description='HuggingFace model identifier',
+    )
+
+
 class OcrConfigUpdate(BaseModel):
     """Schema for updating project OCR configuration.
 
@@ -91,6 +100,7 @@ class OcrConfigUpdate(BaseModel):
     commercial_api: CommercialApiConfig | None = None
     integrated_server: IntegratedServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
+    docling: DoclingConfig | None = None
 
 
 class OcrConfigResponse(BaseModel):
@@ -100,6 +110,7 @@ class OcrConfigResponse(BaseModel):
     commercial_api: CommercialApiConfig | None = None
     integrated_server: IntegratedServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
+    docling: DoclingConfig | None = None
 
 
 class OcrConnectionTestResponse(BaseModel):

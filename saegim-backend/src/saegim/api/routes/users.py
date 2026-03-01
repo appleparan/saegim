@@ -32,7 +32,7 @@ async def create_user(body: UserCreate) -> UserResponse:
                 detail='User with this email already exists',
             ) from e
         raise
-    return UserResponse(**dict(record))
+    return UserResponse.model_validate(dict(record))
 
 
 @router.get('/users', response_model=list[UserResponse])
@@ -44,4 +44,4 @@ async def list_users() -> list[UserResponse]:
     """
     pool = get_pool()
     records = await user_repo.list_all(pool)
-    return [UserResponse(**dict(r)) for r in records]
+    return [UserResponse.model_validate(dict(r)) for r in records]

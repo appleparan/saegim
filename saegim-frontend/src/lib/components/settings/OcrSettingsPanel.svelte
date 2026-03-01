@@ -40,6 +40,9 @@
   let isPort = $state(8000)
   let isModel = $state('datalab-to/chandra')
 
+  // Docling state
+  let dlModelName = $state('ibm-granite/granite-docling-258M')
+
   // Split pipeline state
   let spLayoutUrl = $state('http://localhost:18811')
   let spOcrProvider = $state<SplitPipelineOcrProvider>('gemini')
@@ -58,6 +61,8 @@
     isHost = config.integrated_server?.host ?? 'localhost'
     isPort = config.integrated_server?.port ?? 8000
     isModel = config.integrated_server?.model ?? 'datalab-to/chandra'
+    // Docling
+    dlModelName = config.docling?.model_name ?? 'ibm-granite/granite-docling-258M'
     // Split pipeline
     spLayoutUrl = config.split_pipeline?.layout_server_url ?? 'http://localhost:18811'
     spOcrProvider = config.split_pipeline?.ocr_provider ?? 'gemini'
@@ -69,6 +74,7 @@
 
   let isValid = $derived.by(() => {
     if (engineType === 'pdfminer') return true
+    if (engineType === 'docling') return dlModelName.trim().length > 0
     if (engineType === 'commercial_api') {
       if (caProvider === 'gemini') return caApiKey.trim().length > 0
       return false
@@ -88,6 +94,11 @@
   const engineTypes: { value: EngineType; label: string; description: string }[] = [
     { value: 'pdfminer', label: 'pdfminer', description: '기본 텍스트 추출 (Fallback/CI)' },
     {
+      value: 'docling',
+      label: 'Docling',
+      description: 'Granite Docling 258M 레이아웃 감지',
+    },
+    {
       value: 'commercial_api',
       label: '상업용 VLM API',
       description: 'Gemini 등 Full-page OCR',
@@ -104,11 +115,17 @@
     },
   ]
 
-  let needsConnectionTest = $derived(engineType !== 'pdfminer')
+  let needsConnectionTest = $derived(engineType !== 'pdfminer' && engineType !== 'docling')
 
   function buildConfig(): OcrConfigUpdate {
     if (engineType === 'pdfminer') {
       return { engine_type: 'pdfminer' }
+    }
+    if (engineType === 'docling') {
+      return {
+        engine_type: 'docling',
+        docling: { model_name: dlModelName.trim() },
+      }
     }
     if (engineType === 'commercial_api') {
       return {
@@ -169,6 +186,26 @@
       {/each}
     </div>
   </div>
+
+  <!-- Docling Config -->
+  {#if engineType === 'docling'}
+    <div class="bg-muted border-border space-y-3 rounded-lg border p-4">
+      <h4 class="text-foreground text-sm font-medium">Granite Docling</h4>
+      <div>
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="dl-model-name">
+          모델
+        </label>
+        <input
+          id="dl-model-name"
+          type="text"
+          class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3
+            py-2 text-sm focus:ring-1"
+          placeholder="ibm-granite/granite-docling-258M"
+          bind:value={dlModelName}
+        />
+      </div>
+    </div>
+  {/if}
 
   <!-- Commercial API Config -->
   {#if engineType === 'commercial_api'}

@@ -29,7 +29,7 @@ async def create_project(body: ProjectCreate) -> ProjectResponse:
     """
     pool = get_pool()
     record = await project_repo.create(pool, name=body.name, description=body.description)
-    return ProjectResponse(**dict(record))
+    return ProjectResponse.model_validate(dict(record))
 
 
 @router.get('/projects', response_model=list[ProjectResponse])
@@ -41,7 +41,7 @@ async def list_projects() -> list[ProjectResponse]:
     """
     pool = get_pool()
     records = await project_repo.list_all(pool)
-    return [ProjectResponse(**dict(r)) for r in records]
+    return [ProjectResponse.model_validate(dict(r)) for r in records]
 
 
 @router.get('/projects/{project_id}', response_model=ProjectResponse)
@@ -61,7 +61,7 @@ async def get_project(project_id: uuid.UUID) -> ProjectResponse:
     record = await project_repo.get_by_id(pool, project_id)
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
-    return ProjectResponse(**dict(record))
+    return ProjectResponse.model_validate(dict(record))
 
 
 @router.delete('/projects/{project_id}', status_code=status.HTTP_204_NO_CONTENT)

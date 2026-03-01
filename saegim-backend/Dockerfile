@@ -29,7 +29,7 @@ ENV UV_PROJECT_ENVIRONMENT=/workspace/.venv
 RUN --mount=type=cache,target=/tmp/uv-cache \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked
+    uv sync --locked --extra cpu
 
 # Set venv on PATH (no uv run needed at runtime)
 ENV VIRTUAL_ENV=/workspace/.venv \

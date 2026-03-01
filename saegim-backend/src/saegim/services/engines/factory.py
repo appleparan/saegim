@@ -37,7 +37,10 @@ def build_engine(ocr_config: dict[str, Any]) -> BaseOCREngine:
     if engine_type == 'split_pipeline':
         return _build_split_pipeline(ocr_config.get('split_pipeline', {}))
 
-    valid = "'commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer'"
+    if engine_type == 'docling':
+        return _build_docling(ocr_config.get('docling', {}))
+
+    valid = "'commercial_api', 'integrated_server', 'split_pipeline', 'pdfminer', 'docling'"
     msg = f"Unknown engine_type: '{engine_type}'. Use {valid}."
     raise ValueError(msg)
 
@@ -108,3 +111,18 @@ def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:
         ocr_provider=ocr_provider,
         ocr_config=ocr_config,
     )
+
+
+def _build_docling(config: dict[str, Any]) -> BaseOCREngine:
+    """Build a Docling layout detection engine.
+
+    Args:
+        config: Docling config with optional 'model_name'.
+
+    Returns:
+        DoclingEngine instance.
+    """
+    from saegim.services.engines.docling_engine import DoclingEngine
+
+    model_name = config.get('model_name', 'ibm-granite/granite-docling-258M')
+    return DoclingEngine(model_name=model_name)

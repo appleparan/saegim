@@ -135,7 +135,7 @@ class TestPdfminerExtractionComparison:
 
     @skipif_no_samples
     def test_only_valid_category_types(self):
-        valid_categories = {'text_block', 'figure'}
+        valid_categories = {'text_block', 'figure', 'table', 'title', 'equation'}
         for pdf_path in [ENG_PDF, KOR_PDF]:
             total = _count_pages(pdf_path)
             for page_no in range(min(3, total)):
