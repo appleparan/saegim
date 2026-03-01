@@ -239,6 +239,35 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 }
 ```
 
+### `POST /api/v1/documents/{document_id}/re-extract`
+
+현재 프로젝트의 OCR 엔진으로 문서의 모든 페이지를 재추출합니다.
+기존 `annotation_data`는 유지되고, `auto_extracted_data`만 갱신됩니다.
+pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운드 태스크로 실행됩니다.
+
+**응답:** `200 OK`
+
+```json
+{
+  "id": "660e8400-e29b-41d4-a716-446655440000",
+  "status": "extracting",
+  "total_pages": 12,
+  "processed_pages": 0
+}
+```
+
+!!! note "상태 변화"
+    pdfminer 엔진의 경우 동기 처리 후 `status: "ready"`로 반환됩니다.
+    그 외 엔진은 `status: "extracting"`으로 반환되며, 추출 완료 후 `ready`로 변경됩니다.
+    진행률은 `GET /documents/{id}/status`로 폴링할 수 있습니다.
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 문서를 찾을 수 없음 |
+| `409` | 이미 추출 진행 중 |
+
 ### `GET /api/v1/documents/{document_id}/pages`
 
 문서의 페이지 목록 조회 (어노테이션 데이터 미포함, 경량).
@@ -377,6 +406,20 @@ pdfminer.six로 텍스트/이미지 블록을 추출하여 `auto_extracted_data`
 | 코드 | 설명 |
 | ------ | ------ |
 | `409` | `auto_extracted_data`가 없거나, `annotation_data`에 이미 요소가 존재함 |
+
+### `POST /api/v1/pages/{page_id}/force-accept-extraction`
+
+자동 추출 결과(`auto_extracted_data`)를 `annotation_data`로 강제 복사합니다.
+기존 `accept-extraction`과 달리, `annotation_data`에 이미 요소가 존재해도 덮어씁니다.
+재추출 후 새로운 OCR 결과로 기존 주석을 대체할 때 사용합니다.
+
+**응답:** `200 OK` - 업데이트된 페이지 데이터
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `409` | `auto_extracted_data`가 없음 |
 
 ### `POST /api/v1/pages/{page_id}/extract-text`
 

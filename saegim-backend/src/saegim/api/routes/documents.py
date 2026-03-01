@@ -96,6 +96,50 @@ async def upload_document(
     )
 
 
+@router.post('/documents/{document_id}/re-extract', response_model=DocumentStatusResponse)
+async def re_extract_document(document_id: uuid.UUID) -> DocumentStatusResponse:
+    """Re-run extraction on all pages using the current OCR engine.
+
+    Useful after changing the project's OCR engine to re-scan
+    existing documents with the new engine.
+
+    Args:
+        document_id: Document UUID.
+
+    Returns:
+        DocumentStatusResponse: Updated document status.
+
+    Raises:
+        HTTPException: If document not found or already extracting.
+    """
+    from saegim.services import document_service
+
+    pool = get_pool()
+
+    try:
+        result = await document_service.re_extract(pool, document_id)
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Document not found',
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    doc = await document_repo.get_by_id(pool, document_id)
+    total_pages = int(doc['total_pages'] or 0) if doc else 0
+
+    return DocumentStatusResponse(
+        id=document_id,
+        status=result['status'],
+        total_pages=total_pages,
+        processed_pages=total_pages if result['status'] == 'ready' else 0,
+    )
+
+
 @router.delete('/documents/{document_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(document_id: uuid.UUID) -> None:
     """Delete a document and its storage files.

@@ -161,6 +161,27 @@ PDF 업로드
 - `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `IntegratedServerConfig`, `SplitPipelineConfig`
 - `OcrSettingsPanel.svelte`: 엔진 타입 선택 카드 UI + 연결 테스트
 
+## 재추출 (Re-extract)
+
+OCR 엔진을 변경한 후 기존 문서를 새 엔진으로 재추출할 수 있다.
+
+```text
+라벨 페이지 좌측 패널의 "전체 재스캔" 버튼 클릭
+  → POST /documents/{id}/re-extract
+  → document_service.re_extract()
+     1. 문서 상태 확인 (이미 extracting이면 409)
+     2. 프로젝트 OCR 설정 로드 (_resolve_ocr_config)
+     3. page_repo.list_for_extraction()으로 페이지 목록 조회
+     4. 엔진 타입에 따라 동기/비동기 추출
+  → auto_extracted_data만 갱신 (annotation_data는 유지)
+  → 프론트엔드: 3초 간격 폴링 (extracting → ready)
+  → 완료 후 ExtractionPreview에서 수락/강제 수락 가능
+```
+
+**강제 수락**: 재추출 후 기존 어노테이션이 있는 경우,
+`POST /pages/{id}/force-accept-extraction`으로 기존 주석을 새 추출 결과로 대체할 수 있다.
+기존 `accept-extraction`과 달리 `annotation_data` 비어있는지 체크하지 않는다.
+
 ## 후보 도구 비교
 
 | 도구 | 특징 | 장점 | 단점 | 상태 |

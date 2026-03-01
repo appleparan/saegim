@@ -343,23 +343,28 @@ PDF.js `PDFPageProxy`를 `<canvas>`에 벡터 렌더링한다. `PDF_BASE_SCALE`(
 
 자동 추출 결과 프리뷰 배너. LabelingPage 좌측에 표시.
 
-3가지 상태:
+4가지 상태:
 
 1. **추출 중** (`documentStatus === 'extracting'`): 스피너 + "OCR 추출 진행 중..." 메시지
 2. **결과 없음** (auto_extracted_data 없고 어노테이션도 비어있을 때): "자동 추출 결과가 없습니다" + OCR 설정 링크
-3. **결과 있음** (auto_extracted_data 있고 어노테이션 비어있을 때): 요소 수 표시 + 수락/무시 버튼
+3. **수락 대기** (auto_extracted_data 있고 어노테이션 비어있을 때): 요소 수 표시 + 수락/무시 버튼 (파란색 테마)
+4. **강제 수락 대기** (auto_extracted_data 있고 어노테이션이 존재할 때): 요소 수 표시 + "수락하면 기존 주석이 대체됩니다" 경고 + 수락/무시 버튼 (보라색 테마)
 
 - 추출된 요소 수 표시 (텍스트 N개, 이미지 N개 — 총 N개 요소)
-- "수락" 버튼 → `acceptExtraction()` API 호출 → 어노테이션 갱신
+- "수락" 버튼 → `acceptExtraction()` 또는 `forceAcceptExtraction()` API 호출 → 어노테이션 갱신
 - "무시" 버튼 → 배너 닫기 (세션 내 `dismissed` 상태)
 - × 버튼으로도 닫기 가능
+- "전체 재스캔" 버튼 → 현재 OCR 엔진으로 문서 전체 재추출 (`reExtractDocument()`)
 
 | Prop | Type | 설명 |
 | ------ | ------ | ------ |
 | `pageId` | `string` | 페이지 UUID |
 | `autoExtractedData` | `AnnotationData \| null` | 자동 추출 데이터 |
+| `annotationData` | `AnnotationData \| null` | 현재 어노테이션 데이터 |
+| `documentId` | `string` | 문서 UUID (재추출용) |
 | `documentStatus` | `DocumentStatus?` | 문서 처리 상태 |
 | `onAccepted` | `(data: AnnotationData) => void` | 수락 후 콜백 |
+| `onReExtract` | `() => void` | 재스캔 요청 콜백 |
 
 ### TextEditor
 

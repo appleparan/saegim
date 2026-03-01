@@ -145,6 +145,32 @@ async def accept_extraction(page_id: uuid.UUID) -> PageResponse:
     return PageResponse(**result)
 
 
+@router.post('/pages/{page_id}/force-accept-extraction', response_model=PageResponse)
+async def force_accept_extraction(page_id: uuid.UUID) -> PageResponse:
+    """Force-accept auto-extracted data, overwriting existing annotations.
+
+    Unlike accept-extraction, this replaces annotation_data even when
+    the page already has annotations.
+
+    Args:
+        page_id: Page UUID.
+
+    Returns:
+        PageResponse: Updated page data with accepted annotations.
+
+    Raises:
+        HTTPException: If page not found or no auto-extracted data.
+    """
+    pool = get_pool()
+    result = await labeling_service.force_accept_auto_extraction(pool, page_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Cannot accept: no auto-extracted data available',
+        )
+    return PageResponse(**result)
+
+
 @router.post('/pages/{page_id}/extract-text', response_model=ExtractTextResponse)
 async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractTextResponse:
     """Extract text from a drawn region using OCR.

@@ -124,3 +124,72 @@ class TestDocumentEndpoints:
             response = client.get(f'/api/v1/documents/{doc_id}/pages')
 
         assert response.status_code == status.HTTP_200_OK
+
+
+class TestReExtractEndpoint:
+    """Test cases for document re-extract API endpoint."""
+
+    def test_re_extract_not_found(self, client: TestClient):
+        with patch(
+            'saegim.services.document_service.re_extract',
+            new_callable=AsyncMock,
+            side_effect=LookupError('Document not found'),
+        ):
+            response = client.post(
+                '/api/v1/documents/00000000-0000-0000-0000-000000000000/re-extract'
+            )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_re_extract_already_extracting(self, client: TestClient, sample_document_record):
+        doc_id = sample_document_record['id']
+        with patch(
+            'saegim.services.document_service.re_extract',
+            new_callable=AsyncMock,
+            side_effect=ValueError('already extracting'),
+        ):
+            response = client.post(f'/api/v1/documents/{doc_id}/re-extract')
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_re_extract_success_ready(self, client: TestClient, sample_document_record):
+        doc_id = sample_document_record['id']
+        with (
+            patch(
+                'saegim.services.document_service.re_extract',
+                new_callable=AsyncMock,
+                return_value={'id': doc_id, 'status': 'ready'},
+            ),
+            patch(
+                'saegim.repositories.document_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_document_record,
+            ),
+        ):
+            response = client.post(f'/api/v1/documents/{doc_id}/re-extract')
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['status'] == 'ready'
+        assert data['total_pages'] == 5
+
+    def test_re_extract_success_extracting(self, client: TestClient, sample_document_record):
+        doc_id = sample_document_record['id']
+        with (
+            patch(
+                'saegim.services.document_service.re_extract',
+                new_callable=AsyncMock,
+                return_value={'id': doc_id, 'status': 'extracting'},
+            ),
+            patch(
+                'saegim.repositories.document_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=sample_document_record,
+            ),
+        ):
+            response = client.post(f'/api/v1/documents/{doc_id}/re-extract')
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['status'] == 'extracting'
+        assert data['processed_pages'] == 0

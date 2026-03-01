@@ -118,6 +118,29 @@ async def list_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> list[a
     )
 
 
+async def list_for_extraction(
+    pool: asyncpg.Pool,
+    document_id: uuid.UUID,
+) -> list[asyncpg.Record]:
+    """List page info needed for re-extraction.
+
+    Args:
+        pool: Database connection pool.
+        document_id: Parent document UUID.
+
+    Returns:
+        list[asyncpg.Record]: Pages with id, page_no, width, height, image_path.
+    """
+    return await pool.fetch(
+        """
+        SELECT id, page_no, width, height, image_path
+        FROM pages WHERE document_id = $1
+        ORDER BY page_no
+        """,
+        document_id,
+    )
+
+
 async def count_processed_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> int:
     """Count pages that already have auto extraction data.
 
@@ -302,6 +325,35 @@ async def accept_auto_extracted(
             OR NOT (annotation_data ? 'layout_dets')
             OR jsonb_array_length(COALESCE(annotation_data->'layout_dets', '[]'::jsonb)) = 0
           )
+        RETURNING id, document_id, page_no, width, height, image_path,
+                  annotation_data, auto_extracted_data, status, assigned_to,
+                  locked_at, updated_at
+        """,
+        page_id,
+    )
+
+
+async def force_accept_auto_extracted(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+) -> asyncpg.Record | None:
+    """Copy auto_extracted_data to annotation_data unconditionally.
+
+    Unlike ``accept_auto_extracted``, this overwrites existing annotation_data.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+
+    Returns:
+        asyncpg.Record or None: Updated page record, or None if no auto data.
+    """
+    return await pool.fetchrow(
+        """
+        UPDATE pages
+        SET annotation_data = auto_extracted_data, updated_at = NOW()
+        WHERE id = $1
+          AND auto_extracted_data IS NOT NULL
         RETURNING id, document_id, page_no, width, height, image_path,
                   annotation_data, auto_extracted_data, status, assigned_to,
                   locked_at, updated_at
