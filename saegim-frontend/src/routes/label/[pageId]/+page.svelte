@@ -331,6 +331,7 @@
           title="OCR 엔진 설정"
         >
           {engineLabels[ocrConfig.engine_type] ?? ocrConfig.engine_type}
+          <span class="text-muted-foreground/70 ml-1 text-[10px]">(기본)</span>
         </a>
       {/if}
     </nav>
