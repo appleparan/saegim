@@ -23,18 +23,36 @@ logger = logging.getLogger(__name__)
 _GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
 
+class _SafeFormatDict(dict):
+    """Dict subclass that returns the key placeholder for missing keys.
+
+    Used with str.format_map to safely format user-provided prompt templates
+    that may not contain all expected placeholders.
+    """
+
+    def __missing__(self, key: str) -> str:
+        return f'{{{key}}}'
+
+
 class GeminiOcrProvider:
     """OCR provider using Google Gemini API."""
 
-    def __init__(self, api_key: str, model: str = 'gemini-3-flash-preview') -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str = 'gemini-3-flash-preview',
+        custom_prompt: str = '',
+    ) -> None:
         """Initialize Gemini OCR provider.
 
         Args:
             api_key: Google Gemini API key.
             model: Gemini model name.
+            custom_prompt: Custom OCR prompt. Empty string uses default.
         """
         self._api_key = api_key
         self._model = model
+        self._custom_prompt = custom_prompt
 
     def extract_page(
         self,
@@ -55,7 +73,12 @@ class GeminiOcrProvider:
         Raises:
             RuntimeError: If Gemini API call fails.
         """
-        prompt = STRUCTURED_OCR_PROMPT.format(width=page_width, height=page_height)
+        if self._custom_prompt:
+            prompt = self._custom_prompt.format_map(
+                _SafeFormatDict(width=page_width, height=page_height),
+            )
+        else:
+            prompt = STRUCTURED_OCR_PROMPT.format(width=page_width, height=page_height)
         image_data = image_path.read_bytes()
         image_b64 = base64.b64encode(image_data).decode('utf-8')
 

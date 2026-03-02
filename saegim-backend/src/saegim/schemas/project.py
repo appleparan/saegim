@@ -29,9 +29,8 @@ class ProjectResponse(BaseModel):
 EngineType = Literal['commercial_api', 'vllm', 'split_pipeline', 'pdfminer']
 CommercialApiProvider = Literal['gemini', 'vllm']
 GeminiModel = Literal[
-    'gemini-3.1-pro-preview',
-    'gemini-3-pro-preview',
     'gemini-3-flash-preview',
+    'gemini-3.1-pro-preview',
 ]
 SplitPipelineOcrProvider = Literal['gemini', 'vllm']
 
@@ -42,6 +41,10 @@ class CommercialApiConfig(BaseModel):
     provider: CommercialApiProvider = Field(description='VLM provider type')
     api_key: str = Field(default='', description='API key')
     model: str = Field(default='gemini-3-flash-preview', description='Model name')
+    prompt: str = Field(
+        default='',
+        description='Custom OCR prompt. Empty = default structured prompt.',
+    )
 
 
 class VllmServerConfig(BaseModel):

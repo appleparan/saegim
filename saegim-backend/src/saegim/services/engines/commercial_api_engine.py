@@ -26,7 +26,7 @@ class CommercialApiEngine(BaseOCREngine):
     Args:
         provider: VLM provider type ('gemini'; 'vllm' reserved for future).
         config: Provider-specific configuration dict.
-            For gemini: {'api_key': str, 'model': str}
+            For gemini: {'api_key': str, 'model': str, 'prompt': str}
     """
 
     def __init__(self, provider: CommercialProvider, config: dict[str, Any]) -> None:
@@ -93,6 +93,7 @@ def _create_provider(
         return GeminiOcrProvider(
             api_key=config['api_key'],
             model=config.get('model', 'gemini-3-flash-preview'),
+            custom_prompt=config.get('prompt', ''),
         )
 
     msg = f"Unknown commercial API provider: '{provider}'. Currently only 'gemini' is supported."
