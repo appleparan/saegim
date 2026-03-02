@@ -177,10 +177,11 @@ async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractT
 
     Crops the specified polygon region from the page image and sends it
     to the project's configured text OCR provider for recognition.
+    Optionally overrides the engine type via body.engine_type.
 
     Args:
         page_id: Page UUID.
-        body: Region polygon and category type.
+        body: Region polygon, category type, and optional engine override.
 
     Returns:
         ExtractTextResponse: Extracted text.
@@ -192,7 +193,9 @@ async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractT
     pool = get_pool()
 
     try:
-        image_path, text_provider = await resolve_text_provider(pool, page_id)
+        image_path, text_provider = await resolve_text_provider(
+            pool, page_id, engine_type_override=body.engine_type
+        )
     except LookupError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

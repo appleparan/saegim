@@ -140,6 +140,10 @@ class ExtractTextRequest(BaseModel):
 
     poly: list[float] = Field(min_length=8, max_length=8)
     category_type: str = Field(default='text_block')
+    engine_type: str | None = Field(
+        default=None,
+        description='Override engine type for this extraction. Uses project default if omitted.',
+    )
 
 
 class ExtractTextResponse(BaseModel):
