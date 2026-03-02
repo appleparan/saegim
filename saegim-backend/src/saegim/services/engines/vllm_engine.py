@@ -30,7 +30,7 @@ class VllmEngine(BaseOCREngine):
         self,
         host: str = 'localhost',
         port: int = 8000,
-        model: str = 'datalab-to/chandra',
+        model: str = 'lightonai/LightOnOCR-2-1B-bbox-soup',
     ) -> None:
         """Initialize the vLLM engine.
 
