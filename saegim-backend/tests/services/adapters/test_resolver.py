@@ -2,6 +2,7 @@
 
 from saegim.services.adapters.chandra import ChandraAdapter
 from saegim.services.adapters.lightonocr import LightOnOcrAdapter
+from saegim.services.adapters.paddleocr_vl import PaddleOcrVlAdapter
 from saegim.services.adapters.resolver import resolve_adapter
 
 
@@ -29,3 +30,15 @@ class TestResolveAdapter:
     def test_lightonocr_case_insensitive(self):
         adapter = resolve_adapter('LIGHTONAI/LIGHTONOCR-2-1B')
         assert isinstance(adapter, LightOnOcrAdapter)
+
+    def test_paddleocr_vl_full_name(self):
+        adapter = resolve_adapter('PaddlePaddle/PaddleOCR-VL')
+        assert isinstance(adapter, PaddleOcrVlAdapter)
+
+    def test_paddleocr_vl_case_insensitive(self):
+        adapter = resolve_adapter('paddlepaddle/paddleocr-vl')
+        assert isinstance(adapter, PaddleOcrVlAdapter)
+
+    def test_paddleocr_vl_underscore(self):
+        adapter = resolve_adapter('custom/paddleocr_vl_model')
+        assert isinstance(adapter, PaddleOcrVlAdapter)
