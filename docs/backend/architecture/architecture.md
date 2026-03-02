@@ -303,9 +303,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
   - Layer 1: PDF.js `<canvas>` 벡터 렌더링 (폴백: `<img>` 래스터 이미지)
   - Layer 2: Konva.js 캔버스 (이미지 블록 bbox + 선택된 요소)
   - Layer 3: DOM TextOverlay (텍스트 블록 — 이미지 폴백 모드만)
-- **아이콘 기반 컴팩트 툴바**: 선택(S)/그리기(D)/이동(H) + 줌 퍼센트 표시
+- **아이콘 기반 컴팩트 툴바**: 선택(1)/그리기(2)/이동(3) + 줌 퍼센트 표시
 - 사이드 패널: 선택한 요소의 category, attribute, text/latex/html 편집
-- PageNavigator: 다중 페이지 문서에서 `[`/`]` 키 또는 화살표로 페이지 이동
+- PageNavigator: 다중 페이지 문서에서 `Q`/`E` 키 또는 화살표로 페이지 이동
 - ExtractionPreview: OCR 추출 상태 표시 + 결과 수락/무시
 
 상세: [레이블링 워크플로우](../../architecture/labeling-workflow.md)

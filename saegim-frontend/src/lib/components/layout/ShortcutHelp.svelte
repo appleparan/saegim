@@ -18,33 +18,33 @@
     {
       label: '도구',
       items: [
-        { key: 'S', description: '선택' },
-        { key: 'D', description: '그리기' },
-        { key: 'H', description: '이동' },
+        { key: '1', description: '선택' },
+        { key: '2', description: '그리기' },
+        { key: '3', description: '이동' },
       ],
     },
     {
       label: '편집',
       items: [
         { key: `${modKey}+S`, description: '저장' },
-        { key: 'Del / ⌫', description: '요소 삭제' },
+        { key: 'X', description: '요소 삭제' },
       ],
     },
     {
       label: '보기',
-      items: [{ key: 'O', description: '읽기 순서 토글' }],
+      items: [{ key: 'R', description: '읽기 순서 토글' }],
     },
     {
       label: '탐색',
       items: [
-        { key: '[', description: '이전 페이지' },
-        { key: ']', description: '다음 페이지' },
+        { key: 'Q', description: '이전 페이지' },
+        { key: 'E', description: '다음 페이지' },
         { key: 'Esc', description: '선택 해제' },
       ],
     },
     {
       label: '도움말',
-      items: [{ key: '?', description: '이 도움말' }],
+      items: [{ key: '`', description: '이 도움말' }],
     },
   ] as const
 </script>

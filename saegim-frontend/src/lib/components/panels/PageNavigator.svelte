@@ -65,7 +65,7 @@
         class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         disabled={!hasPrev}
         onclick={prevPage}
-        title="이전 페이지 ([)"
+        title="이전 페이지 (Q)"
       >
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -78,7 +78,7 @@
         class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         disabled={!hasNext}
         onclick={nextPage}
-        title="다음 페이지 (])"
+        title="다음 페이지 (E)"
       >
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
