@@ -16,9 +16,16 @@
   import { untrack } from 'svelte'
   import { getPage, savePage, extractElementText } from '$lib/api/pages'
   import { listPages, getDocumentStatus, reExtractDocument } from '$lib/api/documents'
-  import { getOcrConfig } from '$lib/api/projects'
+  import { getOcrConfig, getAvailableEngines } from '$lib/api/projects'
   import { ApiError, NetworkError } from '$lib/api/client'
-  import type { DocumentStatus, OcrConfigResponse, PageResponse, PageSummary } from '$lib/api/types'
+  import type {
+    AvailableEngine,
+    DocumentStatus,
+    EngineType,
+    OcrConfigResponse,
+    PageResponse,
+    PageSummary,
+  } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
   import { engineLabels } from '$lib/utils/ocr'
@@ -26,6 +33,7 @@
 
   let pageData = $state<PageResponse | null>(null)
   let ocrConfig = $state<OcrConfigResponse | null>(null)
+  let availableEngines = $state<readonly AvailableEngine[]>([])
   let currentPageProxy = $state<PDFPageProxy | null>(null)
   let documentPages = $state<readonly PageSummary[]>([])
   let documentStatus = $state<DocumentStatus | undefined>(undefined)
@@ -53,7 +61,7 @@
       canvasStore.setImageDimensions(data.width, data.height)
       imageUrl = resolveBackendAssetUrl(data.image_url)
 
-      // Load OCR config (non-blocking)
+      // Load OCR config and available engines (non-blocking)
       if (data.project_id) {
         getOcrConfig(data.project_id)
           .then((config) => {
@@ -61,6 +69,13 @@
           })
           .catch(() => {
             ocrConfig = null
+          })
+        getAvailableEngines(data.project_id)
+          .then((result) => {
+            availableEngines = result.engines
+          })
+          .catch(() => {
+            availableEngines = []
           })
       }
 
@@ -175,15 +190,18 @@
     }
   }
 
-  async function handleOcrRequest(annoId: number) {
+  async function handleOcrRequest(annoId: number, engineType?: EngineType) {
     const pageId = page.params.pageId
     if (!pageId) return
     const el = annotationStore.elements.find((e) => e.anno_id === annoId)
     if (!el) return
     try {
-      const result = await extractElementText(pageId, [...el.poly])
+      const result = await extractElementText(pageId, [...el.poly], engineType)
       if (result.text) {
-        annotationStore.updateElement(annoId, { text: result.text })
+        annotationStore.updateElement(annoId, {
+          text: result.text,
+          ...(engineType ? { ocr_engine: engineType } : {}),
+        })
         uiStore.showNotification('텍스트가 추출되었습니다', 'success')
       } else {
         uiStore.showNotification('텍스트를 찾지 못했습니다', 'info')
@@ -495,6 +513,7 @@
             {imageUrl}
             width={pageData.width}
             height={pageData.height}
+            {availableEngines}
             onOcrRequest={handleOcrRequest}
           />
         {:else}

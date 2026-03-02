@@ -3,7 +3,12 @@
  */
 
 import { api } from './client'
-import type { PageResponse, SavePageRequest, SavePageAttributesRequest } from './types'
+import type {
+  EngineType,
+  PageResponse,
+  SavePageRequest,
+  SavePageAttributesRequest,
+} from './types'
 
 export async function getPage(pageId: string): Promise<PageResponse> {
   return api.get<PageResponse>(`/api/v1/pages/${pageId}`)
@@ -43,6 +48,10 @@ export async function updateReadingOrder(
 export async function extractElementText(
   pageId: string,
   poly: number[],
+  engineType?: EngineType,
 ): Promise<{ text: string }> {
-  return api.post<{ text: string }>(`/api/v1/pages/${pageId}/extract-text`, { poly })
+  return api.post<{ text: string }>(`/api/v1/pages/${pageId}/extract-text`, {
+    poly,
+    ...(engineType ? { engine_type: engineType } : {}),
+  })
 }
