@@ -60,11 +60,12 @@ src/saegim/services/
 │   ├── pdfminer_engine.py          # PdfminerEngine (GPU 불필요 폴백)
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
 │   ├── vllm_engine.py             # VllmEngine (vLLM OpenAI-compatible API)
-│   └── split_pipeline_engine.py   # SplitPipelineEngine (Docling 레이아웃 + 외부 OCR)
+│   └── split_pipeline_engine.py   # SplitPipelineEngine (레이아웃 감지 + 외부 OCR, layout_provider 선택)
 ├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (pdfminer/asyncio), 재추출(re_extract)
 ├── extraction_service.py          # pdfminer.six 폴백 추출 (text_block + figure)
 ├── layout_types.py                # LayoutRegion dataclass, LayoutDetector Protocol
 ├── docling_layout_service.py      # DoclingLayoutDetector (ibm-granite/granite-docling-258M)
+├── pp_doclayout_service.py        # PPDocLayoutV3Detector (PaddlePaddle/PP-DocLayoutV3_safetensors)
 ├── ocr_pipeline.py                # 2단계 파이프라인 오케스트레이터 (OcrPipeline, TextOcrProvider)
 ├── ocr_provider.py                # 프롬프트 상수, bbox_to_poly(), build_omnidocbench_page()
 ├── gemini_ocr_service.py          # GeminiOcrProvider, GeminiTextOcrProvider
