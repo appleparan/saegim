@@ -153,10 +153,11 @@ def _build_vllm(config: dict[str, Any]) -> BaseOCREngine:
 
 
 def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:
-    """Build a split pipeline engine (Docling layout + text OCR).
+    """Build a split pipeline engine (layout detection + text OCR).
 
     Args:
-        config: Split pipeline config with 'docling_model_name', 'ocr_provider', etc.
+        config: Split pipeline config with 'docling_model_name', 'ocr_provider',
+            'layout_provider', etc.
 
     Returns:
         SplitPipelineEngine instance.
@@ -165,6 +166,7 @@ def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:
 
     docling_model_name = config.get('docling_model_name', 'ibm-granite/granite-docling-258M')
     ocr_provider = config.get('ocr_provider', '')
+    layout_provider = config.get('layout_provider', 'docling')
     ocr_config = {
         k.removeprefix('ocr_'): v
         for k, v in config.items()
@@ -174,4 +176,5 @@ def _build_split_pipeline(config: dict[str, Any]) -> BaseOCREngine:
         docling_model_name=docling_model_name,
         ocr_provider=ocr_provider,
         ocr_config=ocr_config,
+        layout_provider=layout_provider,
     )

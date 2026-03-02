@@ -195,3 +195,36 @@ class TestSplitPipelineOcrConfigExtraction:
             'ocr_api_key': 'the-key',
             'ocr_model': 'gemini-3-flash-preview',
         }
+
+
+_SPLIT_ENGINE = 'saegim.services.engines.split_pipeline_engine.SplitPipelineEngine'
+
+
+class TestSplitPipelineLayoutProvider:
+    @patch(_SPLIT_ENGINE, autospec=True)
+    def test_layout_provider_passed_to_engine(self, mock_cls):
+        mock_cls.return_value = mock_cls
+        config = {
+            'docling_model_name': 'ibm-granite/granite-docling-258M',
+            'ocr_provider': 'gemini',
+            'ocr_api_key': 'key',
+            'layout_provider': 'pp_doclayout',
+        }
+        from saegim.services.engines.factory import _build_split_pipeline
+
+        _build_split_pipeline(config)
+        mock_cls.assert_called_once()
+        assert mock_cls.call_args.kwargs['layout_provider'] == 'pp_doclayout'
+
+    @patch(_SPLIT_ENGINE, autospec=True)
+    def test_layout_provider_defaults_to_docling(self, mock_cls):
+        mock_cls.return_value = mock_cls
+        config = {
+            'docling_model_name': 'ibm-granite/granite-docling-258M',
+            'ocr_provider': 'gemini',
+            'ocr_api_key': 'key',
+        }
+        from saegim.services.engines.factory import _build_split_pipeline
+
+        _build_split_pipeline(config)
+        assert mock_cls.call_args.kwargs['layout_provider'] == 'docling'
