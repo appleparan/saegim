@@ -50,9 +50,13 @@ try {
 | `getProject(id)` | GET | `/api/v1/projects/:id` | 프로젝트 상세 |
 | `createProject(data)` | POST | `/api/v1/projects` | 프로젝트 생성 |
 | `deleteProject(id)` | DELETE | `/api/v1/projects/:id` | 프로젝트 삭제 |
-| `getOcrConfig(projectId)` | GET | `/api/v1/projects/:id/ocr-config` | OCR 엔진 설정 조회 (engine_type) |
-| `updateOcrConfig(projectId, data)` | PUT | `/api/v1/projects/:id/ocr-config` | OCR 엔진 설정 수정 (engine_type) |
-| `testOcrConnection(projectId, data)` | POST | `/api/v1/projects/:id/ocr-config/test` | OCR 엔진 연결 테스트 |
+| `getOcrConfig(projectId)` | GET | `/api/v1/projects/:id/ocr-config` | OCR 엔진 설정 조회 (다중 인스턴스) |
+| `addEngine(projectId, data)` | POST | `/api/v1/projects/:id/ocr-config/engines` | 엔진 인스턴스 등록 |
+| `updateEngine(projectId, engineId, data)` | PUT | `/api/v1/projects/:id/ocr-config/engines/:eid` | 엔진 인스턴스 수정 |
+| `deleteEngine(projectId, engineId)` | DELETE | `/api/v1/projects/:id/ocr-config/engines/:eid` | 엔진 인스턴스 삭제 |
+| `setDefaultEngine(projectId, data)` | PUT | `/api/v1/projects/:id/ocr-config/default-engine` | 기본 엔진 설정 |
+| `testEngineConnection(projectId, data)` | POST | `/api/v1/projects/:id/ocr-config/test` | 엔진 연결 테스트 (engine_id 지정) |
+| `getAvailableEngines(projectId)` | GET | `/api/v1/projects/:id/available-engines` | 요소별 OCR 사용 가능 엔진 목록 |
 
 ### Documents (`src/lib/api/documents.ts`)
 

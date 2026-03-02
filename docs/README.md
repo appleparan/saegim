@@ -42,7 +42,7 @@ graph TB
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택
+- **다중 인스턴스 OCR 엔진**: 프로젝트별 엔진 등록·관리 (Gemini API, vLLM, Docling+OCR)
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
 - **문서 재추출**: OCR 엔진 변경 후 기존 문서를 새 엔진으로 전체 재스캔
 - **자동 속성 분류**: 페이지/테이블/텍스트/수식 속성 자동 분류
@@ -68,12 +68,13 @@ graph TB
 
 ## OCR 엔진 아키텍처
 
-프로젝트별 `ocr_config` JSONB의 `engine_type`으로 추출 엔진을 선택합니다:
+프로젝트별 `ocr_config` JSONB에 다수의 엔진 인스턴스를 등록하고,
+`default_engine_id`로 기본 엔진을 지정합니다. 같은 타입의 엔진을 여러 개 등록할 수 있습니다:
 
 | Engine Type | 설명 | 외부 서비스 |
 | --- | --- | --- |
-| `pdfminer` | pdfminer.six 기본 추출 (GPU 불필요, 동기) | 없음 |
-| `commercial_api` | Gemini/vLLM full-page VLM 분석 | Gemini API 또는 vLLM 서버 |
+| `pdfminer` (폴백) | pdfminer.six 기본 추출 (GPU 불필요, 동기) | 없음 |
+| `commercial_api` | Gemini full-page VLM 분석 | Gemini API |
 | `vllm` | vLLM OpenAI-compatible VLM 서버 | vLLM 서버 |
 | `split_pipeline` | Docling 레이아웃 + 외부 OCR | Docling (로컬) + Gemini/vLLM |
 

@@ -59,7 +59,7 @@ graph TB
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
-- **4종 OCR 엔진**: `engine_type` 기반 프로젝트별 엔진 선택
+- **다중 인스턴스 OCR 엔진**: 프로젝트별 엔진 등록·관리 (Gemini API, vLLM, Docling+OCR)
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
 - **자동 속성 분류**: 페이지/테이블/텍스트/수식 속성 자동 분류
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
@@ -217,7 +217,7 @@ saegim/
 │   │   ├── services/
 │   │   │   ├── engines/            # OCR 엔진 Strategy 패턴 (4종)
 │   │   │   │   ├── base.py         # BaseOCREngine ABC
-│   │   │   │   ├── factory.py      # build_engine() 팩토리
+│   │   │   │   ├── factory.py      # build_engine_by_id() 팩토리
 │   │   │   │   ├── pdfminer_engine.py
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── vllm_engine.py

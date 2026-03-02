@@ -80,7 +80,7 @@ tests/
 ├── services/                          # 서비스 레이어 테스트
 │   ├── engines/                       # OCR 엔진 테스트
 │   │   ├── test_base.py               # BaseOCREngine ABC
-│   │   ├── test_factory.py            # build_engine() 팩토리
+│   │   ├── test_factory.py            # build_engine() / build_engine_by_id() 팩토리
 │   │   ├── test_pdfminer_engine.py
 │   │   ├── test_commercial_api_engine.py
 │   │   ├── test_vllm_engine.py

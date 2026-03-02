@@ -91,53 +91,87 @@
 
 ### `GET /api/v1/projects/{project_id}/ocr-config`
 
-프로젝트의 OCR 엔진 설정 조회. 미설정 시 기본값 `{"engine_type": "pdfminer"}` 반환.
+프로젝트의 OCR 엔진 설정 조회. 등록된 엔진이 없으면 빈 engines dict 반환.
 
 **응답:** `200 OK`
 
 ```json
 {
-  "engine_type": "vllm",
-  "vllm": { "host": "localhost", "port": 8000, "model": "prithivMLmods/chandra-FP8-Latest" }
+  "default_engine_id": "gemini-flash",
+  "engines": {
+    "gemini-flash": {
+      "engine_type": "commercial_api",
+      "name": "Gemini Flash",
+      "config": { "provider": "gemini", "api_key": "...", "model": "gemini-3-flash-preview" }
+    },
+    "vllm-chandra": {
+      "engine_type": "vllm",
+      "name": "vLLM Chandra",
+      "config": { "host": "gpu-server", "port": 8000, "model": "datalab-to/chandra" }
+    }
+  },
+  "env_gemini_api_key": "AIza..."
 }
 ```
 
-### `PUT /api/v1/projects/{project_id}/ocr-config`
+### `POST /api/v1/projects/{project_id}/ocr-config/engines`
 
-프로젝트 OCR 엔진 설정 업데이트. `engine_type`에 따라 해당 서브 설정이 필요합니다:
+새 엔진 인스턴스 등록. 같은 엔진 타입을 여러 개 등록할 수 있습니다.
 
-- `pdfminer` → 추가 설정 불필요
-- `commercial_api` → `commercial_api` 설정 (provider, api_key, model)
-- `vllm` → `vllm` 설정 (host, port, model)
-- `split_pipeline` → `split_pipeline` 설정 (docling_model_name, ocr_provider 등)
-
-**요청 Body 예시:**
-
-```json
-{
-  "engine_type": "commercial_api",
-  "commercial_api": {
-    "provider": "gemini",
-    "api_key": "...",
-    "model": "gemini-3-flash-preview"
-  }
-}
-```
+**요청 Body:**
 
 ```json
 {
   "engine_type": "vllm",
-  "vllm": { "host": "gpu-server", "port": 8000, "model": "prithivMLmods/chandra-FP8-Latest" }
+  "name": "vLLM olmOCR",
+  "config": { "host": "gpu-server-2", "port": 8000, "model": "allenai/olmOCR-2-7B-1025-FP8" }
 }
 ```
 
-**응답:** `200 OK` | `422 Unprocessable Entity`
+**응답:** `201 Created` (updated OcrConfigResponse) | `409 Conflict` (engine_id 충돌)
+
+### `PUT /api/v1/projects/{project_id}/ocr-config/engines/{engine_id}`
+
+기존 엔진 인스턴스의 이름이나 설정을 수정합니다.
+
+**요청 Body:**
+
+```json
+{
+  "name": "vLLM Chandra (updated)",
+  "config": { "host": "new-server", "port": 8000, "model": "datalab-to/chandra" }
+}
+```
+
+**응답:** `200 OK` | `404 Not Found`
+
+### `DELETE /api/v1/projects/{project_id}/ocr-config/engines/{engine_id}`
+
+엔진 인스턴스 삭제. 삭제된 엔진이 기본 엔진이면 `default_engine_id`가 null로 초기화됩니다.
+
+**응답:** `200 OK` (updated OcrConfigResponse) | `404 Not Found`
+
+### `PUT /api/v1/projects/{project_id}/ocr-config/default-engine`
+
+전체 페이지 OCR에 사용할 기본 엔진 설정. null이면 pdfminer 폴백.
+
+**요청 Body:**
+
+```json
+{ "engine_id": "gemini-flash" }
+```
+
+**응답:** `200 OK` | `404 Not Found`
 
 ### `POST /api/v1/projects/{project_id}/ocr-config/test`
 
-OCR 엔진 연결 테스트. `build_engine()` → `engine.test_connection()` 실행.
+특정 엔진 인스턴스의 연결 테스트.
 
-**요청 Body:** `PUT /ocr-config`과 동일한 형식.
+**요청 Body:**
+
+```json
+{ "engine_id": "vllm-chandra" }
+```
 
 **응답:** `200 OK`
 
@@ -151,16 +185,15 @@ OCR 엔진 연결 테스트. `build_engine()` → `engine.test_connection()` 실
 ### `GET /api/v1/projects/{project_id}/available-engines`
 
 요소별 텍스트 추출에 사용할 수 있는 엔진 목록 조회.
-`enabled_engines`에서 유효한 설정을 가지고 region-level 추출을 지원하는 엔진만 반환합니다.
-pdfminer는 region-level 추출을 지원하지 않으므로 제외됩니다.
+등록된 모든 엔진을 반환합니다 (pdfminer는 region-level 추출 미지원으로 제외).
 
 **응답:** `200 OK`
 
 ```json
 {
   "engines": [
-    { "engine_type": "commercial_api", "label": "Gemini API" },
-    { "engine_type": "vllm", "label": "vLLM" }
+    { "engine_id": "gemini-flash", "engine_type": "commercial_api", "name": "Gemini Flash" },
+    { "engine_id": "vllm-chandra", "engine_type": "vllm", "name": "vLLM Chandra" }
   ]
 }
 ```

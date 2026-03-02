@@ -57,7 +57,7 @@ src/saegim/api/routes/
 src/saegim/services/
 ├── engines/                       # OCR 엔진 Strategy 패턴
 │   ├── base.py                    # BaseOCREngine ABC (extract_page, test_connection)
-│   ├── factory.py                 # build_engine(ocr_config) 팩토리 (engine_type 분기)
+│   ├── factory.py                 # build_engine_by_id(ocr_config, engine_id) 팩토리 (다중 인스턴스)
 │   ├── pdfminer_engine.py          # PdfminerEngine (GPU 불필요 폴백)
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
 │   ├── vllm_engine.py             # VllmEngine (vLLM OpenAI-compatible API)
@@ -124,14 +124,14 @@ sequenceDiagram
         DS->>PR: create(pool, document_id, page_no, ...)
     end
 
-    alt engine_type == pdfminer
+    alt default_engine_id == null (pdfminer 폴백)
         DS->>EX: extract_page_elements(pdf_path, page_no, scale=2.0)
         Note over EX: pdfminer.six 동기 추출 (text_block + figure)
         DS->>DR: update_status(pool, id, 'ready')
-    else engine_type != pdfminer (asyncio 백그라운드)
+    else default_engine_id != null (asyncio 백그라운드)
         DS->>DR: update_status(pool, id, 'extracting')
         DS->>BG: asyncio.create_task(_run_ocr_extraction_background(...))
-        Note over BG: build_engine(ocr_config) → asyncio.to_thread(engine.extract_page())<br/>페이지별 auto_extracted_data 업데이트
+        Note over BG: build_engine_by_id(ocr_config, engine_id) → asyncio.to_thread(engine.extract_page())<br/>페이지별 auto_extracted_data 업데이트
         BG->>DR: update_status(pool, id, 'ready' 또는 'extraction_failed')
     end
 
@@ -212,13 +212,13 @@ sequenceDiagram
     DS->>PR: list_for_extraction(pool, document_id)
     PR-->>DS: page records (id, page_no, width, height, image_path)
 
-    alt engine_type == pdfminer
+    alt default_engine_id == null (pdfminer 폴백)
         DS->>DS: pdfminer.six 동기 재추출
         loop 각 페이지
             DS->>PR: update_auto_extracted_data(pool, page_id, data)
         end
         DS->>DR: update_status(pool, id, 'ready')
-    else engine_type != pdfminer
+    else default_engine_id != null
         DS->>DR: update_status(pool, id, 'extracting')
         DS->>BG: asyncio.create_task(_run_ocr_extraction_background(...))
         Note over BG: 기존 업로드 시와 동일한 백그라운드 추출 로직
