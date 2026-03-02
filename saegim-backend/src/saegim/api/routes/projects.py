@@ -1,4 +1,10 @@
-"""Project management endpoints."""
+"""Project management endpoints.
+
+LEGACY: This module's OCR config endpoints still use the old flat format.
+They will be rewritten in Stage 3 to use the multi-instance format.
+The normalize_ocr_config in project_repo now auto-converts old→new on read,
+so these legacy endpoints reconstruct old-format responses for backward compat.
+"""
 
 import uuid
 
@@ -7,9 +13,9 @@ from fastapi import APIRouter, HTTPException, status
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_repo
 from saegim.schemas.project import (
-    AvailableEngine,
-    AvailableEnginesResponse,
-    OcrConfigResponse,
+    LegacyAvailableEngine,
+    LegacyAvailableEnginesResponse,
+    LegacyOcrConfigResponse,
     OcrConfigUpdate,
     OcrConnectionTestResponse,
     ProjectCreate,
@@ -95,15 +101,15 @@ async def delete_project(project_id: uuid.UUID) -> None:
     await project_repo.delete(pool, project_id)
 
 
-@router.get('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
-async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
-    """Get a project's OCR configuration.
+@router.get('/projects/{project_id}/ocr-config', response_model=LegacyOcrConfigResponse)
+async def get_ocr_config(project_id: uuid.UUID) -> LegacyOcrConfigResponse:
+    """Get a project's OCR configuration (LEGACY format).
 
     Args:
         project_id: Project UUID.
 
     Returns:
-        OcrConfigResponse: Current OCR config.
+        LegacyOcrConfigResponse: Current OCR config in legacy format.
 
     Raises:
         HTTPException: If project not found.
@@ -117,24 +123,71 @@ async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
 
     env_key = get_settings().gemini_api_key
 
-    if not config or 'engine_type' not in config:
-        return OcrConfigResponse(engine_type='pdfminer', env_gemini_api_key=env_key)
-    return OcrConfigResponse(**config, env_gemini_api_key=env_key)
+    # Config is now in new multi-instance format from normalize_ocr_config.
+    # Convert back to legacy flat format for backward compat.
+    return _to_legacy_response(config, env_key)
 
 
-@router.put('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
+def _to_legacy_response(config: dict, env_key: str) -> LegacyOcrConfigResponse:
+    """Convert multi-instance config to legacy flat response.
+
+    Args:
+        config: Multi-instance format config.
+        env_key: Gemini API key from environment.
+
+    Returns:
+        LegacyOcrConfigResponse in old flat format.
+    """
+    engines = config.get('engines', {})
+    default_id = config.get('default_engine_id')
+
+    if not engines and not default_id:
+        return LegacyOcrConfigResponse(engine_type='pdfminer', env_gemini_api_key=env_key)
+
+    # Reconstruct old-format fields from engine instances
+    engine_type = 'pdfminer'
+    commercial_api = None
+    vllm = None
+    split_pipeline = None
+    enabled_engines = []
+
+    for entry in engines.values():
+        et = entry.get('engine_type', '')
+        cfg = entry.get('config', {})
+        if et == 'commercial_api':
+            commercial_api = cfg
+        elif et == 'vllm':
+            vllm = cfg
+        elif et == 'split_pipeline':
+            split_pipeline = cfg
+        enabled_engines.append(et)
+
+    if default_id and default_id in engines:
+        engine_type = engines[default_id].get('engine_type', 'pdfminer')
+
+    return LegacyOcrConfigResponse(
+        engine_type=engine_type,
+        commercial_api=commercial_api,
+        vllm=vllm,
+        split_pipeline=split_pipeline,
+        enabled_engines=enabled_engines,
+        env_gemini_api_key=env_key,
+    )
+
+
+@router.put('/projects/{project_id}/ocr-config', response_model=LegacyOcrConfigResponse)
 async def update_ocr_config(
     project_id: uuid.UUID,
     body: OcrConfigUpdate,
-) -> OcrConfigResponse:
-    """Update a project's OCR configuration.
+) -> LegacyOcrConfigResponse:
+    """Update a project's OCR configuration (LEGACY format).
 
     Args:
         project_id: Project UUID.
-        body: New OCR configuration.
+        body: New OCR configuration in legacy format.
 
     Returns:
-        OcrConfigResponse: Updated OCR config.
+        LegacyOcrConfigResponse: Updated OCR config.
 
     Raises:
         HTTPException: If project not found or validation fails.
@@ -153,11 +206,11 @@ async def update_ocr_config(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail='Failed to update OCR config',
         )
-    return OcrConfigResponse(**config_dict)
+    return LegacyOcrConfigResponse(**config_dict)
 
 
 def _validate_ocr_config(body: OcrConfigUpdate) -> None:
-    """Validate engine_type-based OCR configuration.
+    """Validate engine_type-based OCR configuration (LEGACY).
 
     Validates the primary engine has its sub-config, and each engine
     in enabled_engines also has its required sub-config.
@@ -251,13 +304,12 @@ ENGINE_LABELS: dict[str, str] = {
 
 @router.get(
     '/projects/{project_id}/available-engines',
-    response_model=AvailableEnginesResponse,
+    response_model=LegacyAvailableEnginesResponse,
 )
-async def get_available_engines(project_id: uuid.UUID) -> AvailableEnginesResponse:
-    """Get list of engines available for per-element text extraction.
+async def get_available_engines(project_id: uuid.UUID) -> LegacyAvailableEnginesResponse:
+    """Get list of engines available for per-element text extraction (LEGACY).
 
-    Returns engines from enabled_engines that have valid configuration
-    and support region-level text extraction (excludes pdfminer).
+    Returns engines from the config that support region-level text extraction.
 
     Args:
         project_id: Project UUID.
@@ -273,30 +325,21 @@ async def get_available_engines(project_id: uuid.UUID) -> AvailableEnginesRespon
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
 
-    if not config or 'engine_type' not in config:
-        return AvailableEnginesResponse(engines=[])
+    # Config is now in multi-instance format. Extract engines from it.
+    engines_dict = config.get('engines', {})
+    if not engines_dict:
+        return LegacyAvailableEnginesResponse(engines=[])
 
-    enabled = config.get('enabled_engines', [])
-    if not enabled:
-        enabled = [config['engine_type']]
-
-    engines: list[AvailableEngine] = []
-    for engine_type in enabled:
-        # pdfminer does not support region-level text extraction
-        if engine_type == 'pdfminer':
-            continue
-        # Check that the engine has a sub-config
-        if engine_type == 'commercial_api' and not config.get('commercial_api'):
-            continue
-        if engine_type == 'vllm' and not config.get('vllm'):
-            continue
-        if engine_type == 'split_pipeline' and not config.get('split_pipeline'):
+    engines: list[LegacyAvailableEngine] = []
+    for engine_type_entry in engines_dict.values():
+        et = engine_type_entry.get('engine_type', '')
+        if et == 'pdfminer':
             continue
         engines.append(
-            AvailableEngine(
-                engine_type=engine_type,
-                label=ENGINE_LABELS.get(engine_type, engine_type),
+            LegacyAvailableEngine(
+                engine_type=et,
+                label=ENGINE_LABELS.get(et, et),
             )
         )
 
-    return AvailableEnginesResponse(engines=engines)
+    return LegacyAvailableEnginesResponse(engines=engines)

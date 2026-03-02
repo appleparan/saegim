@@ -1,4 +1,4 @@
-"""Tests for project OCR config endpoints (engine_type based)."""
+"""Tests for project OCR config endpoints (legacy format, to be rewritten in Stage 3)."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -6,15 +6,23 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 
+def _new_fmt(engines: dict | None = None, default_id: str | None = None) -> dict:
+    """Build a new-format OCR config (multi-instance) for mock returns."""
+    return {
+        'default_engine_id': default_id,
+        'engines': engines or {},
+    }
+
+
 class TestGetOcrConfig:
-    """Test GET /projects/{id}/ocr-config."""
+    """Test GET /projects/{id}/ocr-config (legacy response format)."""
 
     def test_get_default_config(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
-            return_value={},
+            return_value=_new_fmt(),
         ):
             response = client.get(f'/api/v1/projects/{project_id}/ocr-config')
 
@@ -22,37 +30,26 @@ class TestGetOcrConfig:
         data = response.json()
         assert data['engine_type'] == 'pdfminer'
 
-    def test_get_config_without_engine_type_falls_back_to_pdfminer(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        stale_config = {'some_old_key': 'value'}
-        with patch(
-            'saegim.repositories.project_repo.get_ocr_config',
-            new_callable=AsyncMock,
-            return_value=stale_config,
-        ):
-            response = client.get(f'/api/v1/projects/{project_id}/ocr-config')
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()['engine_type'] == 'pdfminer'
-
     def test_get_existing_commercial_api_config(
         self,
         client: TestClient,
         sample_project_record,
     ):
         project_id = sample_project_record['id']
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
-                'model': 'gemini-3-flash-preview',
+        config = _new_fmt(
+            engines={
+                'commercial-api': {
+                    'engine_type': 'commercial_api',
+                    'name': 'Gemini API',
+                    'config': {
+                        'provider': 'gemini',
+                        'api_key': 'test-key',
+                        'model': 'gemini-3-flash-preview',
+                    },
+                },
             },
-        }
+            default_id='commercial-api',
+        )
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
@@ -80,7 +77,7 @@ class TestGetOcrConfig:
 
 
 class TestUpdateOcrConfig:
-    """Test PUT /projects/{id}/ocr-config."""
+    """Test PUT /projects/{id}/ocr-config (legacy format)."""
 
     def test_update_pdfminer_config(self, client: TestClient, sample_project_record):
         project_id = sample_project_record['id']
@@ -309,7 +306,6 @@ class TestUpdateOcrConfig:
         sample_project_record,
     ):
         project_id = sample_project_record['id']
-        # Enable vllm in enabled_engines but don't provide vllm sub-config
         response = client.put(
             f'/api/v1/projects/{project_id}/ocr-config',
             json={
@@ -380,26 +376,29 @@ class TestUpdateOcrConfig:
 
 
 class TestGetAvailableEngines:
-    """Test GET /projects/{id}/available-engines."""
+    """Test GET /projects/{id}/available-engines (legacy format)."""
 
-    def test_returns_engines_from_enabled_engines(
+    def test_returns_engines_from_config(
         self,
         client: TestClient,
         sample_project_record,
     ):
         project_id = sample_project_record['id']
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
+        config = _new_fmt(
+            engines={
+                'commercial-api': {
+                    'engine_type': 'commercial_api',
+                    'name': 'Gemini API',
+                    'config': {'provider': 'gemini', 'api_key': 'test-key'},
+                },
+                'vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'vLLM',
+                    'config': {'host': 'localhost', 'port': 8000},
+                },
             },
-            'vllm': {
-                'host': 'localhost',
-                'port': 8000,
-            },
-            'enabled_engines': ['commercial_api', 'vllm'],
-        }
+            default_id='commercial-api',
+        )
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
@@ -413,90 +412,47 @@ class TestGetAvailableEngines:
         assert 'commercial_api' in engine_types
         assert 'vllm' in engine_types
 
-    def test_excludes_pdfminer(
+    def test_empty_when_no_engines(
         self,
         client: TestClient,
         sample_project_record,
     ):
         project_id = sample_project_record['id']
-        config = {
-            'engine_type': 'pdfminer',
-            'enabled_engines': ['pdfminer', 'commercial_api'],
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
-            },
-        }
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
-            return_value=config,
-        ):
-            response = client.get(f'/api/v1/projects/{project_id}/available-engines')
-
-        assert response.status_code == status.HTTP_200_OK
-        engine_types = [e['engine_type'] for e in response.json()['engines']]
-        assert 'pdfminer' not in engine_types
-        assert 'commercial_api' in engine_types
-
-    def test_fallback_to_default_engine_when_no_enabled_engines(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
-            },
-        }
-        with patch(
-            'saegim.repositories.project_repo.get_ocr_config',
-            new_callable=AsyncMock,
-            return_value=config,
-        ):
-            response = client.get(f'/api/v1/projects/{project_id}/available-engines')
-
-        assert response.status_code == status.HTTP_200_OK
-        engines = response.json()['engines']
-        assert len(engines) == 1
-        assert engines[0]['engine_type'] == 'commercial_api'
-        assert engines[0]['label'] == 'Gemini API'
-
-    def test_empty_when_only_pdfminer(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        config = {'engine_type': 'pdfminer'}
-        with patch(
-            'saegim.repositories.project_repo.get_ocr_config',
-            new_callable=AsyncMock,
-            return_value=config,
+            return_value=_new_fmt(),
         ):
             response = client.get(f'/api/v1/projects/{project_id}/available-engines')
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()['engines'] == []
 
-    def test_skips_engines_without_sub_config(
+    def test_returns_correct_labels(
         self,
         client: TestClient,
         sample_project_record,
     ):
         project_id = sample_project_record['id']
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
+        config = _new_fmt(
+            engines={
+                'split-pipeline': {
+                    'engine_type': 'split_pipeline',
+                    'name': 'Docling + OCR',
+                    'config': {
+                        'docling_model_name': 'ibm-granite/granite-docling-258M',
+                        'ocr_provider': 'gemini',
+                        'ocr_api_key': 'test-key',
+                    },
+                },
+                'vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'vLLM',
+                    'config': {'host': 'localhost', 'port': 8000},
+                },
             },
-            'enabled_engines': ['commercial_api', 'vllm'],
-            # Note: no 'vllm' sub-config
-        }
+            default_id='split-pipeline',
+        )
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
@@ -505,9 +461,9 @@ class TestGetAvailableEngines:
             response = client.get(f'/api/v1/projects/{project_id}/available-engines')
 
         assert response.status_code == status.HTTP_200_OK
-        engine_types = [e['engine_type'] for e in response.json()['engines']]
-        assert 'commercial_api' in engine_types
-        assert 'vllm' not in engine_types
+        engines = {e['engine_type']: e['label'] for e in response.json()['engines']}
+        assert engines['split_pipeline'] == 'Docling + OCR'
+        assert engines['vllm'] == 'vLLM'
 
     def test_project_not_found(self, client: TestClient):
         with patch(
@@ -521,34 +477,6 @@ class TestGetAvailableEngines:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_returns_correct_labels(
-        self,
-        client: TestClient,
-        sample_project_record,
-    ):
-        project_id = sample_project_record['id']
-        config = {
-            'engine_type': 'split_pipeline',
-            'split_pipeline': {
-                'docling_model_name': 'ibm-granite/granite-docling-258M',
-                'ocr_provider': 'gemini',
-                'ocr_api_key': 'test-key',
-            },
-            'vllm': {'host': 'localhost', 'port': 8000},
-            'enabled_engines': ['split_pipeline', 'vllm'],
-        }
-        with patch(
-            'saegim.repositories.project_repo.get_ocr_config',
-            new_callable=AsyncMock,
-            return_value=config,
-        ):
-            response = client.get(f'/api/v1/projects/{project_id}/available-engines')
-
-        assert response.status_code == status.HTTP_200_OK
-        engines = {e['engine_type']: e['label'] for e in response.json()['engines']}
-        assert engines['split_pipeline'] == 'Docling + OCR'
-        assert engines['vllm'] == 'vLLM'
-
     def test_empty_config_returns_empty_engines(
         self,
         client: TestClient,
@@ -558,7 +486,7 @@ class TestGetAvailableEngines:
         with patch(
             'saegim.repositories.project_repo.get_ocr_config',
             new_callable=AsyncMock,
-            return_value={},
+            return_value=_new_fmt(),
         ):
             response = client.get(f'/api/v1/projects/{project_id}/available-engines')
 
