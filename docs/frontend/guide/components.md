@@ -163,7 +163,7 @@ Toggle 대체. `checked` → `onCheckedChange` 패턴.
 ### ShortcutHelp
 
 키보드 단축키 도움말 팝오버. Header에 포함되며 `showShortcutHelp` prop으로 제어.
-키보드 아이콘 클릭 또는 `?` 키로 토글. 카테고리별(도구/편집/보기/탐색/도움말) 그룹핑.
+키보드 아이콘 클릭 또는 `` ` `` 키로 토글. 카테고리별(도구/편집/보기/탐색/도움말) 그룹핑.
 
 | Prop | Type | Default | 설명 |
 | ------ | ------ | --------- | ------ |

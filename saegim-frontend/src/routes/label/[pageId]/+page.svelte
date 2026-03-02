@@ -384,7 +384,7 @@
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('select')}
-              title="선택 (S)"
+              title="선택 (1)"
             >
               <svg
                 class="h-4 w-4"
@@ -406,7 +406,7 @@
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('draw')}
-              title="그리기 (D)"
+              title="그리기 (2)"
             >
               <svg
                 class="h-4 w-4"
@@ -428,7 +428,7 @@
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('pan')}
-              title="이동 (H)"
+              title="이동 (3)"
             >
               <svg
                 class="h-4 w-4"
