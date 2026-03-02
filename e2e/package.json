@@ -1,6 +1,6 @@
 {
   "name": "saegim-e2e",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "E2E tests for saegim labeling platform",
