@@ -18,9 +18,10 @@ export interface CreateProjectRequest {
   readonly description?: string
 }
 
-// --- OCR Config (engine_type based) ---
+// --- OCR Config (multi-instance engine registry) ---
 
 export type EngineType = 'commercial_api' | 'vllm' | 'split_pipeline' | 'pdfminer'
+export type RegisterableEngineType = 'commercial_api' | 'vllm' | 'split_pipeline'
 export type CommercialApiProvider = 'gemini' | 'vllm'
 export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
 
@@ -45,28 +46,44 @@ export interface SplitPipelineConfig {
   readonly ocr_model?: string
 }
 
+export interface EngineInstance {
+  readonly engine_type: RegisterableEngineType
+  readonly name: string
+  readonly config: Record<string, unknown>
+}
+
+export interface EngineInstanceCreate {
+  readonly engine_id?: string
+  readonly engine_type: RegisterableEngineType
+  readonly name: string
+  readonly config: Record<string, unknown>
+}
+
+export interface EngineInstanceUpdate {
+  readonly name?: string
+  readonly config?: Record<string, unknown>
+}
+
 export interface OcrConfigResponse {
-  readonly engine_type: EngineType
-  readonly commercial_api?: CommercialApiConfig
-  readonly vllm?: VllmServerConfig
-  readonly split_pipeline?: SplitPipelineConfig
-  readonly enabled_engines?: readonly EngineType[]
+  readonly default_engine_id: string | null
+  readonly engines: Record<string, EngineInstance>
   readonly env_gemini_api_key?: string
 }
 
-export interface OcrConfigUpdate {
-  readonly engine_type: EngineType
-  readonly commercial_api?: CommercialApiConfig
-  readonly vllm?: VllmServerConfig
-  readonly split_pipeline?: SplitPipelineConfig
-  readonly enabled_engines?: readonly EngineType[]
+export interface DefaultEngineUpdate {
+  readonly engine_id: string | null
+}
+
+export interface OcrConnectionTestRequest {
+  readonly engine_id: string
 }
 
 // --- Available Engines (for per-element OCR) ---
 
 export interface AvailableEngine {
-  readonly engine_type: EngineType
-  readonly label: string
+  readonly engine_id: string
+  readonly engine_type: RegisterableEngineType
+  readonly name: string
 }
 
 export interface AvailableEnginesResponse {
