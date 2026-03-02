@@ -15,6 +15,20 @@ class TestCommercialApiEngineInit:
         engine = CommercialApiEngine(provider='gemini', config=config)
         assert isinstance(engine, BaseOCREngine)
 
+    def test_gemini_provider_passes_custom_prompt(self):
+        config = {
+            'api_key': 'test-key',
+            'model': 'gemini-3-flash-preview',
+            'prompt': 'Custom prompt here.',
+        }
+        engine = CommercialApiEngine(provider='gemini', config=config)
+        assert engine._provider._custom_prompt == 'Custom prompt here.'
+
+    def test_gemini_provider_empty_prompt_by_default(self):
+        config = {'api_key': 'test-key', 'model': 'gemini-3-flash-preview'}
+        engine = CommercialApiEngine(provider='gemini', config=config)
+        assert engine._provider._custom_prompt == ''
+
     def test_unknown_provider_raises_value_error(self):
         with pytest.raises(ValueError, match='Unknown commercial API provider'):
             CommercialApiEngine(provider='unknown', config={})  # type: ignore[arg-type]

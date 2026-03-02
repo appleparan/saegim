@@ -136,6 +136,31 @@ class TestEngineInstance:
         )
         assert instance.config == {}
 
+    def test_commercial_api_with_custom_prompt(self):
+        instance = EngineInstance(
+            engine_type='commercial_api',
+            name='Gemini Custom',
+            config={
+                'provider': 'gemini',
+                'api_key': 'test-key',
+                'model': 'gemini-3-flash-preview',
+                'prompt': 'Extract all text from this image.',
+            },
+        )
+        assert instance.config['prompt'] == 'Extract all text from this image.'
+
+    def test_commercial_api_without_prompt_is_valid(self):
+        instance = EngineInstance(
+            engine_type='commercial_api',
+            name='No Prompt Gemini',
+            config={
+                'provider': 'gemini',
+                'api_key': 'test-key',
+                'model': 'gemini-3-flash-preview',
+            },
+        )
+        assert instance.engine_type == 'commercial_api'
+
     def test_commercial_api_requires_provider_field(self):
         with pytest.raises(ValidationError):
             EngineInstance(

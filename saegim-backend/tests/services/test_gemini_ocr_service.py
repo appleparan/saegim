@@ -104,6 +104,92 @@ class TestGeminiOcrProvider:
         assert result['layout_dets'][0]['poly'] == [10, 20, 400, 20, 400, 60, 10, 60]
         assert result['layout_dets'][0]['text'] == 'Title'
 
+    def test_extract_page_with_custom_prompt(self, tmp_path):
+        image_path = tmp_path / 'test.png'
+        image_path.write_bytes(b'\x89PNG\r\n\x1a\nfake image data')
+
+        elements = [
+            {'category_type': 'text_block', 'bbox': [0, 0, 100, 50], 'text': 'Hi', 'order': 0},
+        ]
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'candidates': [{'content': {'parts': [{'text': json.dumps(elements)}]}}],
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch('saegim.services.gemini_ocr_service.httpx.Client') as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = MagicMock(return_value=mock_client)
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.post.return_value = mock_response
+            mock_client_cls.return_value = mock_client
+
+            provider = GeminiOcrProvider(
+                api_key='test-key',
+                custom_prompt='Extract text from image ({width}x{height}).',
+            )
+            provider.extract_page(image_path, page_width=800, page_height=1200)
+
+            call_args = mock_client.post.call_args
+            payload = call_args.kwargs.get('json') or call_args[1].get('json')
+            sent_prompt = payload['contents'][0]['parts'][0]['text']
+            assert sent_prompt == 'Extract text from image (800x1200).'
+
+    def test_extract_page_custom_prompt_without_placeholders(self, tmp_path):
+        image_path = tmp_path / 'test.png'
+        image_path.write_bytes(b'\x89PNG\r\n\x1a\nfake image data')
+
+        elements = []
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'candidates': [{'content': {'parts': [{'text': json.dumps(elements)}]}}],
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch('saegim.services.gemini_ocr_service.httpx.Client') as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = MagicMock(return_value=mock_client)
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.post.return_value = mock_response
+            mock_client_cls.return_value = mock_client
+
+            provider = GeminiOcrProvider(
+                api_key='test-key',
+                custom_prompt='Extract everything.',
+            )
+            provider.extract_page(image_path, page_width=800, page_height=1200)
+
+            call_args = mock_client.post.call_args
+            payload = call_args.kwargs.get('json') or call_args[1].get('json')
+            sent_prompt = payload['contents'][0]['parts'][0]['text']
+            assert sent_prompt == 'Extract everything.'
+
+    def test_extract_page_empty_custom_prompt_uses_default(self, tmp_path):
+        image_path = tmp_path / 'test.png'
+        image_path.write_bytes(b'\x89PNG\r\n\x1a\nfake image data')
+
+        elements = []
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'candidates': [{'content': {'parts': [{'text': json.dumps(elements)}]}}],
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch('saegim.services.gemini_ocr_service.httpx.Client') as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = MagicMock(return_value=mock_client)
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.post.return_value = mock_response
+            mock_client_cls.return_value = mock_client
+
+            provider = GeminiOcrProvider(api_key='test-key', custom_prompt='')
+            provider.extract_page(image_path, page_width=800, page_height=1200)
+
+            call_args = mock_client.post.call_args
+            payload = call_args.kwargs.get('json') or call_args[1].get('json')
+            sent_prompt = payload['contents'][0]['parts'][0]['text']
+            assert 'document layout analysis expert' in sent_prompt
+
     def test_extract_page_api_error(self, tmp_path):
         import httpx
 
