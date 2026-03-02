@@ -67,8 +67,8 @@ graph TB
 - **관계 도구**: 요소 간 관계 CRUD + SVG 화살표 시각화
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
-- **사용자 역할**: admin, annotator, reviewer
-- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
+- **사용자 역할**: admin, annotator, reviewer (WIP)
+- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기 (WIP)
 - **E2E 테스트**: Vitest 기반 자동화 (기본 + GPU 프로파일)
 
 ## 시작하기
@@ -261,11 +261,43 @@ saegim/
 
 ## API 엔드포인트
 
+### 프로젝트
+
 | Method | Path | 설명 |
 | ------ | ---- | ---- |
 | `POST` | `/api/v1/projects` | 프로젝트 생성 |
 | `GET` | `/api/v1/projects` | 프로젝트 목록 |
+| `GET` | `/api/v1/projects/:id` | 프로젝트 조회 |
+| `DELETE` | `/api/v1/projects/:id` | 프로젝트 삭제 |
+
+### OCR 엔진 설정
+
+| Method | Path | 설명 |
+| ------ | ---- | ---- |
+| `GET` | `/api/v1/projects/:id/ocr-config` | OCR 설정 조회 |
+| `POST` | `/api/v1/projects/:id/ocr-config/engines` | 엔진 인스턴스 등록 |
+| `PUT` | `/api/v1/projects/:id/ocr-config/engines/:eid` | 엔진 인스턴스 수정 |
+| `DELETE` | `/api/v1/projects/:id/ocr-config/engines/:eid` | 엔진 인스턴스 삭제 |
+| `PUT` | `/api/v1/projects/:id/ocr-config/default-engine` | 기본 엔진 설정 |
+| `POST` | `/api/v1/projects/:id/ocr-config/test` | OCR 연결 테스트 |
+| `GET` | `/api/v1/projects/:id/available-engines` | 사용 가능한 엔진 목록 |
+
+### 문서
+
+| Method | Path | 설명 |
+| ------ | ---- | ---- |
+| `GET` | `/api/v1/projects/:id/documents` | 문서 목록 |
 | `POST` | `/api/v1/projects/:id/documents` | PDF 업로드 |
+| `GET` | `/api/v1/documents/:id` | 문서 조회 |
+| `DELETE` | `/api/v1/documents/:id` | 문서 삭제 |
+| `GET` | `/api/v1/documents/:id/status` | 문서 상태 조회 |
+| `GET` | `/api/v1/documents/:id/pages` | 문서 페이지 목록 |
+| `POST` | `/api/v1/documents/:id/re-extract` | OCR 재추출 |
+
+### 페이지 레이블링
+
+| Method | Path | 설명 |
+| ------ | ---- | ---- |
 | `GET` | `/api/v1/pages/:id` | 페이지 + 어노테이션 조회 |
 | `PUT` | `/api/v1/pages/:id` | 어노테이션 저장 |
 | `PUT` | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
@@ -275,10 +307,18 @@ saegim/
 | `POST` | `/api/v1/pages/:id/relations` | 관계 추가 |
 | `DELETE` | `/api/v1/pages/:id/relations` | 관계 삭제 |
 | `POST` | `/api/v1/pages/:id/accept-extraction` | 자동 추출 결과 수락 |
-| `GET` | `/api/v1/projects/:id/ocr-config` | OCR 설정 조회 |
-| `PUT` | `/api/v1/projects/:id/ocr-config` | OCR 설정 수정 |
-| `POST` | `/api/v1/projects/:id/ocr-config/test` | OCR 연결 테스트 |
+| `POST` | `/api/v1/pages/:id/force-accept-extraction` | 자동 추출 결과 강제 수락 |
+| `POST` | `/api/v1/pages/:id/extract-text` | 요소별 텍스트 추출 (엔진 선택) |
+
+### 기타
+
+| Method | Path | 설명 |
+| ------ | ---- | ---- |
 | `POST` | `/api/v1/projects/:id/export` | OmniDocBench JSON 내보내기 |
+| `POST` | `/api/v1/users` | 사용자 생성 |
+| `GET` | `/api/v1/users` | 사용자 목록 |
+| `GET` | `/api/v1/health` | 헬스 체크 |
+| `GET` | `/api/v1/health/ready` | 레디니스 체크 |
 
 ## 개발
 
@@ -297,4 +337,4 @@ bun run build                       # 프로덕션 빌드
 
 ## 라이선스
 
-MIT
+Apache-2.0 License

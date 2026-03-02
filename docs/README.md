@@ -51,7 +51,7 @@ graph TB
 - **관계 도구**: 요소 간 관계 CRUD + SVG 화살표 시각화
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
-- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
+- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기 (WIP)
 
 ## 기술 스택
 

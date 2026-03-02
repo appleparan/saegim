@@ -36,13 +36,12 @@ HTTP 요청을 받아 적절한 서비스를 호출하고 응답을 반환합니
 
 ```text
 src/saegim/api/routes/
-├── health.py       # GET /api/v1/health
-├── projects.py     # 프로젝트 CRUD (project_type, OCR 설정 포함)
-├── documents.py    # 문서 업로드/조회/재추출
-├── pages.py        # 페이지 레이블링, 읽기 순서, 관계 CRUD, 강제 수락
+├── health.py       # GET /api/v1/health, /health/ready
+├── projects.py     # 프로젝트 CRUD, OCR 엔진 인스턴스 CRUD, 기본 엔진 설정
+├── documents.py    # 문서 업로드/조회/삭제/재추출
+├── pages.py        # 페이지 레이블링, 읽기 순서, 관계 CRUD, 강제 수락, 요소별 텍스트 추출
 ├── users.py        # 사용자 관리
-├── analysis.py     # Phase 4a: 문서 분석 메타데이터 CRUD
-└── export.py       # 데이터 내보내기 (OmniDocBench / VQA / OCRAG)
+└── export.py       # OmniDocBench JSON 내보내기
 ```
 
 - FastAPI의 `APIRouter`를 사용
@@ -73,8 +72,7 @@ src/saegim/services/
 ├── ocr_connection_test.py         # check_gemini/vllm/docling_connection()
 ├── labeling_service.py            # 어노테이션 CRUD, 요소 추가/삭제, 자동 추출 수락/강제 수락, 읽기 순서 업데이트, 관계 CRUD
 ├── attribute_classifier.py        # 페이지/테이블/텍스트/수식 속성 자동 분류
-├── analysis_service.py            # Phase 4a: AI 문서 분석 (Overview, Core Idea, Key Figures, Limitations)
-└── export_service.py              # OmniDocBench JSON 조합 (Strategy 패턴으로 VQA/OCRAG Export 확장)
+└── export_service.py              # OmniDocBench JSON 조합
 ```
 
 - Repository를 호출하여 데이터 접근
@@ -131,7 +129,7 @@ sequenceDiagram
     else default_engine_id != null (asyncio 백그라운드)
         DS->>DR: update_status(pool, id, 'extracting')
         DS->>BG: asyncio.create_task(_run_ocr_extraction_background(...))
-        Note over BG: build_engine_by_id(ocr_config, engine_id) → asyncio.to_thread(engine.extract_page())<br/>페이지별 auto_extracted_data 업데이트
+        Note over BG: build_engine_by_id() → to_thread(extract_page())<br/>페이지별 auto_extracted_data 업데이트
         BG->>DR: update_status(pool, id, 'ready' 또는 'extraction_failed')
     end
 
