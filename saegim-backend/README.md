@@ -30,7 +30,7 @@ saegim-backend/
 │   ├── services/
 │   │   ├── engines/              # OCR 엔진 Strategy 패턴
 │   │   │   ├── base.py           # BaseOCREngine ABC
-│   │   │   ├── factory.py        # build_engine() 팩토리
+│   │   │   ├── factory.py        # build_engine_by_id() 팩토리
 │   │   │   ├── pdfminer_engine.py
 │   │   │   ├── commercial_api_engine.py
 │   │   │   ├── vllm_engine.py

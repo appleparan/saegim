@@ -3,7 +3,7 @@ import {
   waitForBackendReady,
   waitForVllmReady,
   createProject,
-  updateOcrConfig,
+  addEngine,
   uploadPdf,
   listDocuments,
   listPages,
@@ -33,9 +33,11 @@ describe("GPU Hybrid Labeling — API Verification", () => {
     const { data: project } = await createProject(PROJECT_NAME, "GPU hybrid labeling E2E test");
     projectId = project.id;
 
-    await updateOcrConfig(projectId, {
+    await addEngine(projectId, {
+      engine_id: "vllm-chandra",
       engine_type: "vllm",
-      vllm: {
+      name: "vLLM Chandra",
+      config: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,

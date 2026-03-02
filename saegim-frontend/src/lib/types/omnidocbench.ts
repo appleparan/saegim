@@ -5,7 +5,6 @@
  * All types use readonly to enforce immutability.
  */
 
-import type { EngineType } from '$lib/api/types'
 import type { BlockCategoryType, SpanCategoryType } from './categories'
 
 /** 4-corner polygon: [x1, y1, x2, y2, x3, y3, x4, y4] */
@@ -33,7 +32,7 @@ export interface LayoutElement {
   readonly latex?: string
   readonly html?: string
   readonly attribute?: ElementAttribute
-  readonly ocr_engine?: EngineType
+  readonly ocr_engine?: string
   readonly line_with_spans?: readonly SpanElement[]
   readonly merge_list?: readonly LayoutElement[]
 }

@@ -2,7 +2,7 @@
   import Konva from 'konva'
   import { untrack } from 'svelte'
   import type { PDFPageProxy } from 'pdfjs-dist'
-  import type { AvailableEngine, EngineType } from '$lib/api/types'
+  import type { AvailableEngine } from '$lib/api/types'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { isImageBlock } from '$lib/types/element-groups'
@@ -29,7 +29,7 @@
     /** Engines available for per-element OCR extraction. */
     availableEngines?: readonly AvailableEngine[]
     /** Called when OCR is requested for a drawn element. */
-    onOcrRequest?: (annoId: number, engineType?: EngineType) => void
+    onOcrRequest?: (annoId: number, engineId?: string) => void
   }
 
   let {
@@ -62,7 +62,7 @@
 
   // --- OCR prompt for drawn elements ---
   let drawnAnnoId = $state<number | null>(null)
-  let selectedOcrEngine = $state<EngineType | undefined>(undefined)
+  let selectedOcrEngine = $state<string | undefined>(undefined)
 
   let drawnElementScreenPos = $derived.by(() => {
     if (drawnAnnoId === null) return null
@@ -80,7 +80,7 @@
   function handleDrawComplete(annoId: number): void {
     drawnAnnoId = annoId
     // Default to first available engine
-    selectedOcrEngine = availableEngines.length > 0 ? availableEngines[0].engine_type : undefined
+    selectedOcrEngine = availableEngines.length > 0 ? availableEngines[0].engine_id : undefined
   }
 
   function handleOcrRequest(): void {
@@ -372,8 +372,8 @@
           class="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-medium text-blue-900 dark:border-blue-700 dark:bg-blue-900 dark:text-blue-200"
           bind:value={selectedOcrEngine}
         >
-          {#each availableEngines as engine (engine.engine_type)}
-            <option value={engine.engine_type}>{engine.label}</option>
+          {#each availableEngines as engine (engine.engine_id)}
+            <option value={engine.engine_id}>{engine.name}</option>
           {/each}
         </select>
       {/if}

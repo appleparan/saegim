@@ -1,22 +1,25 @@
 # 자동 추출 파이프라인
 
-## Engine Type 기반 OCR 아키텍처
+## 다중 인스턴스 OCR 엔진 아키텍처
 
-프로젝트별 `ocr_config` JSONB의 `engine_type` 키로 추출 엔진을 선택한다.
-`BaseOCREngine` ABC를 통한 Strategy 패턴으로, 4가지 엔진 타입을 지원한다:
+프로젝트별 `ocr_config` JSONB에 다수의 엔진 인스턴스를 등록하고,
+`default_engine_id`로 기본 엔진을 지정한다.
+`BaseOCREngine` ABC를 통한 Strategy 패턴으로, 3가지 등록 가능한 엔진 타입을 지원한다:
 
 ```text
-ocr_config.engine_type
-  ├── pdfminer           → pdfminer.six 폴백 (GPU 불필요, 동기)
-  ├── commercial_api     → VLM API (Gemini/vLLM) full-page 분석
-  ├── vllm               → vLLM 서버 (Chandra 등)
-  └── split_pipeline     → Docling 레이아웃 + 외부 OCR (Gemini/vLLM)
+ocr_config.engines
+  ├── "gemini-flash"     → commercial_api (Gemini API full-page 분석)
+  ├── "vllm-chandra"     → vllm (vLLM 서버)
+  ├── "vllm-olmocr"      → vllm (다른 vLLM 서버/모델)
+  └── "docling-gemini"   → split_pipeline (Docling + Gemini OCR)
 ```
+
+`pdfminer`는 항상 사용 가능한 폴백 엔진으로, 등록 없이 `default_engine_id`가 null일 때 자동 사용된다.
 
 | Engine Type | 설명 | 외부 서비스 | 사용 시나리오 |
 | --- | --- | --- | --- |
-| `pdfminer` | pdfminer.six 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
-| `commercial_api` | 상업용 VLM API (Gemini, vLLM) | Gemini API 또는 vLLM 서버 | 고품질 full-page OCR |
+| `pdfminer` (폴백) | pdfminer.six 기본 추출 | 없음 | CI/테스트/GPU 없는 환경 |
+| `commercial_api` | 상업용 VLM API (Gemini) | Gemini API | 고품질 full-page OCR |
 | `vllm` | vLLM OpenAI-compatible VLM 서버 | vLLM 서버 | 로컬 GPU 기반 OCR |
 | `split_pipeline` | 분리 파이프라인 (Layout + OCR) | Docling (로컬) + Gemini/vLLM | 레이아웃은 Docling, OCR은 VLM |
 
@@ -90,77 +93,54 @@ PDF 업로드
 
 ## 요소별 엔진 선택 (Per-Element Engine Override)
 
-프로젝트에 여러 OCR 엔진을 동시에 활성화(`enabled_engines`)한 뒤,
-레이블링 화면에서 요소별로 다른 엔진을 선택하여 텍스트를 추출할 수 있다.
+프로젝트에 등록된 모든 엔진 인스턴스를 레이블링 화면에서 선택할 수 있다.
 
 ```text
 프로젝트 설정
-  → engine_type: 기본 엔진 (full-page 추출용)
-  → enabled_engines: [commercial_api, vllm, split_pipeline]
-     └── 각 엔진의 sub-config를 독립적으로 설정
+  → default_engine_id: 기본 엔진 (full-page 추출용)
+  → engines: { "gemini-flash": {...}, "vllm-chandra": {...} }
 
 레이블링 화면
   → 요소 그리기 → OCR 팝업
      ├── 엔진이 1개: 바로 OCR 실행
      └── 엔진이 2개+: 드롭다운으로 엔진 선택 후 실행
-  → POST /pages/{id}/extract-text { engine_type: "vllm" }
+  → POST /pages/{id}/extract-text { engine_id: "vllm-chandra" }
   → 추출 결과 + 사용 엔진 정보를 annotation_data에 저장 (ocr_engine 필드)
 ```
 
 ## `ocr_config` JSONB 구조
 
 ```json
-// 복수 엔진 활성화 예시
 {
-  "engine_type": "commercial_api",
-  "enabled_engines": ["commercial_api", "vllm"],
-  "commercial_api": {
-    "provider": "gemini",
-    "api_key": "...",
-    "model": "gemini-3-flash-preview"
-  },
-  "vllm": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
-}
-
-// 단일 엔진 (기존 호환)
-{
-  "engine_type": "commercial_api",
-  "commercial_api": {
-    "provider": "gemini",
-    "api_key": "...",
-    "model": "gemini-3-flash-preview"
+  "default_engine_id": "gemini-flash",
+  "engines": {
+    "gemini-flash": {
+      "engine_type": "commercial_api",
+      "name": "Gemini Flash",
+      "config": { "provider": "gemini", "api_key": "...", "model": "gemini-3-flash-preview" }
+    },
+    "vllm-chandra": {
+      "engine_type": "vllm",
+      "name": "vLLM Chandra",
+      "config": { "host": "gpu-server-1", "port": 8000, "model": "datalab-to/chandra" }
+    },
+    "vllm-olmocr": {
+      "engine_type": "vllm",
+      "name": "vLLM olmOCR",
+      "config": { "host": "gpu-server-2", "port": 8000, "model": "allenai/olmOCR-2-7B-1025-FP8" }
+    }
   }
 }
-
-// vllm
-{
-  "engine_type": "vllm",
-  "vllm": { "host": "localhost", "port": 8000, "model": "prithivMLmods/chandra-FP8-Latest" }
-}
-
-// split_pipeline (Docling + Gemini)
-{
-  "engine_type": "split_pipeline",
-  "split_pipeline": {
-    "docling_model_name": "ibm-granite/granite-docling-258M",
-    "ocr_provider": "gemini",
-    "ocr_api_key": "...",
-    "ocr_model": "gemini-3-flash-preview"
-  }
-}
-
-// pdfminer (fallback)
-{ "engine_type": "pdfminer" }
 ```
 
-`enabled_engines`가 비어있거나 생략되면 `[engine_type]`으로 폴백하여 하위 호환을 유지한다.
+`default_engine_id`가 null이면 pdfminer 폴백. 구 포맷은 `normalize_ocr_config()`에서 자동 변환.
 
 ## 구현 파일
 
 ### 엔진 추상화 (`services/engines/`)
 
 - `services/engines/base.py`: `BaseOCREngine` ABC (`extract_page()`, `test_connection()`)
-- `services/engines/factory.py`: `build_engine(ocr_config)` 팩토리 (`engine_type` 분기)
+- `services/engines/factory.py`: `build_engine_by_id(ocr_config, engine_id)` 팩토리 (다중 인스턴스 지원)
 - `services/engines/pdfminer_engine.py`: `PdfminerEngine`
 - `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
 - `services/engines/vllm_engine.py`: `VllmEngine` (vLLM OpenAI-compatible API)
@@ -179,10 +159,10 @@ PDF 업로드
 
 ### 통합
 
-- `services/document_service.py`: asyncio 백그라운드 태스크 (`build_engine()` → `asyncio.to_thread(engine.extract_page())`)
-- `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `VllmServerConfig`, `SplitPipelineConfig`, `AvailableEngine`
-- `services/text_extraction_service.py`: `build_text_provider(ocr_config, engine_type_override)` 요소별 엔진 오버라이드
-- `OcrSettingsPanel.svelte`: 복수 엔진 활성화 UI (기본 엔진 라디오 + 추가 엔진 토글)
+- `services/document_service.py`: asyncio 백그라운드 태스크 (`build_engine_by_id()` → `asyncio.to_thread(engine.extract_page())`)
+- `schemas/project.py`: `EngineInstance`, `EngineInstanceCreate`, `OcrConfigResponse`, `AvailableEngine`
+- `services/text_extraction_service.py`: `build_text_provider(ocr_config, engine_id)` 요소별 엔진 오버라이드
+- `OcrSettingsPanel.svelte`: 엔진 인스턴스 카드 기반 관리 UI (추가/수정/삭제/기본 설정)
 
 ## 재추출 (Re-extract)
 

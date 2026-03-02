@@ -61,7 +61,7 @@ erDiagram
         varchar name
         text description
         varchar project_type "element_annotation | vqa | ocrag"
-        jsonb ocr_config "OCR 엔진 설정 (engine_type)"
+        jsonb ocr_config "OCR 엔진 설정 (다중 인스턴스 레지스트리)"
         timestamptz created_at
     }
 
@@ -121,7 +121,7 @@ erDiagram
 | `name` | VARCHAR(255) | - | 프로젝트 이름 |
 | `description` | TEXT | `''` | 프로젝트 설명 |
 | `project_type` | VARCHAR(30) | `'element_annotation'` | 프로젝트 유형: `element_annotation`, `vqa`, `ocrag` |
-| `ocr_config` | JSONB | `NULL` | OCR 엔진 설정 (engine_type + 타입별 세부 설정) |
+| `ocr_config` | JSONB | `NULL` | OCR 엔진 설정 (다중 인스턴스: default_engine_id + engines dict) |
 | `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
 
 ### documents

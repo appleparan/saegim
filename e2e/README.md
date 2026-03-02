@@ -87,7 +87,7 @@ e2e/
 ├── tests/
 │   ├── health.test.ts              # 서비스 health check
 │   ├── extraction.test.ts          # pdfminer 추출 → 수락 워크플로우
-│   ├── ocr-config.test.ts          # OCR 엔진 설정 API (engine_type CRUD + validation)
+│   ├── ocr-config.test.ts          # OCR 엔진 설정 API (다중 인스턴스 CRUD + validation)
 │   ├── attribute-classifier.test.ts  # 속성 분류기
 │   ├── reading-order.test.ts       # 읽기 순서 CRUD + 유효성 검증
 │   ├── relations.test.ts           # 관계 CRUD + 충돌 검증

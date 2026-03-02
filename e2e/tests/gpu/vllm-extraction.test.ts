@@ -3,7 +3,7 @@ import {
   waitForBackendReady,
   waitForVllmReady,
   createProject,
-  updateOcrConfig,
+  addEngine,
   testOcrConnection,
   uploadPdf,
   listDocuments,
@@ -35,27 +35,23 @@ describe("vLLM + Chandra OCR Extraction (GPU)", () => {
     );
     projectId = project.id;
 
-    const { data, status } = await updateOcrConfig(projectId, {
+    const { data, status } = await addEngine(projectId, {
+      engine_id: "vllm-chandra",
       engine_type: "vllm",
-      vllm: {
+      name: "vLLM Chandra",
+      config: {
         host: VLLM_HOST,
         port: VLLM_PORT,
         model: VLLM_MODEL,
       },
     });
-    expect(status).toBe(200);
-    expect(data.engine_type).toBe("vllm");
+    expect(status).toBe(201);
+    expect(data.engines["vllm-chandra"]).toBeDefined();
+    expect(data.default_engine_id).toBe("vllm-chandra");
   });
 
   test("02 - vLLM connection test succeeds", async () => {
-    const { data, status } = await testOcrConnection(projectId, {
-      engine_type: "vllm",
-      vllm: {
-        host: VLLM_HOST,
-        port: VLLM_PORT,
-        model: VLLM_MODEL,
-      },
-    });
+    const { data, status } = await testOcrConnection(projectId, "vllm-chandra");
     expect(status).toBe(200);
     expect(data.success).toBe(true);
   });

@@ -146,7 +146,7 @@ class TestBuildTextProvider:
         }
         assert build_text_provider(config) is None
 
-    def test_engine_type_override_uses_override(self):
+    def test_engine_id_uses_override(self):
         config = {
             'engine_type': 'pdfminer',
             'vllm': {
@@ -156,15 +156,15 @@ class TestBuildTextProvider:
             },
         }
         # Default engine is pdfminer (returns None), but override to vllm
-        provider = build_text_provider(config, engine_type_override='vllm')
+        provider = build_text_provider(config, engine_id='vllm')
         assert provider is not None
 
-    def test_engine_type_override_none_uses_default(self):
+    def test_engine_id_none_uses_default(self):
         config = {'engine_type': 'pdfminer'}
-        provider = build_text_provider(config, engine_type_override=None)
+        provider = build_text_provider(config, engine_id=None)
         assert provider is None
 
-    def test_engine_type_override_commercial_api(self):
+    def test_engine_id_commercial_api(self):
         config = {
             'engine_type': 'vllm',
             'vllm': {'host': 'localhost', 'port': 8000},
@@ -175,11 +175,11 @@ class TestBuildTextProvider:
             },
         }
         # Override to commercial_api even though default is vllm
-        provider = build_text_provider(config, engine_type_override='commercial_api')
+        provider = build_text_provider(config, engine_id='commercial_api')
         assert provider is not None
         assert hasattr(provider, 'extract_text')
 
-    def test_engine_type_override_to_pdfminer_returns_none(self):
+    def test_engine_id_to_pdfminer_returns_none(self):
         config = {
             'engine_type': 'commercial_api',
             'commercial_api': {
@@ -188,17 +188,116 @@ class TestBuildTextProvider:
             },
         }
         # Override to pdfminer (no region-level extraction)
-        provider = build_text_provider(config, engine_type_override='pdfminer')
+        provider = build_text_provider(config, engine_id='pdfminer')
         assert provider is None
 
-    def test_engine_type_override_missing_sub_config(self):
+    def test_engine_id_missing_sub_config(self):
         config = {
             'engine_type': 'pdfminer',
             # No commercial_api sub-config present
         }
         # Override to commercial_api, but no sub-config → gemini with no key → None
-        provider = build_text_provider(config, engine_type_override='commercial_api')
+        provider = build_text_provider(config, engine_id='commercial_api')
         assert provider is None
+
+
+class TestBuildTextProviderMultiInstance:
+    """Tests for build_text_provider with new multi-instance format."""
+
+    def test_uses_default_engine(self):
+        config = {
+            'default_engine_id': 'my-vllm',
+            'engines': {
+                'my-vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'My vLLM',
+                    'config': {'host': 'localhost', 'port': 8000, 'model': 'test'},
+                },
+            },
+        }
+        provider = build_text_provider(config)
+        assert provider is not None
+
+    def test_engine_id_overrides_default(self):
+        config = {
+            'default_engine_id': 'my-vllm',
+            'engines': {
+                'my-vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'My vLLM',
+                    'config': {'host': 'localhost', 'port': 8000},
+                },
+                'gemini-flash': {
+                    'engine_type': 'commercial_api',
+                    'name': 'Gemini Flash',
+                    'config': {'provider': 'gemini', 'api_key': 'k', 'model': 'm'},
+                },
+            },
+        }
+        provider = build_text_provider(config, engine_id='gemini-flash')
+        assert provider is not None
+
+    def test_no_default_no_override_returns_none(self):
+        config = {
+            'default_engine_id': None,
+            'engines': {
+                'my-vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'My vLLM',
+                    'config': {'host': 'localhost', 'port': 8000},
+                },
+            },
+        }
+        provider = build_text_provider(config)
+        assert provider is None
+
+    def test_pdfminer_default_returns_none(self):
+        config = {
+            'default_engine_id': 'pdfminer',
+            'engines': {},
+        }
+        provider = build_text_provider(config)
+        assert provider is None
+
+    def test_unknown_engine_id_returns_none(self):
+        config = {
+            'default_engine_id': 'nonexistent',
+            'engines': {},
+        }
+        provider = build_text_provider(config)
+        assert provider is None
+
+    def test_commercial_api_gemini(self):
+        config = {
+            'default_engine_id': 'gemini-pro',
+            'engines': {
+                'gemini-pro': {
+                    'engine_type': 'commercial_api',
+                    'name': 'Gemini Pro',
+                    'config': {'provider': 'gemini', 'api_key': 'test-key', 'model': 'pro'},
+                },
+            },
+        }
+        provider = build_text_provider(config)
+        assert provider is not None
+
+    def test_split_pipeline(self):
+        config = {
+            'default_engine_id': 'docling-ocr',
+            'engines': {
+                'docling-ocr': {
+                    'engine_type': 'split_pipeline',
+                    'name': 'Docling OCR',
+                    'config': {
+                        'ocr_provider': 'vllm',
+                        'ocr_host': 'localhost',
+                        'ocr_port': 8000,
+                    },
+                },
+            },
+        }
+        provider = build_text_provider(config)
+        assert provider is not None
 
 
 class TestExtractTextFromRegion:
@@ -291,9 +390,7 @@ class TestResolveTextProvider:
                 return_value=ocr_config,
             ),
         ):
-            _, provider = await resolve_text_provider(
-                mock_pool, page_id, engine_type_override='vllm'
-            )
+            _, provider = await resolve_text_provider(mock_pool, page_id, engine_id='vllm')
         assert provider is not None
 
     @pytest.mark.asyncio
@@ -316,7 +413,7 @@ class TestResolveTextProvider:
             ),
             pytest.raises(NoTextProviderError, match='pdfminer'),
         ):
-            await resolve_text_provider(mock_pool, page_id, engine_type_override=None)
+            await resolve_text_provider(mock_pool, page_id, engine_id=None)
 
     @pytest.mark.asyncio
     async def test_page_not_found_raises_lookup_error(self, mock_pool, page_id):
@@ -358,4 +455,92 @@ class TestResolveTextProvider:
             ),
             pytest.raises(NoTextProviderError, match='pdfminer'),
         ):
-            await resolve_text_provider(mock_pool, page_id, engine_type_override='pdfminer')
+            await resolve_text_provider(mock_pool, page_id, engine_id='pdfminer')
+
+    @pytest.mark.asyncio
+    async def test_multi_instance_default_engine(self, mock_pool, page_id, project_id):
+        page_record = {
+            'image_path': '/storage/images/test.png',
+            'project_id': project_id,
+        }
+        ocr_config = {
+            'default_engine_id': 'my-vllm',
+            'engines': {
+                'my-vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'My vLLM',
+                    'config': {'host': 'localhost', 'port': 8000, 'model': 'test'},
+                },
+            },
+        }
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=page_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.get_ocr_config',
+                new_callable=AsyncMock,
+                return_value=ocr_config,
+            ),
+        ):
+            _, provider = await resolve_text_provider(mock_pool, page_id)
+        assert provider is not None
+
+    @pytest.mark.asyncio
+    async def test_multi_instance_engine_id_override(self, mock_pool, page_id, project_id):
+        page_record = {
+            'image_path': '/storage/images/test.png',
+            'project_id': project_id,
+        }
+        ocr_config = {
+            'default_engine_id': 'my-vllm',
+            'engines': {
+                'my-vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'My vLLM',
+                    'config': {'host': 'localhost', 'port': 8000},
+                },
+                'gemini-flash': {
+                    'engine_type': 'commercial_api',
+                    'name': 'Gemini Flash',
+                    'config': {'provider': 'gemini', 'api_key': 'k', 'model': 'm'},
+                },
+            },
+        }
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=page_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.get_ocr_config',
+                new_callable=AsyncMock,
+                return_value=ocr_config,
+            ),
+        ):
+            _, provider = await resolve_text_provider(mock_pool, page_id, engine_id='gemini-flash')
+        assert provider is not None
+
+    @pytest.mark.asyncio
+    async def test_multi_instance_no_config_raises(self, mock_pool, page_id, project_id):
+        page_record = {
+            'image_path': '/storage/images/test.png',
+            'project_id': project_id,
+        }
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=page_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.get_ocr_config',
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            pytest.raises(NoTextProviderError),
+        ):
+            await resolve_text_provider(mock_pool, page_id)

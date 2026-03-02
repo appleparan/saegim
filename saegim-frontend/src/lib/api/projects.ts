@@ -7,8 +7,11 @@ import type {
   ProjectResponse,
   CreateProjectRequest,
   AvailableEnginesResponse,
+  DefaultEngineUpdate,
+  EngineInstanceCreate,
+  EngineInstanceUpdate,
   OcrConfigResponse,
-  OcrConfigUpdate,
+  OcrConnectionTestRequest,
   OcrConnectionTestResponse,
 } from './types'
 
@@ -32,21 +35,47 @@ export async function getOcrConfig(projectId: string): Promise<OcrConfigResponse
   return api.get<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config`)
 }
 
-export async function updateOcrConfig(
+export async function addEngine(
   projectId: string,
-  data: OcrConfigUpdate,
+  data: EngineInstanceCreate,
 ): Promise<OcrConfigResponse> {
-  return api.put<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config`, data)
+  return api.post<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config/engines`, data)
 }
 
-export async function testOcrConnection(
+export async function updateEngine(
   projectId: string,
-  data: OcrConfigUpdate,
+  engineId: string,
+  data: EngineInstanceUpdate,
+): Promise<OcrConfigResponse> {
+  return api.put<OcrConfigResponse>(
+    `/api/v1/projects/${projectId}/ocr-config/engines/${engineId}`,
+    data,
+  )
+}
+
+export async function deleteEngine(
+  projectId: string,
+  engineId: string,
+): Promise<OcrConfigResponse> {
+  return api.delete(
+    `/api/v1/projects/${projectId}/ocr-config/engines/${engineId}`,
+  ) as Promise<OcrConfigResponse>
+}
+
+export async function setDefaultEngine(
+  projectId: string,
+  data: DefaultEngineUpdate,
+): Promise<OcrConfigResponse> {
+  return api.put<OcrConfigResponse>(`/api/v1/projects/${projectId}/ocr-config/default-engine`, data)
+}
+
+export async function testEngineConnection(
+  projectId: string,
+  data: OcrConnectionTestRequest,
 ): Promise<OcrConnectionTestResponse> {
   return api.post<OcrConnectionTestResponse>(`/api/v1/projects/${projectId}/ocr-config/test`, data)
 }
 
-/** Get engines available for per-element text extraction. */
 export async function getAvailableEngines(projectId: string): Promise<AvailableEnginesResponse> {
   return api.get<AvailableEnginesResponse>(`/api/v1/projects/${projectId}/available-engines`)
 }
