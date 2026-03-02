@@ -27,6 +27,7 @@
   let vllmModel = $state('')
 
   // Split pipeline config
+  let spLayoutProvider = $state<'docling' | 'pp_doclayout'>('docling')
   let spDoclingModel = $state('ibm-granite/granite-docling-258M')
   let spOcrProvider = $state<'gemini' | 'vllm'>('gemini')
 
@@ -43,8 +44,8 @@
     },
     {
       value: 'split_pipeline',
-      label: 'Docling + OCR',
-      description: 'Docling 레이아웃 + OCR',
+      label: '레이아웃 + OCR',
+      description: '레이아웃 감지 + OCR 파이프라인',
     },
   ]
 
@@ -58,6 +59,7 @@
     vllmHost = 'localhost'
     vllmPort = 8000
     vllmModel = ''
+    spLayoutProvider = 'docling'
     spDoclingModel = 'ibm-granite/granite-docling-258M'
     spOcrProvider = 'gemini'
   }
@@ -73,7 +75,7 @@
     // Pre-fill name based on type
     if (t === 'commercial_api') name = 'Gemini Flash'
     else if (t === 'vllm') name = 'vLLM'
-    else if (t === 'split_pipeline') name = 'Docling + OCR'
+    else if (t === 'split_pipeline') name = '레이아웃 + OCR'
     // Pre-fill API key from env if available
     if (t === 'commercial_api' && envGeminiApiKey) {
       caApiKey = envGeminiApiKey
@@ -98,17 +100,22 @@
       }
     }
     // split_pipeline
-    return {
-      docling_model_name: spDoclingModel.trim(),
+    const config: Record<string, unknown> = {
+      layout_provider: spLayoutProvider,
       ocr_provider: spOcrProvider,
     }
+    if (spLayoutProvider === 'docling') {
+      config.docling_model_name = spDoclingModel.trim()
+    }
+    return config
   }
 
   let isValid = $derived.by(() => {
     if (!name.trim()) return false
     if (engineType === 'commercial_api') return caApiKey.trim().length > 0
     if (engineType === 'vllm') return vllmHost.trim().length > 0 && vllmPort > 0
-    if (engineType === 'split_pipeline') return spDoclingModel.trim().length > 0
+    if (engineType === 'split_pipeline')
+      return spLayoutProvider === 'pp_doclayout' || spDoclingModel.trim().length > 0
     return false
   })
 
@@ -248,19 +255,43 @@
 
         {#if engineType === 'split_pipeline'}
           <div>
-            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-docling">
-              Docling 모델
+            <label
+              class="text-muted-foreground mb-1 block text-xs font-medium"
+              for="add-layout-provider"
+            >
+              레이아웃 감지기
             </label>
-            <input
-              id="add-docling"
-              type="text"
+            <select
+              id="add-layout-provider"
               class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
-              placeholder="ibm-granite/granite-docling-258M"
-              bind:value={spDoclingModel}
-            />
+              bind:value={spLayoutProvider}
+            >
+              <option value="docling">Docling</option>
+              <option value="pp_doclayout">PP-DocLayoutV3</option>
+            </select>
           </div>
+          {#if spLayoutProvider === 'docling'}
+            <div>
+              <label
+                class="text-muted-foreground mb-1 block text-xs font-medium"
+                for="add-docling"
+              >
+                Docling 모델
+              </label>
+              <input
+                id="add-docling"
+                type="text"
+                class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
+                placeholder="ibm-granite/granite-docling-258M"
+                bind:value={spDoclingModel}
+              />
+            </div>
+          {/if}
           <div>
-            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-sp-provider">
+            <label
+              class="text-muted-foreground mb-1 block text-xs font-medium"
+              for="add-sp-provider"
+            >
               OCR Provider
             </label>
             <select

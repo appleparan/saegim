@@ -24,6 +24,7 @@ export type EngineType = 'commercial_api' | 'vllm' | 'split_pipeline' | 'pdfmine
 export type RegisterableEngineType = 'commercial_api' | 'vllm' | 'split_pipeline'
 export type CommercialApiProvider = 'gemini' | 'vllm'
 export type SplitPipelineOcrProvider = 'gemini' | 'vllm'
+export type SplitPipelineLayoutProvider = 'docling' | 'pp_doclayout'
 
 export interface CommercialApiConfig {
   readonly provider: CommercialApiProvider
@@ -39,6 +40,7 @@ export interface VllmServerConfig {
 }
 
 export interface SplitPipelineConfig {
+  readonly layout_provider?: SplitPipelineLayoutProvider
   readonly docling_model_name: string
   readonly ocr_provider: SplitPipelineOcrProvider
   readonly ocr_api_key?: string
