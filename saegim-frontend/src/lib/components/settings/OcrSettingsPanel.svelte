@@ -52,10 +52,12 @@
   $effect(() => {
     engineType = config.engine_type
     // Restore enabled engines from config, default to just the primary engine
+    // Build the Set fully before assigning to avoid read-then-write cycle
     const saved = config.enabled_engines ?? []
-    enabledEngines = new Set(saved.length > 0 ? saved : [config.engine_type])
+    const engines = new Set(saved.length > 0 ? saved : [config.engine_type])
     // Ensure primary engine is always enabled
-    enabledEngines.add(config.engine_type)
+    engines.add(config.engine_type)
+    enabledEngines = engines
 
     // Commercial API
     caProvider = config.commercial_api?.provider ?? 'gemini'
