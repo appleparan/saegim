@@ -240,7 +240,7 @@
               id="add-vllm-model"
               type="text"
               class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
-              placeholder="datalab-to/chandra"
+              placeholder="lightonai/LightOnOCR-2-1B-bbox-soup"
               bind:value={vllmModel}
             />
           </div>

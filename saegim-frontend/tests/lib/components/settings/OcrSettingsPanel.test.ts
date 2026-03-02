@@ -21,10 +21,10 @@ describe('OcrSettingsPanel', () => {
         name: 'Gemini Flash',
         config: { provider: 'gemini', api_key: 'test-key', model: 'gemini-3-flash-preview' },
       },
-      'vllm-chandra': {
+      'vllm-lightonocr': {
         engine_type: 'vllm',
-        name: 'vLLM Chandra',
-        config: { host: 'gpu-server', port: 8000, model: 'datalab-to/chandra' },
+        name: 'vLLM LightOnOCR',
+        config: { host: 'gpu-server', port: 8000, model: 'lightonai/LightOnOCR-2-1B-bbox-soup' },
       },
     },
   }
@@ -39,7 +39,7 @@ describe('OcrSettingsPanel', () => {
     render(OcrSettingsPanel, { props: { config: configWithEngines } })
 
     expect(screen.getByText('Gemini Flash')).toBeTruthy()
-    expect(screen.getByText('vLLM Chandra')).toBeTruthy()
+    expect(screen.getByText('vLLM LightOnOCR')).toBeTruthy()
   })
 
   it('shows add engine button', () => {
