@@ -91,6 +91,7 @@ class TestParseDoctags:
 
         assert len(regions) == 1
         assert regions[0].category == 'table'
+        assert regions[0].text is not None
         assert '<table>' in regions[0].text
         assert '<td>Cell</td>' in regions[0].text
 

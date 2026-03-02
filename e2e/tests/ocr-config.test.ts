@@ -32,7 +32,7 @@ describe('OCR Config API (multi-instance engines)', () => {
 
   // --- Add Engine ---
 
-  test('02 - add commercial_api engine (Gemini)', async () => {
+  test('02 - add commercial_api engine (Gemini) with prompt', async () => {
     const { data, status } = await addEngine(projectId, {
       engine_type: 'commercial_api',
       name: 'Gemini Flash',
@@ -40,6 +40,7 @@ describe('OCR Config API (multi-instance engines)', () => {
         provider: 'gemini',
         api_key: 'test-key-gemini',
         model: 'gemini-3-flash-preview',
+        prompt: 'Extract all text from this document image.',
       },
     })
     expect(status).toBe(201)
@@ -50,6 +51,7 @@ describe('OCR Config API (multi-instance engines)', () => {
       provider: 'gemini',
       api_key: 'test-key-gemini',
       model: 'gemini-3-flash-preview',
+      prompt: 'Extract all text from this document image.',
     })
     // First engine becomes default automatically
     expect(data.default_engine_id).toBe('gemini-flash')
@@ -147,6 +149,22 @@ describe('OCR Config API (multi-instance engines)', () => {
     expect(data.engines['vllm-chandra'].config).toMatchObject({
       host: 'gpu-server-1-new',
       port: 8001,
+    })
+  })
+
+  test('10b - update commercial_api engine prompt', async () => {
+    const { data, status } = await updateEngine(projectId, 'gemini-flash', {
+      config: {
+        provider: 'gemini',
+        api_key: 'test-key-gemini',
+        model: 'gemini-3.1-pro-preview',
+        prompt: 'Updated custom prompt.',
+      },
+    })
+    expect(status).toBe(200)
+    expect(data.engines['gemini-flash'].config).toMatchObject({
+      model: 'gemini-3.1-pro-preview',
+      prompt: 'Updated custom prompt.',
     })
   })
 

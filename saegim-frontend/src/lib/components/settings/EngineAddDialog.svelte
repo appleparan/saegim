@@ -19,6 +19,7 @@
   // Commercial API config
   let caApiKey = $state('')
   let caModel = $state('gemini-3-flash-preview')
+  let caPrompt = $state('')
 
   // vLLM config
   let vllmHost = $state('localhost')
@@ -53,6 +54,7 @@
     name = ''
     caApiKey = ''
     caModel = 'gemini-3-flash-preview'
+    caPrompt = ''
     vllmHost = 'localhost'
     vllmPort = 8000
     vllmModel = ''
@@ -85,6 +87,7 @@
         provider: 'gemini',
         api_key: caApiKey.trim(),
         model: caModel.trim(),
+        prompt: caPrompt.trim(),
       }
     }
     if (engineType === 'vllm') {
@@ -121,7 +124,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-  <Dialog.Content class="sm:max-w-md">
+  <Dialog.Content class="sm:max-w-lg">
     <Dialog.Header>
       <Dialog.Title>
         {step === 'type' ? '엔진 타입 선택' : '엔진 설정'}
@@ -184,10 +187,21 @@
               class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
               bind:value={caModel}
             >
-              <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
-              <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
-              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+              <option value="gemini-3-flash-preview">gemini-3-flash-preview (Flash)</option>
+              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (Pro)</option>
             </select>
+          </div>
+          <div>
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-prompt">
+              OCR 프롬프트 (선택)
+            </label>
+            <textarea
+              id="add-prompt"
+              class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
+              rows="4"
+              placeholder={"비워두면 기본 레이아웃 분석 프롬프트를 사용합니다. {width}와 {height}로 이미지 크기를 참조할 수 있습니다."}
+              bind:value={caPrompt}
+            ></textarea>
           </div>
         {/if}
 

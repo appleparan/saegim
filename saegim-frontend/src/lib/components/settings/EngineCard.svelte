@@ -172,10 +172,20 @@
             value={String(editConfig.model ?? 'gemini-3-flash-preview')}
             onchange={(e) => (editConfig = { ...editConfig, model: (e.target as HTMLSelectElement).value })}
           >
-            <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
-            <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
-            <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+            <option value="gemini-3-flash-preview">gemini-3-flash-preview (Flash)</option>
+            <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (Pro)</option>
           </select>
+        </div>
+        <div>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-prompt-{engineId}">OCR 프롬프트 (선택)</label>
+          <textarea
+            id="edit-prompt-{engineId}"
+            class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
+            rows="4"
+            placeholder="비워두면 기본 레이아웃 분석 프롬프트를 사용합니다."
+            value={String(editConfig.prompt ?? '')}
+            oninput={(e) => (editConfig = { ...editConfig, prompt: (e.target as HTMLTextAreaElement).value })}
+          ></textarea>
         </div>
       {/if}
 

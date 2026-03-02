@@ -29,6 +29,7 @@ export interface CommercialApiConfig {
   readonly provider: CommercialApiProvider
   readonly api_key?: string
   readonly model: string
+  readonly prompt?: string
 }
 
 export interface VllmServerConfig {

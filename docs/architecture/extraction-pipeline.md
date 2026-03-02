@@ -117,7 +117,7 @@ PDF 업로드
     "gemini-flash": {
       "engine_type": "commercial_api",
       "name": "Gemini Flash",
-      "config": { "provider": "gemini", "api_key": "...", "model": "gemini-3-flash-preview" }
+      "config": { "provider": "gemini", "api_key": "...", "model": "gemini-3-flash-preview", "prompt": "" }
     },
     "vllm-chandra": {
       "engine_type": "vllm",

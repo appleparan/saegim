@@ -88,7 +88,7 @@ class TestEngineInstance:
     def test_invalid_engine_type_pdfminer(self):
         with pytest.raises(ValidationError):
             EngineInstance(
-                engine_type='pdfminer',
+                engine_type='pdfminer',  # type: ignore[arg-type]
                 name='pdfminer',
                 config={},
             )
@@ -96,7 +96,7 @@ class TestEngineInstance:
     def test_invalid_engine_type_unknown(self):
         with pytest.raises(ValidationError):
             EngineInstance(
-                engine_type='unknown',
+                engine_type='unknown',  # type: ignore[arg-type]
                 name='Unknown',
                 config={},
             )
@@ -135,6 +135,31 @@ class TestEngineInstance:
             config={},
         )
         assert instance.config == {}
+
+    def test_commercial_api_with_custom_prompt(self):
+        instance = EngineInstance(
+            engine_type='commercial_api',
+            name='Gemini Custom',
+            config={
+                'provider': 'gemini',
+                'api_key': 'test-key',
+                'model': 'gemini-3-flash-preview',
+                'prompt': 'Extract all text from this image.',
+            },
+        )
+        assert instance.config['prompt'] == 'Extract all text from this image.'
+
+    def test_commercial_api_without_prompt_is_valid(self):
+        instance = EngineInstance(
+            engine_type='commercial_api',
+            name='No Prompt Gemini',
+            config={
+                'provider': 'gemini',
+                'api_key': 'test-key',
+                'model': 'gemini-3-flash-preview',
+            },
+        )
+        assert instance.engine_type == 'commercial_api'
 
     def test_commercial_api_requires_provider_field(self):
         with pytest.raises(ValidationError):
