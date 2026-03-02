@@ -65,6 +65,43 @@ class TestSplitPipelineEngineInit:
             mock_detector_cls.return_value, mock_text_provider
         )
 
+    @patch(f'{_MODULE}.OcrPipeline')
+    @patch(f'{_MODULE}._create_text_provider')
+    def test_pp_doclayout_creates_engine(self, mock_text, mock_pipeline_cls):
+        mock_text.return_value = MagicMock()
+
+        with patch('saegim.services.pp_doclayout_service.PPDocLayoutV3Detector') as mock_pp:
+            mock_pp.return_value = MagicMock()
+            engine = SplitPipelineEngine(
+                docling_model_name='ibm-granite/granite-docling-258M',
+                ocr_provider='gemini',
+                ocr_config={'api_key': 'k'},
+                layout_provider='pp_doclayout',
+            )
+            mock_pp.assert_called_once()
+            assert isinstance(engine, BaseOCREngine)
+
+    @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
+    @patch(f'{_MODULE}.DoclingLayoutDetector', new=MagicMock())
+    @patch(f'{_MODULE}._create_text_provider')
+    def test_default_layout_provider_is_docling(self, mock_text):
+        mock_text.return_value = MagicMock()
+        engine = SplitPipelineEngine(
+            docling_model_name='ibm-granite/granite-docling-258M',
+            ocr_provider='gemini',
+            ocr_config={'api_key': 'k'},
+        )
+        assert engine._layout_provider_name == 'docling'
+
+    def test_unknown_layout_provider_raises(self):
+        with pytest.raises(ValueError, match='Unknown layout provider'):
+            SplitPipelineEngine(
+                docling_model_name='ibm-granite/granite-docling-258M',
+                ocr_provider='gemini',
+                ocr_config={'api_key': 'k'},
+                layout_provider='unknown',  # type: ignore[arg-type]
+            )
+
 
 class TestSplitPipelineEngineExtractPage:
     @patch(f'{_MODULE}.OcrPipeline')
