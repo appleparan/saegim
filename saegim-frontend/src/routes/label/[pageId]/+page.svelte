@@ -142,28 +142,28 @@
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable)
       return
 
-    if (e.key === 's' && !e.ctrlKey && !e.metaKey) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault()
+      handleSave()
+    } else if (e.key === '1') {
       canvasStore.setTool('select')
-    } else if (e.key === 'd') {
+    } else if (e.key === '2') {
       canvasStore.setTool('draw')
-    } else if (e.key === 'h') {
+    } else if (e.key === '3') {
       canvasStore.setTool('pan')
-    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+    } else if (e.key === 'x' || e.key === 'X') {
       if (annotationStore.selectedElementId !== null) {
         annotationStore.removeElement(annotationStore.selectedElementId)
       }
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault()
-      handleSave()
-    } else if (e.key === 'o' || e.key === 'O') {
+    } else if (e.key === 'r' || e.key === 'R') {
       canvasStore.toggleReadingOrder()
     } else if (e.key === 'Escape') {
       annotationStore.selectElement(null)
-    } else if (e.key === '[') {
+    } else if (e.key === 'q' || e.key === 'Q') {
       navigateToAdjacentPage(-1)
-    } else if (e.key === ']') {
+    } else if (e.key === 'e' || e.key === 'E') {
       navigateToAdjacentPage(1)
-    } else if (e.key === '?') {
+    } else if (e.key === '`') {
       shortcutHelpOpen = !shortcutHelpOpen
     }
   }
