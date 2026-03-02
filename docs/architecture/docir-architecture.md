@@ -8,10 +8,10 @@
 
 ```mermaid
 flowchart LR
-    A["extract_page()"] --> B["프롬프트 생성\n(모델 특화)"]
-    B --> C["HTTP POST\n(전송)"]
-    C --> D["응답 파싱\n(모델 특화)"]
-    D --> E["OmniDocBench 변환\n(출력 변환)"]
+    A["extract_page()"] --> B["프롬프트 생성 (모델 특화)"]
+    B --> C["HTTP POST (전송)"]
+    C --> D["응답 파싱 (모델 특화)"]
+    D --> E["OmniDocBench 변환"]
 ```
 
 모델을 추가할 때마다 Provider 클래스 전체를 새로 작성하거나,
@@ -38,10 +38,10 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    P["**Provider**\n모델 호출"]
-    A["**Adapter**\nraw → DocIR"]
-    D["**DocIR**\n(PageIR)\n중간 표현"]
-    E["**Exporter**\nDocIR → 출력"]
+    P["Provider: 모델 호출"]
+    A["Adapter: raw → DocIR"]
+    D["DocIR (PageIR)"]
+    E["Exporter: DocIR → 출력"]
 
     P --> A --> D --> E
 ```
@@ -84,7 +84,7 @@ flowchart LR
     end
 
     subgraph Pdfminer["pdfminer 폴백 (DocIR 미적용)"]
-        PDF["PDF 파일"] --> PM["pdfminer.six\nextract_pages()"]
+        PDF["PDF 파일"] --> PM["pdfminer.six extract_pages()"]
         PM --> ODB2["OmniDocBench dict"]
     end
 
@@ -354,11 +354,11 @@ Gemini는 Chandra와 **동일한 `STRUCTURED_OCR_PROMPT`**를 사용하고
 ```mermaid
 flowchart TD
     subgraph vLLM["vLLM 엔진"]
-        VP["VllmProvider\nOpenAI chat/completions"] --> CA["ChandraAdapter\nparse_response()"]
+        VP["VllmProvider: OpenAI chat/completions"] --> CA["ChandraAdapter: parse_response()"]
     end
 
     subgraph Gemini["Gemini 엔진 (향후)"]
-        GP["GeminiProvider\nGemini REST API"] --> GA["GeminiAdapter\nparse_response()"]
+        GP["GeminiProvider: Gemini REST API"] --> GA["GeminiAdapter: parse_response()"]
     end
 
     CA --> PIR1["PageIR"]
@@ -383,8 +383,8 @@ JSON을 추출하는 부분만 다르고, JSON → PageIR 변환은 ChandraAdapt
 
 ```mermaid
 flowchart LR
-    VP["VllmProvider\n(HTTP 호출)"]
-    MA["ModelAdapter\n(raw → DocIR)"]
+    VP["VllmProvider (HTTP 호출)"]
+    MA["ModelAdapter (raw → DocIR)"]
     PIR["PageIR"]
     EX["Exporter"]
     OUT["OmniDocBench dict"]
@@ -400,12 +400,12 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    LP["**LayoutProvider**\n(Docling / PP-DocLayoutV3)"]
-    DPIR["Detection PageIR\n(text = None)"]
+    LP["LayoutProvider (Docling / PP-DocLayoutV3)"]
+    DPIR["Detection PageIR (text = None)"]
     CROP["영역 크롭"]
-    TP["**TextProvider**\n(olmOCR / Gemini)"]
-    RR["RecognitionResult\n(element_id, text)"]
-    MERGE["**Merge**\nelement_id로 text 주입"]
+    TP["TextProvider (olmOCR / Gemini)"]
+    RR["RecognitionResult (element_id, text)"]
+    MERGE["Merge: element_id로 text 주입"]
     FPIR["Final PageIR"]
     EX["Exporter"]
     OUT["OmniDocBench dict"]
@@ -551,11 +551,11 @@ saegim-backend/src/saegim/services/
 
 ```mermaid
 flowchart TD
-    PR0["**PR 0**: 설계 문서\n(이 문서)"]
-    PR1["**PR 1**: DocIR + Exporter + ChandraAdapter\ndocir.py, exporters/, adapters/\nVllmOcrProvider 리팩토링"]
-    PR2["**PR 2**: LightOnOCR Adapter + 기본값 변경\nadapters/lightonocr.py\nDocker/K8s/환경 설정 업데이트"]
-    PR3["**PR 3**: PaddleOCR-VL Adapter\nadapters/paddleocr_vl.py"]
-    PR4["**PR 4**: PP-DocLayoutV3 + Split Pipeline DocIR\npp_doclayout_service.py\nRecognitionResult + merge 로직"]
+    PR0["PR 0: 설계 문서"]
+    PR1["PR 1: DocIR + Exporter + ChandraAdapter"]
+    PR2["PR 2: LightOnOCR Adapter + 기본값 변경"]
+    PR3["PR 3: PaddleOCR-VL Adapter"]
+    PR4["PR 4: PP-DocLayoutV3 + Split Pipeline DocIR"]
 
     PR0 --> PR1 --> PR2 --> PR3 --> PR4
 ```
