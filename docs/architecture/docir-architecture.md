@@ -6,12 +6,12 @@
 
 현재 OCR 엔진들이 **모델 호출 + 응답 파싱 + OmniDocBench 변환**을 하나의 클래스에서 처리한다:
 
-```text
-VllmOcrProvider.extract_page()
-  ├── STRUCTURED_OCR_PROMPT 생성          # 모델 특화
-  ├── HTTP POST /v1/chat/completions      # 전송
-  ├── _parse_vllm_response() → JSON 파싱  # 모델 특화
-  └── build_omnidocbench_page()           # 출력 변환
+```mermaid
+flowchart LR
+    A["extract_page()"] --> B["프롬프트 생성\n(모델 특화)"]
+    B --> C["HTTP POST\n(전송)"]
+    C --> D["응답 파싱\n(모델 특화)"]
+    D --> E["OmniDocBench 변환\n(출력 변환)"]
 ```
 
 모델을 추가할 때마다 Provider 클래스 전체를 새로 작성하거나,
@@ -36,12 +36,14 @@ VllmOcrProvider.extract_page()
 
 ## 2. 3-Stage 아키텍처
 
-```text
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│ Provider │───>│ Adapter  │───>│  DocIR   │───>│ Exporter │
-│          │    │          │    │ (PageIR) │    │          │
-│ 모델 호출 │    │ raw→DocIR│    │ 중간 표현 │    │ DocIR→출력│
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
+```mermaid
+flowchart LR
+    P["**Provider**\n모델 호출"]
+    A["**Adapter**\nraw → DocIR"]
+    D["**DocIR**\n(PageIR)\n중간 표현"]
+    E["**Exporter**\nDocIR → 출력"]
+
+    P --> A --> D --> E
 ```
 
 ### 컴포넌트 책임
@@ -58,6 +60,40 @@ VllmOcrProvider.extract_page()
 - 모델별 로직은 **Adapter에만** 존재한다.
 - 새 모델 추가 시 **1 Adapter** (+선택적 Provider)만 작성한다.
 - Engine과 Exporter는 모델에 무관하게 동작한다.
+
+### 적용 범위
+
+DocIR 3-stage 파이프라인은 **이미지 기반 OCR 엔진**에만 적용된다:
+
+| 엔진 | DocIR 적용 | 이유 |
+| ---- | ---------- | ---- |
+| `vllm` | O | 이미지 → VLM API → JSON/텍스트 |
+| `commercial_api` (Gemini) | O (향후) | 이미지 → Gemini API → JSON |
+| `split_pipeline` | O | 이미지 → Layout + OCR → 합성 |
+| `pdfminer` (폴백) | **X** | PDF 파일 직접 처리, 이미지 불필요 |
+
+**pdfminer**는 완전히 다른 실행 경로를 사용한다:
+
+```mermaid
+flowchart LR
+    subgraph DocIR["이미지 기반 엔진 (DocIR 적용)"]
+        IMG["페이지 이미지"] --> PROV["Provider"]
+        PROV --> ADPT["Adapter"]
+        ADPT --> PIR["PageIR"]
+        PIR --> EXP["Exporter"]
+    end
+
+    subgraph Pdfminer["pdfminer 폴백 (DocIR 미적용)"]
+        PDF["PDF 파일"] --> PM["pdfminer.six\nextract_pages()"]
+        PM --> ODB2["OmniDocBench dict"]
+    end
+
+    EXP --> ODB1["OmniDocBench dict"]
+```
+
+pdfminer는 `PdfminerEngine.extract_page()`가 `NotImplementedError`를 raise하며,
+실제 추출은 `extraction_service.extract_page_elements(pdf_path, page_no)`에서
+PDF를 직접 읽어 동기적으로 처리한다. Adapter 변환 대상이 아니다.
 
 ## 3. DocIR 명세
 
@@ -295,10 +331,49 @@ vllm serve PaddlePaddle/PaddleOCR-VL \
 - **역할**: Full-page OCR 또는 크롭 텍스트 추출
 - **런타임**: Google Cloud API
 - **입력**: 구조화 프롬프트 + 이미지
-- **출력**: JSON 또는 텍스트
+- **출력**: JSON 배열 (Chandra와 동일 형식) 또는 텍스트
 
-**DocIR 매핑**: Chandra와 유사 (JSON → ElementIR).
+**DocIR 매핑**: Chandra와 동일 (JSON → ElementIR).
 API 파라미터는 `PageIR.meta`에 보존.
+
+**Adapter 마이그레이션 설계**:
+
+Gemini는 Chandra와 **동일한 `STRUCTURED_OCR_PROMPT`**를 사용하고
+동일한 JSON 배열 형식을 출력한다. 따라서 `parse_response()` 로직은 공유 가능하다.
+
+다만 API 호출 형식이 다르다:
+
+| | vLLM (OpenAI-compatible) | Gemini REST API |
+| --- | --- | --- |
+| 엔드포인트 | `/v1/chat/completions` | `/v1beta/models/{model}:generateContent` |
+| 메시지 형식 | `messages[{role, content}]` | `contents[{parts[{text, inline_data}]}]` |
+| 인증 | 없음 (로컬) | API key (query param) |
+
+이 차이는 **Provider 레이어**에서 흡수한다:
+
+```mermaid
+flowchart TD
+    subgraph vLLM["vLLM 엔진"]
+        VP["VllmProvider\nOpenAI chat/completions"] --> CA["ChandraAdapter\nparse_response()"]
+    end
+
+    subgraph Gemini["Gemini 엔진 (향후)"]
+        GP["GeminiProvider\nGemini REST API"] --> GA["GeminiAdapter\nparse_response()"]
+    end
+
+    CA --> PIR1["PageIR"]
+    GA --> PIR2["PageIR"]
+
+    PIR1 --> EX["Exporter"]
+    PIR2 --> EX
+```
+
+`GeminiAdapter.parse_response()`는 Gemini 응답(`candidates[0].content.parts[0].text`)에서
+JSON을 추출하는 부분만 다르고, JSON → PageIR 변환은 ChandraAdapter와 공유할 수 있다.
+`build_messages()`는 Gemini REST API 형식에 맞게 별도 구현한다.
+
+> **마이그레이션 시점**: PR 1\~3에서 vLLM 엔진을 먼저 Adapter 패턴으로 전환한 후,
+> 별도 PR에서 CommercialApiEngine(Gemini)을 마이그레이션한다.
 
 ## 5. 파이프라인 모드
 
@@ -306,11 +381,15 @@ API 파라미터는 `PageIR.meta`에 보존.
 
 하나의 모델이 레이아웃 + 텍스트를 한번에 처리:
 
-```text
-┌─────────────┐     ┌───────────────┐     ┌────────┐     ┌──────────┐
-│ VllmProvider │────>│ ModelAdapter  │────>│ PageIR │────>│ Exporter │──> OmniDocBench dict
-│ (HTTP 호출)  │     │ (raw → DocIR) │     │        │     │          │
-└─────────────┘     └───────────────┘     └────────┘     └──────────┘
+```mermaid
+flowchart LR
+    VP["VllmProvider\n(HTTP 호출)"]
+    MA["ModelAdapter\n(raw → DocIR)"]
+    PIR["PageIR"]
+    EX["Exporter"]
+    OUT["OmniDocBench dict"]
+
+    VP --> MA --> PIR --> EX --> OUT
 ```
 
 **적용 모델**: Chandra, LightOnOCR, PaddleOCR-VL, Gemini
@@ -319,24 +398,26 @@ API 파라미터는 `PageIR.meta`에 보존.
 
 레이아웃 감지와 텍스트 추출을 분리:
 
-```text
-Stage 1: Layout Detection
-┌──────────────────┐     ┌────────────────────┐
-│ LayoutProvider   │────>│ Detection PageIR   │
-│ (Docling/PP-Doc) │     │ (text=None)        │
-└──────────────────┘     └────────┬───────────┘
-                                  │
-Stage 2: Text Extraction          │ crop regions
-┌──────────────────┐     ┌───────▼────────────┐
-│ TextProvider     │────>│ RecognitionResult  │
-│ (olmOCR/Gemini)  │     │ (element_id, text) │
-└──────────────────┘     └────────┬───────────┘
-                                  │
-Stage 3: Merge                    │
-┌─────────────────────────────────▼──┐     ┌──────────┐
-│ Merge: element_id로 text 주입      │────>│ Exporter │──> OmniDocBench dict
-│ → Final PageIR                     │     │          │
-└────────────────────────────────────┘     └──────────┘
+```mermaid
+flowchart TD
+    LP["**LayoutProvider**\n(Docling / PP-DocLayoutV3)"]
+    DPIR["Detection PageIR\n(text = None)"]
+    CROP["영역 크롭"]
+    TP["**TextProvider**\n(olmOCR / Gemini)"]
+    RR["RecognitionResult\n(element_id, text)"]
+    MERGE["**Merge**\nelement_id로 text 주입"]
+    FPIR["Final PageIR"]
+    EX["Exporter"]
+    OUT["OmniDocBench dict"]
+
+    LP --> DPIR
+    DPIR --> CROP
+    CROP --> TP
+    TP --> RR
+    DPIR --> MERGE
+    RR --> MERGE
+    MERGE --> FPIR
+    FPIR --> EX --> OUT
 ```
 
 **적용 모델**: Docling + olmOCR, PP-DocLayoutV3 + Gemini 등 조합
@@ -370,6 +451,10 @@ class ModelAdapter(Protocol):
         """raw API 응답 → PageIR 변환."""
         ...
 ```
+
+> **Note**: `build_messages()`는 OpenAI chat completions 형식을 반환한다.
+> Gemini 등 비-OpenAI API는 자체 Provider에서 메시지 형식을 변환하거나,
+> `build_messages()` 대신 Provider 고유의 요청 빌드 메서드를 사용한다.
 
 ### Adapter 자동 감지 (resolve_adapter)
 
@@ -448,12 +533,14 @@ saegim-backend/src/saegim/services/
 │   ├── base.py                  # BaseOCREngine (변경 없음)
 │   ├── vllm_engine.py           # VllmEngine (adapter 주입)
 │   ├── split_pipeline_engine.py # SplitPipelineEngine (DocIR 기반)
-│   ├── commercial_api_engine.py # CommercialApiEngine
-│   ├── pdfminer_engine.py       # PdfminerEngine (변경 없음)
+│   ├── commercial_api_engine.py # CommercialApiEngine (향후 마이그레이션)
+│   ├── pdfminer_engine.py       # PdfminerEngine (DocIR 미적용, 변경 없음)
 │   └── factory.py               # 엔진 팩토리
 ├── vllm_ocr_service.py          # VllmOcrProvider (adapter 사용)
+├── gemini_ocr_service.py        # GeminiOcrProvider (향후 adapter 전환)
 ├── pp_doclayout_service.py      # PP-DocLayoutV3 detector
 ├── docling_layout_service.py    # Docling detector (기존)
+├── extraction_service.py        # pdfminer 폴백 (PDF 직접 처리, DocIR 무관)
 ├── ocr_provider.py              # deprecated wrapper 유지
 └── ...
 ```
@@ -462,30 +549,15 @@ saegim-backend/src/saegim/services/
 
 ### PR 순서 및 의존성
 
-```text
-PR 0: 설계 문서 (이 문서)
-  │
-  ▼
-PR 1: DocIR 정의 + Exporter + ChandraAdapter
-  │   - docir.py, exporters/omnidocbench.py, adapters/chandra.py
-  │   - VllmOcrProvider 리팩토링 (adapter 주입)
-  │   - 기존 동작 100% 보존 증명
-  │
-  ▼
-PR 2: LightOnOCR Adapter + 기본값 변경
-  │   - adapters/lightonocr.py
-  │   - 기본 모델을 LightOnOCR로 변경
-  │   - Docker/K8s/환경 설정 업데이트
-  │
-  ▼
-PR 3: PaddleOCR-VL Adapter
-  │   - adapters/paddleocr_vl.py
-  │
-  ▼
-PR 4: PP-DocLayoutV3 + Split Pipeline DocIR 마이그레이션
-      - pp_doclayout_service.py
-      - SplitPipelineEngine DocIR 적용
-      - RecognitionResult + merge 로직
+```mermaid
+flowchart TD
+    PR0["**PR 0**: 설계 문서\n(이 문서)"]
+    PR1["**PR 1**: DocIR + Exporter + ChandraAdapter\ndocir.py, exporters/, adapters/\nVllmOcrProvider 리팩토링"]
+    PR2["**PR 2**: LightOnOCR Adapter + 기본값 변경\nadapters/lightonocr.py\nDocker/K8s/환경 설정 업데이트"]
+    PR3["**PR 3**: PaddleOCR-VL Adapter\nadapters/paddleocr_vl.py"]
+    PR4["**PR 4**: PP-DocLayoutV3 + Split Pipeline DocIR\npp_doclayout_service.py\nRecognitionResult + merge 로직"]
+
+    PR0 --> PR1 --> PR2 --> PR3 --> PR4
 ```
 
 ### 하위 호환성 전략
@@ -496,3 +568,5 @@ PR 4: PP-DocLayoutV3 + Split Pipeline DocIR 마이그레이션
 - 기존 `build_omnidocbench_page()`는 deprecated wrapper로 유지하고,
   내부에서 Exporter를 호출한다.
 - Public API (`extract_page() → dict`)는 변경하지 않는다.
+- pdfminer 폴백은 DocIR와 무관하게 기존 경로를 유지한다.
+- Gemini(`CommercialApiEngine`)는 vLLM 마이그레이션 완료 후 별도 PR에서 전환한다.
