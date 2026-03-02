@@ -4,11 +4,20 @@
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
   import OcrSettingsPanel from '$lib/components/settings/OcrSettingsPanel.svelte'
-  import { getProject, getOcrConfig, updateOcrConfig, testOcrConnection } from '$lib/api/projects'
+  import {
+    getProject,
+    getOcrConfig,
+    addEngine,
+    updateEngine,
+    deleteEngine,
+    setDefaultEngine,
+    testEngineConnection,
+  } from '$lib/api/projects'
   import type {
     ProjectResponse,
     OcrConfigResponse,
     OcrConnectionTestResponse,
+    EngineInstanceCreate,
   } from '$lib/api/types'
   import { untrack } from 'svelte'
   import { NetworkError } from '$lib/api/client'
@@ -16,11 +25,12 @@
   let project = $state<ProjectResponse | null>(null)
   let ocrConfig = $state<OcrConfigResponse | null>(null)
   let isLoading = $state(true)
-  let isSaving = $state(false)
-  let isTesting = $state(false)
-  let testResult = $state<OcrConnectionTestResponse | null>(null)
   let error = $state<string | null>(null)
   let successMessage = $state<string | null>(null)
+
+  // Per-engine connection status and testing state
+  let connectionStatuses = $state<Record<string, OcrConnectionTestResponse | null>>({})
+  let testingEngines = $state(new Set<string>())
 
   async function loadData() {
     const id = page.params.id
@@ -42,46 +52,81 @@
     }
   }
 
-  async function handleSave(config: OcrConfigResponse) {
+  function showSuccess(msg: string) {
+    successMessage = msg
+    setTimeout(() => (successMessage = null), 3000)
+  }
+
+  async function handleAddEngine(data: EngineInstanceCreate) {
     const id = page.params.id
     if (!id) return
-    isSaving = true
     error = null
-    successMessage = null
-    testResult = null
-
     try {
-      // For non-pdfminer engines, test connection first
-      if (config.engine_type !== 'pdfminer') {
-        const result = await testOcrConnection(id, config)
-        testResult = result
-        if (!result.success) {
-          error = '연결 테스트 실패로 설정이 저장되지 않았습니다.'
-          return
-        }
-      }
-
-      ocrConfig = await updateOcrConfig(id, config)
-      successMessage = 'OCR 설정이 저장되었습니다.'
-      setTimeout(() => (successMessage = null), 3000)
+      ocrConfig = await addEngine(id, data)
+      showSuccess('엔진이 추가되었습니다.')
     } catch {
-      error = 'OCR 설정 저장에 실패했습니다.'
-    } finally {
-      isSaving = false
+      error = '엔진 추가에 실패했습니다.'
     }
   }
 
-  async function handleTest(config: OcrConfigResponse) {
+  async function handleUpdateEngine(
+    engineId: string,
+    data: { name?: string; config?: Record<string, unknown> },
+  ) {
     const id = page.params.id
     if (!id) return
-    isTesting = true
-    testResult = null
+    error = null
     try {
-      testResult = await testOcrConnection(id, config)
+      ocrConfig = await updateEngine(id, engineId, data)
+      showSuccess('엔진 설정이 저장되었습니다.')
     } catch {
-      testResult = { success: false, message: '연결 테스트에 실패했습니다.' }
+      error = '엔진 설정 저장에 실패했습니다.'
+    }
+  }
+
+  async function handleDeleteEngine(engineId: string) {
+    const id = page.params.id
+    if (!id) return
+    error = null
+    try {
+      ocrConfig = await deleteEngine(id, engineId)
+      // Clear connection status for deleted engine
+      const next = { ...connectionStatuses }
+      delete next[engineId]
+      connectionStatuses = next
+      showSuccess('엔진이 삭제되었습니다.')
+    } catch {
+      error = '엔진 삭제에 실패했습니다.'
+    }
+  }
+
+  async function handleSetDefault(engineId: string) {
+    const id = page.params.id
+    if (!id) return
+    error = null
+    try {
+      ocrConfig = await setDefaultEngine(id, { engine_id: engineId })
+    } catch {
+      error = '기본 엔진 설정에 실패했습니다.'
+    }
+  }
+
+  async function handleTestEngine(engineId: string) {
+    const id = page.params.id
+    if (!id) return
+    testingEngines = new Set([...testingEngines, engineId])
+    try {
+      const result = await testEngineConnection(id, { engine_id: engineId })
+      connectionStatuses = { ...connectionStatuses, [engineId]: result }
+    } catch {
+      connectionStatuses = {
+        ...connectionStatuses,
+        [engineId]: { success: false, message: '연결 테스트에 실패했습니다.' },
+      }
     } finally {
-      isTesting = false
+      const next = new Set(testingEngines)
+      next.delete(engineId)
+      testingEngines = next
     }
   }
 
@@ -150,11 +195,13 @@
         <div class="card-modern p-6">
           <OcrSettingsPanel
             config={ocrConfig}
-            saving={isSaving}
-            testing={isTesting}
-            {testResult}
-            onsave={handleSave}
-            ontest={handleTest}
+            {connectionStatuses}
+            {testingEngines}
+            onadd={handleAddEngine}
+            onupdate={handleUpdateEngine}
+            ondelete={handleDeleteEngine}
+            onsetdefault={handleSetDefault}
+            ontest={handleTestEngine}
           />
         </div>
       {/if}

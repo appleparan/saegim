@@ -21,14 +21,17 @@
   import type {
     AvailableEngine,
     DocumentStatus,
-    EngineType,
     OcrConfigResponse,
     PageResponse,
     PageSummary,
   } from '$lib/api/types'
   import type { AnnotationData } from '$lib/types/omnidocbench'
   import type { PDFPageProxy } from 'pdfjs-dist'
-  import { engineLabels } from '$lib/utils/ocr'
+  function getDefaultEngineName(config: OcrConfigResponse): string {
+    if (!config.default_engine_id) return 'pdfminer'
+    const engine = config.engines[config.default_engine_id]
+    return engine?.name ?? config.default_engine_id
+  }
   import { resolveBackendAssetUrl, resolvePdfUrl } from '$lib/utils/url'
 
   let pageData = $state<PageResponse | null>(null)
@@ -190,17 +193,17 @@
     }
   }
 
-  async function handleOcrRequest(annoId: number, engineType?: EngineType) {
+  async function handleOcrRequest(annoId: number, engineId?: string) {
     const pageId = page.params.pageId
     if (!pageId) return
     const el = annotationStore.elements.find((e) => e.anno_id === annoId)
     if (!el) return
     try {
-      const result = await extractElementText(pageId, [...el.poly], engineType)
+      const result = await extractElementText(pageId, [...el.poly], engineId)
       if (result.text) {
         annotationStore.updateElement(annoId, {
           text: result.text,
-          ...(engineType ? { ocr_engine: engineType } : {}),
+          ...(engineId ? { ocr_engine: engineId } : {}),
         })
         uiStore.showNotification('텍스트가 추출되었습니다', 'success')
       } else {
@@ -330,7 +333,7 @@
           class="bg-muted text-muted-foreground border-border hover:border-primary hover:text-primary ml-auto inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors"
           title="OCR 엔진 설정"
         >
-          {engineLabels[ocrConfig.engine_type] ?? ocrConfig.engine_type}
+          {getDefaultEngineName(ocrConfig)}
           <span class="text-muted-foreground/70 ml-1 text-[10px]">(기본)</span>
         </a>
       {/if}
