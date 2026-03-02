@@ -59,19 +59,28 @@ interface ExportResponse {
   data: Record<string, unknown>[]
 }
 
+interface EngineInstance {
+  engine_type: 'commercial_api' | 'vllm' | 'split_pipeline'
+  name: string
+  config: Record<string, unknown>
+}
+
 interface OcrConfigResponse {
-  engine_type: 'commercial_api' | 'vllm' | 'split_pipeline' | 'pdfminer'
-  commercial_api?: { provider: string; api_key?: string; model: string } | null
-  vllm?: { host: string; port: number; model?: string } | null
-  split_pipeline?: {
-    docling_model_name: string
-    ocr_provider: string
-    ocr_api_key?: string
-    ocr_host?: string
-    ocr_port?: number
-    ocr_model?: string
-  } | null
+  default_engine_id: string | null
+  engines: Record<string, EngineInstance>
   env_gemini_api_key?: string
+}
+
+interface EngineInstanceCreateRequest {
+  engine_id?: string
+  engine_type: 'commercial_api' | 'vllm' | 'split_pipeline'
+  name: string
+  config: Record<string, unknown>
+}
+
+interface EngineInstanceUpdateRequest {
+  name?: string
+  config?: Record<string, unknown>
 }
 
 interface OcrConnectionTestResponse {
@@ -328,27 +337,59 @@ export async function getOcrConfig(
   return request<OcrConfigResponse>('GET', `/projects/${projectId}/ocr-config`)
 }
 
-export async function updateOcrConfig(
+export async function addEngine(
   projectId: string,
-  config: Record<string, unknown>,
+  body: EngineInstanceCreateRequest,
 ): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {
-  return request<OcrConfigResponse>('PUT', `/projects/${projectId}/ocr-config`, {
-    body: config,
+  return request<OcrConfigResponse>('POST', `/projects/${projectId}/ocr-config/engines`, {
+    body,
+  })
+}
+
+export async function updateEngine(
+  projectId: string,
+  engineId: string,
+  body: EngineInstanceUpdateRequest,
+): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {
+  return request<OcrConfigResponse>(
+    'PUT',
+    `/projects/${projectId}/ocr-config/engines/${engineId}`,
+    { body },
+  )
+}
+
+export async function deleteEngine(
+  projectId: string,
+  engineId: string,
+): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {
+  return request<OcrConfigResponse>(
+    'DELETE',
+    `/projects/${projectId}/ocr-config/engines/${engineId}`,
+  )
+}
+
+export async function setDefaultEngine(
+  projectId: string,
+  engineId: string | null,
+): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {
+  return request<OcrConfigResponse>('PUT', `/projects/${projectId}/ocr-config/default-engine`, {
+    body: { engine_id: engineId },
   })
 }
 
 export async function testOcrConnection(
   projectId: string,
-  config: Record<string, unknown>,
+  engineId: string,
 ): Promise<{ data: OcrConnectionTestResponse; status: number; duration: number }> {
   return request<OcrConnectionTestResponse>('POST', `/projects/${projectId}/ocr-config/test`, {
-    body: config,
+    body: { engine_id: engineId },
   })
 }
 
 interface AvailableEngine {
+  engine_id: string
   engine_type: string
-  label: string
+  name: string
 }
 
 interface AvailableEnginesResponse {
