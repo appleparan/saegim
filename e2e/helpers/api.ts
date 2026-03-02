@@ -346,6 +346,21 @@ export async function testOcrConnection(
   })
 }
 
+interface AvailableEngine {
+  engine_type: string
+  label: string
+}
+
+interface AvailableEnginesResponse {
+  engines: AvailableEngine[]
+}
+
+export async function getAvailableEngines(
+  projectId: string,
+): Promise<{ data: AvailableEnginesResponse; status: number; duration: number }> {
+  return request<AvailableEnginesResponse>('GET', `/projects/${projectId}/available-engines`)
+}
+
 export async function waitForBackendReady(
   maxWaitMs = 60_000,
   intervalMs = 2_000,
