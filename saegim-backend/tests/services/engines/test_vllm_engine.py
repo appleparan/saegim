@@ -15,7 +15,7 @@ class TestVllmEngineInit:
         engine = VllmEngine()
         assert isinstance(engine, BaseOCREngine)
         mock_provider_cls.assert_called_once_with(
-            host='localhost', port=8000, model='datalab-to/chandra'
+            host='localhost', port=8000, model='lightonai/LightOnOCR-2-1B-bbox-soup'
         )
 
     @patch(f'{_MODULE}.VllmOcrProvider')

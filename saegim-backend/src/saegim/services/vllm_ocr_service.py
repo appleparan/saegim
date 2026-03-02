@@ -29,7 +29,7 @@ class VllmOcrProvider:
         self,
         host: str = 'localhost',
         port: int = 8000,
-        model: str = 'allenai/olmOCR-2-7B-1025',
+        model: str = 'lightonai/LightOnOCR-2-1B-bbox-soup',
         *,
         adapter: ModelAdapter | None = None,
     ) -> None:
