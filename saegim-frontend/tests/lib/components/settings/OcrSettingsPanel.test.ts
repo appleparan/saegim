@@ -21,10 +21,10 @@ describe('OcrSettingsPanel', () => {
         name: 'Gemini Flash',
         config: { provider: 'gemini', api_key: 'test-key', model: 'gemini-3-flash-preview' },
       },
-      'vllm-chandra': {
+      'vllm-lightonocr': {
         engine_type: 'vllm',
-        name: 'vLLM Chandra',
-        config: { host: 'gpu-server', port: 8000, model: 'datalab-to/chandra' },
+        name: 'vLLM LightOnOCR',
+        config: { host: 'gpu-server', port: 8000, model: 'lightonai/LightOnOCR-2-1B-bbox-soup' },
       },
     },
   }
@@ -39,7 +39,7 @@ describe('OcrSettingsPanel', () => {
     render(OcrSettingsPanel, { props: { config: configWithEngines } })
 
     expect(screen.getByText('Gemini Flash')).toBeTruthy()
-    expect(screen.getByText('vLLM Chandra')).toBeTruthy()
+    expect(screen.getByText('vLLM LightOnOCR')).toBeTruthy()
   })
 
   it('shows add engine button', () => {
@@ -58,5 +58,44 @@ describe('OcrSettingsPanel', () => {
     render(OcrSettingsPanel, { props: { config: emptyConfig } })
 
     expect(screen.getByText('OCR 엔진 관리')).toBeTruthy()
+  })
+
+  const configWithSplitPipeline: OcrConfigResponse = {
+    default_engine_id: 'docling-gemini',
+    engines: {
+      'docling-gemini': {
+        engine_type: 'split_pipeline',
+        name: 'Docling + Gemini',
+        config: {
+          layout_provider: 'docling',
+          docling_model_name: 'ibm-granite/granite-docling-258M',
+          ocr_provider: 'gemini',
+        },
+      },
+      'pp-doclayout-vllm': {
+        engine_type: 'split_pipeline',
+        name: 'PP-DocLayout + vLLM',
+        config: {
+          layout_provider: 'pp_doclayout',
+          ocr_provider: 'vllm',
+          ocr_host: 'gpu-server',
+          ocr_port: 8000,
+        },
+      },
+    },
+  }
+
+  it('renders split pipeline engine cards', () => {
+    render(OcrSettingsPanel, { props: { config: configWithSplitPipeline } })
+
+    expect(screen.getByText('Docling + Gemini')).toBeTruthy()
+    expect(screen.getByText('PP-DocLayout + vLLM')).toBeTruthy()
+  })
+
+  it('renders split pipeline engine subtitles with layout provider', () => {
+    render(OcrSettingsPanel, { props: { config: configWithSplitPipeline } })
+
+    expect(screen.getByText('Docling + gemini')).toBeTruthy()
+    expect(screen.getByText('PP-DocLayout + vllm')).toBeTruthy()
   })
 })

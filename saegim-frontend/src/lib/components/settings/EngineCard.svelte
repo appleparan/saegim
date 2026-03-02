@@ -37,7 +37,7 @@
   const ENGINE_LABELS: Record<RegisterableEngineType, string> = {
     commercial_api: 'Gemini API',
     vllm: 'vLLM',
-    split_pipeline: 'Docling + OCR',
+    split_pipeline: '레이아웃 + OCR',
   }
 
   function initEdit() {
@@ -65,7 +65,9 @@
       return `${type} \u00b7 ${cfg.model ?? ''}`
     }
     if (engine.engine_type === 'split_pipeline') {
-      return `${type} \u00b7 ${cfg.ocr_provider ?? ''}`
+      const lp = cfg.layout_provider ?? 'docling'
+      const lpLabel = lp === 'pp_doclayout' ? 'PP-DocLayout' : 'Docling'
+      return `${lpLabel} + ${cfg.ocr_provider ?? ''}`
     }
     return type
   }
@@ -226,15 +228,29 @@
 
       {#if engine.engine_type === 'split_pipeline'}
         <div>
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-docling-{engineId}">Docling 모델</label>
-          <input
-            id="edit-docling-{engineId}"
-            type="text"
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-layout-provider-{engineId}">레이아웃 감지기</label>
+          <select
+            id="edit-layout-provider-{engineId}"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
-            value={String(editConfig.docling_model_name ?? '')}
-            oninput={(e) => (editConfig = { ...editConfig, docling_model_name: (e.target as HTMLInputElement).value })}
-          />
+            value={String(editConfig.layout_provider ?? 'docling')}
+            onchange={(e) => (editConfig = { ...editConfig, layout_provider: (e.target as HTMLSelectElement).value })}
+          >
+            <option value="docling">Docling</option>
+            <option value="pp_doclayout">PP-DocLayoutV3</option>
+          </select>
         </div>
+        {#if String(editConfig.layout_provider ?? 'docling') === 'docling'}
+          <div>
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-docling-{engineId}">Docling 모델</label>
+            <input
+              id="edit-docling-{engineId}"
+              type="text"
+              class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
+              value={String(editConfig.docling_model_name ?? '')}
+              oninput={(e) => (editConfig = { ...editConfig, docling_model_name: (e.target as HTMLInputElement).value })}
+            />
+          </div>
+        {/if}
         <div>
           <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-sp-provider-{engineId}">OCR Provider</label>
           <select
