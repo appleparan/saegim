@@ -82,59 +82,6 @@ class SplitPipelineConfig(BaseModel):
     )
 
 
-# --- Legacy schemas (kept for backward compatibility, removed in Stage 3) ---
-
-
-class OcrConfigUpdate(BaseModel):
-    """Schema for updating project OCR configuration (LEGACY).
-
-    Kept temporarily for backward compatibility with existing API routes.
-    Will be removed when API endpoints are migrated to multi-instance format.
-    """
-
-    engine_type: EngineType
-    commercial_api: CommercialApiConfig | None = None
-    vllm: VllmServerConfig | None = None
-    split_pipeline: SplitPipelineConfig | None = None
-    enabled_engines: list[EngineType] = Field(
-        default_factory=list,
-        description='Engines available for per-element OCR. Empty = [engine_type] only.',
-    )
-
-
-class LegacyOcrConfigResponse(BaseModel):
-    """Schema for OCR configuration response (LEGACY).
-
-    Kept temporarily for backward compatibility with existing API routes.
-    """
-
-    engine_type: EngineType
-    commercial_api: CommercialApiConfig | None = None
-    vllm: VllmServerConfig | None = None
-    split_pipeline: SplitPipelineConfig | None = None
-    enabled_engines: list[EngineType] = Field(
-        default_factory=list,
-        description='Engines available for per-element OCR.',
-    )
-    env_gemini_api_key: str = Field(
-        default='',
-        description='Gemini API key from server environment (for UI pre-fill)',
-    )
-
-
-class LegacyAvailableEngine(BaseModel):
-    """An engine available for per-element OCR (LEGACY)."""
-
-    engine_type: EngineType
-    label: str
-
-
-class LegacyAvailableEnginesResponse(BaseModel):
-    """List of engines available for per-element text extraction (LEGACY)."""
-
-    engines: list[LegacyAvailableEngine]
-
-
 # --- Multi-instance engine registry schemas ---
 
 # Valid engine types that can be registered as instances
