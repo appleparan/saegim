@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/svelte'
 import OcrSettingsPanel from '$lib/components/settings/OcrSettingsPanel.svelte'
 import type { OcrConfigResponse } from '$lib/api/types'
