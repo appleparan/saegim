@@ -222,6 +222,15 @@ saegim/
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── vllm_engine.py
 │   │   │   │   └── split_pipeline_engine.py
+│   │   │   ├── docir.py                   # DocIR 중간 표현 (PageIR, ElementIR 등)
+│   │   │   ├── adapters/                  # 모델별 Adapter (raw → DocIR)
+│   │   │   │   ├── base.py               # ModelAdapter Protocol
+│   │   │   │   ├── resolver.py            # resolve_adapter() 자동 선택
+│   │   │   │   ├── chandra.py             # ChandraAdapter
+│   │   │   │   ├── lightonocr.py          # LightOnOcrAdapter
+│   │   │   │   └── paddleocr_vl.py        # PaddleOcrVlAdapter
+│   │   │   ├── exporters/                 # DocIR → 최종 출력 변환
+│   │   │   │   └── omnidocbench.py        # export_page(PageIR) → OmniDocBench dict
 │   │   │   ├── labeling_service.py        # 저장, 읽기 순서, 관계 CRUD
 │   │   │   ├── attribute_classifier.py    # 페이지/요소 속성 자동 분류
 │   │   │   ├── layout_types.py            # LayoutRegion, LayoutDetector Protocol

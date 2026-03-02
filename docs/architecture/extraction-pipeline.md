@@ -58,17 +58,22 @@ PDF 업로드
 
 ## vLLM Engine (`engine_type: vllm`)
 
-vLLM OpenAI-compatible API를 통한 full-page OCR:
+vLLM OpenAI-compatible API를 통한 full-page OCR.
+DocIR 3-stage 파이프라인 (Provider → Adapter → Exporter) 적용:
 
 ```text
 PDF 업로드
   → pypdfium2 페이지 렌더링 (2x scale PNG)
   → asyncio 백그라운드 태스크 디스패치
      → 페이지별:
-        1. VllmOcrProvider.extract_page(image_path)
-           → vLLM /v1/chat/completions (base64 이미지)
-           → structured OCR 프롬프트로 JSON 파싱
-        2. OmniDocBench layout_dets 변환
+        1. resolve_adapter(model_name) → ModelAdapter 자동 선택
+           - chandra, olmocr → ChandraAdapter
+           - lighton → LightOnOcrAdapter
+           - paddleocr-vl → PaddleOcrVlAdapter
+        2. adapter.build_messages(image_b64, ...) → API 메시지 생성
+        3. vLLM /v1/chat/completions POST
+        4. adapter.parse_response(result, ...) → PageIR
+        5. export_page(PageIR) → OmniDocBench dict
      → asyncpg로 각 페이지 auto_extracted_data 업데이트
      → document status: extracting → ready (또는 extraction_failed)
 ```
@@ -159,13 +164,25 @@ PDF 업로드
 
 ## 구현 파일
 
+### DocIR 3-Stage 파이프라인 (`services/`)
+
+> 상세 설계: [DocIR 아키텍처](docir-architecture.md)
+
+- `services/docir.py`: DocIR 중간 표현 (`PageIR`, `ElementIR`, `Geometry`, `RecognitionResult`)
+- `services/adapters/base.py`: `ModelAdapter` Protocol (`build_messages()`, `parse_response()`)
+- `services/adapters/resolver.py`: `resolve_adapter(model_name)` — 모델명으로 Adapter 자동 선택
+- `services/adapters/chandra.py`: `ChandraAdapter` (Chandra, olmOCR 등 STRUCTURED_OCR_PROMPT 계열)
+- `services/adapters/lightonocr.py`: `LightOnOcrAdapter` (LightOnOCR, 0-1000 정규화 좌표)
+- `services/adapters/paddleocr_vl.py`: `PaddleOcrVlAdapter` (PaddleOCR-VL, 태스크 프롬프트 기반)
+- `services/exporters/omnidocbench.py`: `export_page(PageIR)` → OmniDocBench dict 변환
+
 ### 엔진 추상화 (`services/engines/`)
 
 - `services/engines/base.py`: `BaseOCREngine` ABC (`extract_page()`, `test_connection()`)
 - `services/engines/factory.py`: `build_engine_by_id(ocr_config, engine_id)` 팩토리 (다중 인스턴스 지원)
 - `services/engines/pdfminer_engine.py`: `PdfminerEngine`
 - `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
-- `services/engines/vllm_engine.py`: `VllmEngine` (vLLM OpenAI-compatible API)
+- `services/engines/vllm_engine.py`: `VllmEngine` (DocIR Adapter 패턴 적용, `resolve_adapter()` 자동 감지)
 - `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (레이아웃 감지 + 외부 OCR, `layout_provider` 선택)
 
 ### 하위 서비스

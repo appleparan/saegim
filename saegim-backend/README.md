@@ -35,6 +35,15 @@ saegim-backend/
 │   │   │   ├── commercial_api_engine.py
 │   │   │   ├── vllm_engine.py
 │   │   │   └── split_pipeline_engine.py
+│   │   ├── docir.py                 # DocIR 중간 표현 (PageIR, ElementIR 등)
+│   │   ├── adapters/                # 모델별 Adapter (raw → DocIR)
+│   │   │   ├── base.py             # ModelAdapter Protocol
+│   │   │   ├── resolver.py          # resolve_adapter() 자동 선택
+│   │   │   ├── chandra.py           # ChandraAdapter
+│   │   │   ├── lightonocr.py        # LightOnOcrAdapter
+│   │   │   └── paddleocr_vl.py      # PaddleOcrVlAdapter
+│   │   ├── exporters/               # DocIR → 최종 출력 변환
+│   │   │   └── omnidocbench.py      # export_page(PageIR) → OmniDocBench dict
 │   │   ├── layout_types.py          # LayoutRegion, LayoutDetector Protocol
 │   │   ├── docling_layout_service.py # Docling 레이아웃 감지
 │   │   ├── pp_doclayout_service.py  # PP-DocLayoutV3 레이아웃 감지

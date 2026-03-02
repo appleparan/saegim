@@ -567,14 +567,30 @@ saegim-backend/src/saegim/services/
 
 ```mermaid
 flowchart TD
-    PR0["PR 0: 설계 문서"]
-    PR1["PR 1: DocIR + Exporter + ChandraAdapter"]
-    PR2["PR 2: LightOnOCR Adapter + 기본값 변경"]
-    PR3["PR 3: PaddleOCR-VL Adapter"]
-    PR4["PR 4: PP-DocLayoutV3 + Split Pipeline DocIR"]
+    PR0["PR 0: 설계 문서 ✅"]
+    PR1["PR 1: DocIR + Exporter + ChandraAdapter ✅"]
+    PR2["PR 2: LightOnOCR Adapter ✅"]
+    PR3["PR 3: PaddleOCR-VL Adapter ✅"]
+    PR4["PR 4: PP-DocLayoutV3 + Split Pipeline DocIR ✅"]
+    PR5["PR 5: Gemini Adapter (향후)"]
 
-    PR0 --> PR1 --> PR2 --> PR3 --> PR4
+    PR0 --> PR1 --> PR2 --> PR3 --> PR4 --> PR5
 ```
+
+### 완료된 PR 요약
+
+| PR | 내용 | 주요 파일 |
+| --- | --- | --- |
+| PR 0 | DocIR 설계 문서 (이 파일) | `docs/architecture/docir-architecture.md` |
+| PR 1 | DocIR 타입 + OmniDocBench Exporter + ChandraAdapter + VllmEngine 연동 | `docir.py`, `adapters/chandra.py`, `exporters/omnidocbench.py`, `vllm_engine.py` |
+| PR 2 | LightOnOcrAdapter (0-1000 정규화 좌표 변환, 임베디드 이미지 파싱) | `adapters/lightonocr.py`, `adapters/resolver.py` |
+| PR 3 | PaddleOcrVlAdapter (태스크 프롬프트 기반 멀티태스크 VLM) | `adapters/paddleocr_vl.py` |
+| PR 4 | PPDocLayoutV3Detector + SplitPipelineEngine `layout_provider` 옵션 | `pp_doclayout_service.py`, `split_pipeline_engine.py`, `factory.py` |
+
+### 향후 작업
+
+- **Gemini Adapter**: `CommercialApiEngine`을 DocIR Adapter 패턴으로 전환.
+  ChandraAdapter와 JSON 파싱 로직 공유 가능, Provider 레이어에서 API 형식 차이 흡수.
 
 ### 하위 호환성 전략
 
