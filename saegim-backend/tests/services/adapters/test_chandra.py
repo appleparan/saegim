@@ -208,5 +208,8 @@ class TestElementsToPageIr:
     def test_bbox_converted_to_float(self):
         elements = [{'category_type': 'title', 'bbox': [10, 20, 300, 60], 'order': 0}]
         page = elements_to_page_ir(elements, 800, 1200)
-        bbox = page.elements[0].geometry.bbox
+        geometry = page.elements[0].geometry
+        assert geometry is not None
+        bbox = geometry.bbox
+        assert bbox is not None
         assert all(isinstance(v, float) for v in bbox)
