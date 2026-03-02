@@ -2,13 +2,15 @@
 
 from saegim.services.adapters.base import ModelAdapter
 from saegim.services.adapters.chandra import ChandraAdapter
+from saegim.services.adapters.lightonocr import LightOnOcrAdapter
 
 
 def resolve_adapter(model_name: str) -> ModelAdapter:
     """Resolve the appropriate adapter for a model.
 
-    Currently all models use ChandraAdapter (STRUCTURED_OCR_PROMPT-based).
-    Future adapters (e.g. LightOnOCR) will be resolved by model name pattern.
+    Inspects the model name to determine which adapter to use:
+    - ``lighton`` in name → LightOnOcrAdapter (prompt-free, 0-1000 coords)
+    - Everything else → ChandraAdapter (STRUCTURED_OCR_PROMPT-based)
 
     Args:
         model_name: Full model name string.
@@ -16,5 +18,7 @@ def resolve_adapter(model_name: str) -> ModelAdapter:
     Returns:
         ModelAdapter instance.
     """
-    _ = model_name  # reserved for future pattern matching
+    lower = model_name.lower()
+    if 'lightonocr' in lower or 'lighton' in lower:
+        return LightOnOcrAdapter()
     return ChandraAdapter()
