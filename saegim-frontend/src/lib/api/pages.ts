@@ -3,12 +3,7 @@
  */
 
 import { api } from './client'
-import type {
-  EngineType,
-  PageResponse,
-  SavePageRequest,
-  SavePageAttributesRequest,
-} from './types'
+import type { EngineType, PageResponse, SavePageRequest, SavePageAttributesRequest } from './types'
 
 export async function getPage(pageId: string): Promise<PageResponse> {
   return api.get<PageResponse>(`/api/v1/pages/${pageId}`)

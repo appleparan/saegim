@@ -47,10 +47,6 @@ export async function testOcrConnection(
 }
 
 /** Get engines available for per-element text extraction. */
-export async function getAvailableEngines(
-  projectId: string,
-): Promise<AvailableEnginesResponse> {
-  return api.get<AvailableEnginesResponse>(
-    `/api/v1/projects/${projectId}/available-engines`,
-  )
+export async function getAvailableEngines(projectId: string): Promise<AvailableEnginesResponse> {
+  return api.get<AvailableEnginesResponse>(`/api/v1/projects/${projectId}/available-engines`)
 }
