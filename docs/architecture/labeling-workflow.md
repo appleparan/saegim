@@ -20,6 +20,10 @@ Step 3: Block-level 요소 검수
          - equation이면 → formula_type, equation_language
      (d) text / latex / html 내용 검수/수정
      (e) ignore 여부 토글
+  → 새 요소 그리기 시 OCR 팝업:
+     (a) 프로젝트에 엔진이 2개 이상 활성화되면 엔진 드롭다운 표시
+     (b) 원하는 엔진 선택 후 OCR 실행
+     (c) 추출 결과와 사용 엔진 정보(ocr_engine)가 annotation_data에 저장
 
 Step 4: Span-level 요소 검수
   → Block 내부의 line_with_spans 편집

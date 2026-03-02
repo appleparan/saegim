@@ -6,6 +6,7 @@ import { api } from './client'
 import type {
   ProjectResponse,
   CreateProjectRequest,
+  AvailableEnginesResponse,
   OcrConfigResponse,
   OcrConfigUpdate,
   OcrConnectionTestResponse,
@@ -43,4 +44,9 @@ export async function testOcrConnection(
   data: OcrConfigUpdate,
 ): Promise<OcrConnectionTestResponse> {
   return api.post<OcrConnectionTestResponse>(`/api/v1/projects/${projectId}/ocr-config/test`, data)
+}
+
+/** Get engines available for per-element text extraction. */
+export async function getAvailableEngines(projectId: string): Promise<AvailableEnginesResponse> {
+  return api.get<AvailableEnginesResponse>(`/api/v1/projects/${projectId}/available-engines`)
 }

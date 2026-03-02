@@ -85,12 +85,17 @@ class OcrConfigUpdate(BaseModel):
     """Schema for updating project OCR configuration.
 
     Single engine_type selector with type-specific sub-config.
+    Multiple engines can be enabled via enabled_engines for per-element selection.
     """
 
     engine_type: EngineType
     commercial_api: CommercialApiConfig | None = None
     vllm: VllmServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
+    enabled_engines: list[EngineType] = Field(
+        default_factory=list,
+        description='Engines available for per-element OCR. Empty = [engine_type] only.',
+    )
 
 
 class OcrConfigResponse(BaseModel):
@@ -100,10 +105,27 @@ class OcrConfigResponse(BaseModel):
     commercial_api: CommercialApiConfig | None = None
     vllm: VllmServerConfig | None = None
     split_pipeline: SplitPipelineConfig | None = None
+    enabled_engines: list[EngineType] = Field(
+        default_factory=list,
+        description='Engines available for per-element OCR. Empty = [engine_type] only.',
+    )
     env_gemini_api_key: str = Field(
         default='',
         description='Gemini API key from server environment (for UI pre-fill)',
     )
+
+
+class AvailableEngine(BaseModel):
+    """An engine available for per-element OCR."""
+
+    engine_type: EngineType
+    label: str
+
+
+class AvailableEnginesResponse(BaseModel):
+    """List of engines available for per-element text extraction."""
+
+    engines: list[AvailableEngine]
 
 
 class OcrConnectionTestResponse(BaseModel):

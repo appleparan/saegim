@@ -1,17 +1,20 @@
 """Tests for text extraction service."""
 
 import io
-from unittest.mock import MagicMock
+import uuid
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from PIL import Image
 
 from saegim.services.text_extraction_service import (
+    NoTextProviderError,
     TextExtractionError,
     build_text_provider,
     crop_region,
     extract_text_from_region,
     poly_to_bbox,
+    resolve_text_provider,
 )
 
 
@@ -143,6 +146,60 @@ class TestBuildTextProvider:
         }
         assert build_text_provider(config) is None
 
+    def test_engine_type_override_uses_override(self):
+        config = {
+            'engine_type': 'pdfminer',
+            'vllm': {
+                'host': 'localhost',
+                'port': 8000,
+                'model': 'datalab-to/chandra',
+            },
+        }
+        # Default engine is pdfminer (returns None), but override to vllm
+        provider = build_text_provider(config, engine_type_override='vllm')
+        assert provider is not None
+
+    def test_engine_type_override_none_uses_default(self):
+        config = {'engine_type': 'pdfminer'}
+        provider = build_text_provider(config, engine_type_override=None)
+        assert provider is None
+
+    def test_engine_type_override_commercial_api(self):
+        config = {
+            'engine_type': 'vllm',
+            'vllm': {'host': 'localhost', 'port': 8000},
+            'commercial_api': {
+                'provider': 'gemini',
+                'api_key': 'test-key',
+                'model': 'gemini-3-flash-preview',
+            },
+        }
+        # Override to commercial_api even though default is vllm
+        provider = build_text_provider(config, engine_type_override='commercial_api')
+        assert provider is not None
+        assert hasattr(provider, 'extract_text')
+
+    def test_engine_type_override_to_pdfminer_returns_none(self):
+        config = {
+            'engine_type': 'commercial_api',
+            'commercial_api': {
+                'provider': 'gemini',
+                'api_key': 'test-key',
+            },
+        }
+        # Override to pdfminer (no region-level extraction)
+        provider = build_text_provider(config, engine_type_override='pdfminer')
+        assert provider is None
+
+    def test_engine_type_override_missing_sub_config(self):
+        config = {
+            'engine_type': 'pdfminer',
+            # No commercial_api sub-config present
+        }
+        # Override to commercial_api, but no sub-config → gemini with no key → None
+        provider = build_text_provider(config, engine_type_override='commercial_api')
+        assert provider is None
+
 
 class TestExtractTextFromRegion:
     def test_success(self, tmp_path):
@@ -194,3 +251,111 @@ class TestExtractTextFromRegion:
 
         extract_text_from_region(image_path, poly, 'table', mock_provider)
         assert mock_provider.extract_text.call_args[0][1] == 'table'
+
+
+class TestResolveTextProvider:
+    @pytest.fixture
+    def mock_pool(self):
+        pool = MagicMock()
+        pool.fetchrow = AsyncMock()
+        pool.fetch = AsyncMock()
+        return pool
+
+    @pytest.fixture
+    def page_id(self):
+        return uuid.uuid4()
+
+    @pytest.fixture
+    def project_id(self):
+        return uuid.uuid4()
+
+    @pytest.mark.asyncio
+    async def test_override_uses_different_engine(self, mock_pool, page_id, project_id):
+        page_record = {
+            'image_path': '/storage/images/test.png',
+            'project_id': project_id,
+        }
+        ocr_config = {
+            'engine_type': 'pdfminer',
+            'vllm': {'host': 'localhost', 'port': 8000, 'model': 'test-model'},
+        }
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=page_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.get_ocr_config',
+                new_callable=AsyncMock,
+                return_value=ocr_config,
+            ),
+        ):
+            _, provider = await resolve_text_provider(
+                mock_pool, page_id, engine_type_override='vllm'
+            )
+        assert provider is not None
+
+    @pytest.mark.asyncio
+    async def test_override_none_uses_project_default(self, mock_pool, page_id, project_id):
+        page_record = {
+            'image_path': '/storage/images/test.png',
+            'project_id': project_id,
+        }
+        ocr_config = {'engine_type': 'pdfminer'}
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=page_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.get_ocr_config',
+                new_callable=AsyncMock,
+                return_value=ocr_config,
+            ),
+            pytest.raises(NoTextProviderError, match='pdfminer'),
+        ):
+            await resolve_text_provider(mock_pool, page_id, engine_type_override=None)
+
+    @pytest.mark.asyncio
+    async def test_page_not_found_raises_lookup_error(self, mock_pool, page_id):
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            pytest.raises(LookupError, match='Page not found'),
+        ):
+            await resolve_text_provider(mock_pool, page_id)
+
+    @pytest.mark.asyncio
+    async def test_override_to_unsupported_engine_raises_error(
+        self, mock_pool, page_id, project_id
+    ):
+        page_record = {
+            'image_path': '/storage/images/test.png',
+            'project_id': project_id,
+        }
+        ocr_config = {
+            'engine_type': 'commercial_api',
+            'commercial_api': {
+                'provider': 'gemini',
+                'api_key': 'test-key',
+            },
+        }
+        with (
+            patch(
+                'saegim.repositories.page_repo.get_by_id_with_context',
+                new_callable=AsyncMock,
+                return_value=page_record,
+            ),
+            patch(
+                'saegim.repositories.project_repo.get_ocr_config',
+                new_callable=AsyncMock,
+                return_value=ocr_config,
+            ),
+            pytest.raises(NoTextProviderError, match='pdfminer'),
+        ):
+            await resolve_text_provider(mock_pool, page_id, engine_type_override='pdfminer')

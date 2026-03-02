@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException, status
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_repo
 from saegim.schemas.project import (
+    AvailableEngine,
+    AvailableEnginesResponse,
     OcrConfigResponse,
     OcrConfigUpdate,
     OcrConnectionTestResponse,
@@ -157,23 +159,43 @@ async def update_ocr_config(
 def _validate_ocr_config(body: OcrConfigUpdate) -> None:
     """Validate engine_type-based OCR configuration.
 
+    Validates the primary engine has its sub-config, and each engine
+    in enabled_engines also has its required sub-config.
+
     Args:
         body: OCR config to validate.
 
     Raises:
         HTTPException: If required sub-config is missing.
     """
-    if body.engine_type == 'commercial_api' and body.commercial_api is None:
+    _validate_engine_has_config(body.engine_type, body)
+
+    for engine in body.enabled_engines:
+        if engine != 'pdfminer':
+            _validate_engine_has_config(engine, body)
+
+
+def _validate_engine_has_config(engine_type: str, body: OcrConfigUpdate) -> None:
+    """Validate that a specific engine type has its required sub-config.
+
+    Args:
+        engine_type: Engine type to validate.
+        body: OCR config containing sub-configs.
+
+    Raises:
+        HTTPException: If required sub-config is missing.
+    """
+    if engine_type == 'commercial_api' and body.commercial_api is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail='commercial_api config is required when engine_type is commercial_api',
         )
-    if body.engine_type == 'vllm' and body.vllm is None:
+    if engine_type == 'vllm' and body.vllm is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail='vllm config is required when engine_type is vllm',
         )
-    if body.engine_type == 'split_pipeline' and body.split_pipeline is None:
+    if engine_type == 'split_pipeline' and body.split_pipeline is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail='split_pipeline config is required when engine_type is split_pipeline',
@@ -217,3 +239,64 @@ async def test_ocr_config(
     except ValueError as exc:
         success, message = False, str(exc)
     return OcrConnectionTestResponse(success=success, message=message)
+
+
+ENGINE_LABELS: dict[str, str] = {
+    'pdfminer': 'pdfminer',
+    'commercial_api': 'Gemini API',
+    'vllm': 'vLLM',
+    'split_pipeline': 'Docling + OCR',
+}
+
+
+@router.get(
+    '/projects/{project_id}/available-engines',
+    response_model=AvailableEnginesResponse,
+)
+async def get_available_engines(project_id: uuid.UUID) -> AvailableEnginesResponse:
+    """Get list of engines available for per-element text extraction.
+
+    Returns engines from enabled_engines that have valid configuration
+    and support region-level text extraction (excludes pdfminer).
+
+    Args:
+        project_id: Project UUID.
+
+    Returns:
+        AvailableEnginesResponse: Available engines with labels.
+
+    Raises:
+        HTTPException: If project not found.
+    """
+    pool = get_pool()
+    config = await project_repo.get_ocr_config(pool, project_id)
+    if config is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+
+    if not config or 'engine_type' not in config:
+        return AvailableEnginesResponse(engines=[])
+
+    enabled = config.get('enabled_engines', [])
+    if not enabled:
+        enabled = [config['engine_type']]
+
+    engines: list[AvailableEngine] = []
+    for engine_type in enabled:
+        # pdfminer does not support region-level text extraction
+        if engine_type == 'pdfminer':
+            continue
+        # Check that the engine has a sub-config
+        if engine_type == 'commercial_api' and not config.get('commercial_api'):
+            continue
+        if engine_type == 'vllm' and not config.get('vllm'):
+            continue
+        if engine_type == 'split_pipeline' and not config.get('split_pipeline'):
+            continue
+        engines.append(
+            AvailableEngine(
+                engine_type=engine_type,
+                label=ENGINE_LABELS.get(engine_type, engine_type),
+            )
+        )
+
+    return AvailableEnginesResponse(engines=engines)

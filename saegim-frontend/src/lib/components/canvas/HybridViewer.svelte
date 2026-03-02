@@ -2,6 +2,7 @@
   import Konva from 'konva'
   import { untrack } from 'svelte'
   import type { PDFPageProxy } from 'pdfjs-dist'
+  import type { AvailableEngine, EngineType } from '$lib/api/types'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { isImageBlock } from '$lib/types/element-groups'
@@ -25,11 +26,20 @@
     imageUrl?: string
     width: number
     height: number
+    /** Engines available for per-element OCR extraction. */
+    availableEngines?: readonly AvailableEngine[]
     /** Called when OCR is requested for a drawn element. */
-    onOcrRequest?: (annoId: number) => void
+    onOcrRequest?: (annoId: number, engineType?: EngineType) => void
   }
 
-  let { pageProxy, imageUrl, width, height, onOcrRequest }: Props = $props()
+  let {
+    pageProxy,
+    imageUrl,
+    width,
+    height,
+    availableEngines = [],
+    onOcrRequest,
+  }: Props = $props()
 
   // --- DOM refs ---
   let containerEl: HTMLDivElement
@@ -52,6 +62,7 @@
 
   // --- OCR prompt for drawn elements ---
   let drawnAnnoId = $state<number | null>(null)
+  let selectedOcrEngine = $state<EngineType | undefined>(undefined)
 
   let drawnElementScreenPos = $derived.by(() => {
     if (drawnAnnoId === null) return null
@@ -64,13 +75,17 @@
     }
   })
 
+  let showEngineSelector = $derived(availableEngines.length > 1)
+
   function handleDrawComplete(annoId: number): void {
     drawnAnnoId = annoId
+    // Default to first available engine
+    selectedOcrEngine = availableEngines.length > 0 ? availableEngines[0].engine_type : undefined
   }
 
   function handleOcrRequest(): void {
     if (drawnAnnoId !== null) {
-      onOcrRequest?.(drawnAnnoId)
+      onOcrRequest?.(drawnAnnoId, selectedOcrEngine)
       drawnAnnoId = null
     }
   }
@@ -352,6 +367,16 @@
       <span class="text-xs font-medium text-blue-900 dark:text-blue-200">
         이 영역에서 텍스트를 추출하시겠습니까?
       </span>
+      {#if showEngineSelector}
+        <select
+          class="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-medium text-blue-900 dark:border-blue-700 dark:bg-blue-900 dark:text-blue-200"
+          bind:value={selectedOcrEngine}
+        >
+          {#each availableEngines as engine (engine.engine_type)}
+            <option value={engine.engine_type}>{engine.label}</option>
+          {/each}
+        </select>
+      {/if}
       <button
         type="button"
         class="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"

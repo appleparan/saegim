@@ -76,17 +76,23 @@ def crop_region(
     return buf.getvalue()
 
 
-def build_text_provider(ocr_config: dict[str, Any]) -> TextOcrProvider | None:
+def build_text_provider(
+    ocr_config: dict[str, Any],
+    engine_type_override: str | None = None,
+) -> TextOcrProvider | None:
     """Build a text-only OCR provider from project OCR configuration.
 
     Args:
-        ocr_config: Project OCR configuration dict with 'engine_type' key.
+        ocr_config: Project OCR configuration dict with 'engine_type' key
+            and optional sub-configs for each engine type.
+        engine_type_override: If provided, use this engine type instead of
+            the project default. The sub-config is still read from ocr_config.
 
     Returns:
         TextOcrProvider instance, or None if the engine type does not support
         region-level text extraction.
     """
-    engine_type = ocr_config.get('engine_type', '')
+    engine_type = engine_type_override or ocr_config.get('engine_type', '')
 
     if engine_type == 'split_pipeline':
         return _build_from_split_pipeline(ocr_config.get('split_pipeline', {}))
@@ -144,15 +150,19 @@ def extract_text_from_region(
 async def resolve_text_provider(
     pool: asyncpg.Pool,
     page_id: uuid.UUID,
+    engine_type_override: str | None = None,
 ) -> tuple[Path, TextOcrProvider]:
     """Resolve the text OCR provider and image path for a page.
 
     Looks up the page's project OCR config and builds the appropriate
-    text provider.
+    text provider. Optionally overrides the engine type for per-element
+    extraction.
 
     Args:
         pool: Database connection pool.
         page_id: Page UUID.
+        engine_type_override: If provided, use this engine type instead of
+            the project default.
 
     Returns:
         Tuple of (image_path, text_provider).
@@ -173,11 +183,11 @@ async def resolve_text_provider(
     if not ocr_config or not ocr_config.get('engine_type'):
         ocr_config = {'engine_type': 'pdfminer'}
 
-    text_provider = build_text_provider(ocr_config)
+    effective_engine = engine_type_override or ocr_config.get('engine_type', 'unknown')
+    text_provider = build_text_provider(ocr_config, engine_type_override)
     if text_provider is None:
-        engine_type = ocr_config.get('engine_type', 'unknown')
         msg = (
-            f"Engine type '{engine_type}' does not support region text extraction. "
+            f"Engine type '{effective_engine}' does not support region text extraction. "
             f'Configure a split_pipeline, commercial_api, or vllm engine.'
         )
         raise NoTextProviderError(msg)
