@@ -12,9 +12,10 @@ from typing import Any
 
 import httpx
 
+from saegim.services.adapters.chandra import elements_to_page_ir
+from saegim.services.exporters.omnidocbench import export_page
 from saegim.services.ocr_provider import (
     STRUCTURED_OCR_PROMPT,
-    build_omnidocbench_page,
     get_text_prompt,
 )
 
@@ -121,7 +122,8 @@ class GeminiOcrProvider:
             raise RuntimeError(msg) from exc
 
         elements = _parse_gemini_response(result)
-        return build_omnidocbench_page(elements)
+        page_ir = elements_to_page_ir(elements, page_width, page_height)
+        return export_page(page_ir)
 
 
 def _parse_gemini_response(result: dict[str, Any]) -> list[dict[str, Any]]:
