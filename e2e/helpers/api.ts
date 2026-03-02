@@ -124,6 +124,14 @@ export async function healthCheck(): Promise<{ status: number; duration: number 
   return { status, duration }
 }
 
+export async function readinessCheck(): Promise<{
+  data: { status: string; message: string; version: string }
+  status: number
+  duration: number
+}> {
+  return request<{ status: string; message: string; version: string }>('GET', '/health/ready')
+}
+
 export async function createProject(
   name: string,
   description = '',
@@ -394,6 +402,49 @@ interface AvailableEngine {
 
 interface AvailableEnginesResponse {
   engines: AvailableEngine[]
+}
+
+interface UserResponse {
+  id: string
+  name: string
+  email: string
+  role: string
+  created_at: string
+}
+
+export async function createUser(
+  name: string,
+  email: string,
+  role: string = 'annotator',
+): Promise<{ data: UserResponse; status: number; duration: number }> {
+  return request<UserResponse>('POST', '/users', {
+    body: { name, email, role },
+  })
+}
+
+export async function listUsers(): Promise<{
+  data: UserResponse[]
+  status: number
+  duration: number
+}> {
+  return request<UserResponse[]>('GET', '/users')
+}
+
+interface ExtractTextResponse {
+  text: string
+}
+
+export async function extractText(
+  pageId: string,
+  poly: number[],
+  categoryType: string = 'text_block',
+  engineId?: string,
+): Promise<{ data: ExtractTextResponse; status: number; duration: number }> {
+  const body: Record<string, unknown> = { poly, category_type: categoryType }
+  if (engineId) {
+    body.engine_id = engineId
+  }
+  return request<ExtractTextResponse>('POST', `/pages/${pageId}/extract-text`, { body })
 }
 
 export async function getAvailableEngines(
