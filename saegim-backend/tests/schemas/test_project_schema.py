@@ -88,7 +88,7 @@ class TestEngineInstance:
     def test_invalid_engine_type_pdfminer(self):
         with pytest.raises(ValidationError):
             EngineInstance(
-                engine_type='pdfminer',
+                engine_type='pdfminer',  # type: ignore[arg-type]
                 name='pdfminer',
                 config={},
             )
@@ -96,7 +96,7 @@ class TestEngineInstance:
     def test_invalid_engine_type_unknown(self):
         with pytest.raises(ValidationError):
             EngineInstance(
-                engine_type='unknown',
+                engine_type='unknown',  # type: ignore[arg-type]
                 name='Unknown',
                 config={},
             )
