@@ -276,35 +276,51 @@ vllm serve PaddlePaddle/PaddleOCR-VL \
 ### 4.4. PaddlePaddle/PP-DocLayoutV3 (로컬, Layout Detection)
 
 - **역할**: Layout Detection (bbox + 카테고리만, 텍스트 없음)
-- **런타임**: 로컬 PyTorch (safetensors)
+- **런타임**: 로컬 PyTorch (HuggingFace transformers, safetensors)
+- **모델**: `PaddlePaddle/PP-DocLayoutV3_safetensors`
 - **입력**: 이미지
-- **출력**: `[{cls_id, label, score, coordinate: [x1,y1,x2,y2]}]`
-- **카테고리**: 23종 (document_title, paragraph_title, text, table,
-  image, formula, header, footer, page_number, footnote, seal 등)
+- **출력**: `[{label, score, box: [x1,y1,x2,y2]}]` (HF transformers `post_process_object_detection()` 결과)
+- **카테고리**: 25종 (doc_title, paragraph_title, figure_title, text, content,
+  abstract, aside_text, table, image, chart, formula, formula_number,
+  header, footer, footnote, vision_footnote, number, reference,
+  reference_content, algorithm, seal, toc, figure, table_body, table_caption)
+- **구현**: `services/pp_doclayout_service.py` (`PPDocLayoutV3Detector`)
+- **split_pipeline** `layout_provider='pp_doclayout'`로 선택
 
 **DocIR 매핑**:
 
 | 모델 출력 | DocIR 필드 |
 | --------- | ---------- |
 | `label` | `ElementIR.kind` (매핑 테이블로 변환) |
-| `coordinate` | `Geometry.bbox` (pixel) |
+| `box` | `Geometry.bbox` (pixel, 변환 불필요) |
 | `score` | `scores["det"]` |
 | 원본 label | `tags["model_label"]` |
 
-**라벨 매핑 테이블** (일부):
+**라벨 매핑 테이블** (구현: `_LABEL_TO_CATEGORY`):
 
 | PP-DocLayoutV3 label | ElementIR kind |
 | -------------------- | -------------- |
-| `document_title` | `title` |
+| `doc_title` | `title` |
 | `paragraph_title` | `title` |
+| `figure_title` | `title` |
 | `text` | `text_block` |
+| `content` | `text_block` |
+| `abstract` | `text_block` |
+| `aside_text` | `text_block` |
 | `table` | `table` |
 | `image` | `figure` |
+| `chart` | `figure` |
 | `formula` | `equation` |
+| `formula_number` | `equation` |
 | `header` | `header` |
 | `footer` | `footer` |
-| `page_number` | `page_number` |
-| 기타 | `unknown` |
+| `footnote` | `footnote` |
+| `vision_footnote` | `footnote` |
+| `number` | `page_number` |
+| `reference` | `reference` |
+| `reference_content` | `reference` |
+| `algorithm` | `code` |
+| 기타 (seal, toc 등) | `unknown` |
 
 ### 4.5. ibm-granite/granite-docling-258M (로컬, Layout Detection)
 
@@ -551,14 +567,30 @@ saegim-backend/src/saegim/services/
 
 ```mermaid
 flowchart TD
-    PR0["PR 0: 설계 문서"]
-    PR1["PR 1: DocIR + Exporter + ChandraAdapter"]
-    PR2["PR 2: LightOnOCR Adapter + 기본값 변경"]
-    PR3["PR 3: PaddleOCR-VL Adapter"]
-    PR4["PR 4: PP-DocLayoutV3 + Split Pipeline DocIR"]
+    PR0["PR 0: 설계 문서 ✅"]
+    PR1["PR 1: DocIR + Exporter + ChandraAdapter ✅"]
+    PR2["PR 2: LightOnOCR Adapter ✅"]
+    PR3["PR 3: PaddleOCR-VL Adapter ✅"]
+    PR4["PR 4: PP-DocLayoutV3 + Split Pipeline DocIR ✅"]
+    PR5["PR 5: Gemini Adapter (향후)"]
 
-    PR0 --> PR1 --> PR2 --> PR3 --> PR4
+    PR0 --> PR1 --> PR2 --> PR3 --> PR4 --> PR5
 ```
+
+### 완료된 PR 요약
+
+| PR | 내용 | 주요 파일 |
+| --- | --- | --- |
+| PR 0 | DocIR 설계 문서 (이 파일) | `docs/architecture/docir-architecture.md` |
+| PR 1 | DocIR 타입 + OmniDocBench Exporter + ChandraAdapter + VllmEngine 연동 | `docir.py`, `adapters/chandra.py`, `exporters/omnidocbench.py`, `vllm_engine.py` |
+| PR 2 | LightOnOcrAdapter (0-1000 정규화 좌표 변환, 임베디드 이미지 파싱) | `adapters/lightonocr.py`, `adapters/resolver.py` |
+| PR 3 | PaddleOcrVlAdapter (태스크 프롬프트 기반 멀티태스크 VLM) | `adapters/paddleocr_vl.py` |
+| PR 4 | PPDocLayoutV3Detector + SplitPipelineEngine `layout_provider` 옵션 | `pp_doclayout_service.py`, `split_pipeline_engine.py`, `factory.py` |
+
+### 향후 작업
+
+- **Gemini Adapter**: `CommercialApiEngine`을 DocIR Adapter 패턴으로 전환.
+  ChandraAdapter와 JSON 파싱 로직 공유 가능, Provider 레이어에서 API 형식 차이 흡수.
 
 ### 하위 호환성 전략
 

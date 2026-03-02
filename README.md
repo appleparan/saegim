@@ -26,7 +26,7 @@ graph TB
     subgraph OCR ["OCR 엔진 (4종)"]
         GEMINI["Gemini API"]
         VLLM["vLLM (Chandra)"]
-        DOCLING_OCR["Docling + OCR"]
+        SPLIT["Layout + OCR<br/>(Docling / PP-DocLayoutV3)"]
         PDFMINER["pdfminer"]
     end
 
@@ -35,7 +35,7 @@ graph TB
     API --> BG
     BG --> GEMINI
     BG --> VLLM
-    BG --> DOCLING_OCR
+    BG --> SPLIT
     BG --> PDFMINER
 ```
 
@@ -51,7 +51,7 @@ graph TB
 | | - `pdfminer`: pdfminer.six 폴백 (GPU 불필요, 동기) |
 | | - `commercial_api`: Gemini API / vLLM (full-page VLM) |
 | | - `vllm`: vLLM 서버 (Chandra 등) |
-| | - `split_pipeline`: Docling 레이아웃 + Gemini/vLLM OCR |
+| | - `split_pipeline`: 레이아웃 감지 (Docling / PP-DocLayoutV3) + Gemini/vLLM OCR |
 | **비동기 태스크** | asyncio 백그라운드 태스크 |
 | **패키지 관리** | Backend: uv / Frontend: Bun |
 | **E2E 테스트** | Vitest + Docker Compose (기본 + GPU 프로파일) |
@@ -222,10 +222,20 @@ saegim/
 │   │   │   │   ├── commercial_api_engine.py
 │   │   │   │   ├── vllm_engine.py
 │   │   │   │   └── split_pipeline_engine.py
+│   │   │   ├── docir.py                   # DocIR 중간 표현 (PageIR, ElementIR 등)
+│   │   │   ├── adapters/                  # 모델별 Adapter (raw → DocIR)
+│   │   │   │   ├── base.py               # ModelAdapter Protocol
+│   │   │   │   ├── resolver.py            # resolve_adapter() 자동 선택
+│   │   │   │   ├── chandra.py             # ChandraAdapter
+│   │   │   │   ├── lightonocr.py          # LightOnOcrAdapter
+│   │   │   │   └── paddleocr_vl.py        # PaddleOcrVlAdapter
+│   │   │   ├── exporters/                 # DocIR → 최종 출력 변환
+│   │   │   │   └── omnidocbench.py        # export_page(PageIR) → OmniDocBench dict
 │   │   │   ├── labeling_service.py        # 저장, 읽기 순서, 관계 CRUD
 │   │   │   ├── attribute_classifier.py    # 페이지/요소 속성 자동 분류
 │   │   │   ├── layout_types.py            # LayoutRegion, LayoutDetector Protocol
 │   │   │   ├── docling_layout_service.py  # Docling 레이아웃 감지
+│   │   │   ├── pp_doclayout_service.py    # PP-DocLayoutV3 레이아웃 감지
 │   │   │   ├── gemini_ocr_service.py      # Gemini VLM 프로바이더
 │   │   │   ├── vllm_ocr_service.py        # vLLM 프로바이더 (Chandra 등)
 │   │   │   └── ocr_pipeline.py            # 2단계 파이프라인 오케스트레이터

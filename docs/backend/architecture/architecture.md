@@ -59,12 +59,22 @@ src/saegim/services/
 │   ├── factory.py                 # build_engine_by_id(ocr_config, engine_id) 팩토리 (다중 인스턴스)
 │   ├── pdfminer_engine.py          # PdfminerEngine (GPU 불필요 폴백)
 │   ├── commercial_api_engine.py   # CommercialApiEngine (Gemini/vLLM full-page)
-│   ├── vllm_engine.py             # VllmEngine (vLLM OpenAI-compatible API)
-│   └── split_pipeline_engine.py   # SplitPipelineEngine (Docling 레이아웃 + 외부 OCR)
+│   ├── vllm_engine.py             # VllmEngine (DocIR Adapter 패턴 적용, resolve_adapter() 자동 감지)
+│   └── split_pipeline_engine.py   # SplitPipelineEngine (레이아웃 감지 + 외부 OCR, layout_provider 선택)
+├── docir.py                       # DocIR 중간 표현 (PageIR, ElementIR, Geometry, RecognitionResult)
+├── adapters/                      # 모델별 Adapter (raw → DocIR 변환)
+│   ├── base.py                    # ModelAdapter Protocol (build_messages, parse_response)
+│   ├── resolver.py                # resolve_adapter(model_name) — 모델명으로 Adapter 자동 선택
+│   ├── chandra.py                 # ChandraAdapter (Chandra, olmOCR 등 STRUCTURED_OCR_PROMPT 계열)
+│   ├── lightonocr.py              # LightOnOcrAdapter (LightOnOCR, 0-1000 정규화 좌표)
+│   └── paddleocr_vl.py            # PaddleOcrVlAdapter (PaddleOCR-VL, 태스크 프롬프트 기반)
+├── exporters/                     # DocIR → 최종 출력 변환
+│   └── omnidocbench.py            # export_page(PageIR) → OmniDocBench dict
 ├── document_service.py            # PDF 업로드 → 이미지 변환 → 추출 분기 (pdfminer/asyncio), 재추출(re_extract)
 ├── extraction_service.py          # pdfminer.six 폴백 추출 (text_block + figure)
 ├── layout_types.py                # LayoutRegion dataclass, LayoutDetector Protocol
 ├── docling_layout_service.py      # DoclingLayoutDetector (ibm-granite/granite-docling-258M)
+├── pp_doclayout_service.py        # PPDocLayoutV3Detector (PaddlePaddle/PP-DocLayoutV3_safetensors)
 ├── ocr_pipeline.py                # 2단계 파이프라인 오케스트레이터 (OcrPipeline, TextOcrProvider)
 ├── ocr_provider.py                # 프롬프트 상수, bbox_to_poly(), build_omnidocbench_page()
 ├── gemini_ocr_service.py          # GeminiOcrProvider, GeminiTextOcrProvider

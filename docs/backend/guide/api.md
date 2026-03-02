@@ -120,6 +120,8 @@
 
 **요청 Body:**
 
+vLLM 엔진 예시:
+
 ```json
 {
   "engine_type": "vllm",
@@ -127,6 +129,26 @@
   "config": { "host": "gpu-server-2", "port": 8000, "model": "allenai/olmOCR-2-7B-1025-FP8" }
 }
 ```
+
+Split Pipeline 엔진 예시 (PP-DocLayoutV3 + vLLM):
+
+```json
+{
+  "engine_type": "split_pipeline",
+  "name": "PP-DocLayoutV3 + vLLM",
+  "config": {
+    "layout_provider": "pp_doclayout",
+    "ocr_provider": "vllm",
+    "ocr_host": "gpu-server-1",
+    "ocr_port": 8000,
+    "ocr_model": "allenai/olmOCR-2-7B-1025-FP8"
+  }
+}
+```
+
+!!! note "`layout_provider` 옵션"
+    `split_pipeline` 엔진의 `layout_provider`는 `"docling"` (기본값) 또는
+    `"pp_doclayout"` (PP-DocLayoutV3)을 지원합니다.
 
 **응답:** `201 Created` (updated OcrConfigResponse) | `409 Conflict` (engine_id 충돌)
 
