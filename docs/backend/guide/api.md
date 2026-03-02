@@ -148,6 +148,23 @@ OCR 엔진 연결 테스트. `build_engine()` → `engine.test_connection()` 실
 }
 ```
 
+### `GET /api/v1/projects/{project_id}/available-engines`
+
+요소별 텍스트 추출에 사용할 수 있는 엔진 목록 조회.
+`enabled_engines`에서 유효한 설정을 가지고 region-level 추출을 지원하는 엔진만 반환합니다.
+pdfminer는 region-level 추출을 지원하지 않으므로 제외됩니다.
+
+**응답:** `200 OK`
+
+```json
+{
+  "engines": [
+    { "engine_type": "commercial_api", "label": "Gemini API" },
+    { "engine_type": "vllm", "label": "vLLM" }
+  ]
+}
+```
+
 ---
 
 ## Documents
@@ -422,14 +439,16 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 
 ### `POST /api/v1/pages/{page_id}/extract-text`
 
-지정 영역의 텍스트를 OCR 엔진으로 추출합니다. 프로젝트 OCR 설정에 따라 엔진이 결정됩니다.
+지정 영역의 텍스트를 OCR 엔진으로 추출합니다.
+`engine_type`을 지정하면 해당 엔진으로 추출하고, 생략하면 프로젝트 기본 엔진을 사용합니다.
 
 **요청 Body:**
 
 ```json
 {
   "poly": [100, 200, 500, 200, 500, 400, 100, 400],
-  "category_type": "text_block"
+  "category_type": "text_block",
+  "engine_type": "vllm"
 }
 ```
 
@@ -437,6 +456,7 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 | ------ | ------ | ------ | ------ |
 | `poly` | `list[float]` | O | 8개 좌표 (4 꼭짓점) |
 | `category_type` | string | X | 카테고리 타입 (기본값: `text_block`) |
+| `engine_type` | string | X | 엔진 타입 오버라이드 (생략 시 프로젝트 기본 엔진) |
 
 **응답:** `200 OK`
 

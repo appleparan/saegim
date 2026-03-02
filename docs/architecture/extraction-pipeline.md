@@ -88,10 +88,41 @@ PDF 업로드
   → 프론트엔드에서 "수락" → annotation_data로 복사
 ```
 
+## 요소별 엔진 선택 (Per-Element Engine Override)
+
+프로젝트에 여러 OCR 엔진을 동시에 활성화(`enabled_engines`)한 뒤,
+레이블링 화면에서 요소별로 다른 엔진을 선택하여 텍스트를 추출할 수 있다.
+
+```text
+프로젝트 설정
+  → engine_type: 기본 엔진 (full-page 추출용)
+  → enabled_engines: [commercial_api, vllm, split_pipeline]
+     └── 각 엔진의 sub-config를 독립적으로 설정
+
+레이블링 화면
+  → 요소 그리기 → OCR 팝업
+     ├── 엔진이 1개: 바로 OCR 실행
+     └── 엔진이 2개+: 드롭다운으로 엔진 선택 후 실행
+  → POST /pages/{id}/extract-text { engine_type: "vllm" }
+  → 추출 결과 + 사용 엔진 정보를 annotation_data에 저장 (ocr_engine 필드)
+```
+
 ## `ocr_config` JSONB 구조
 
 ```json
-// commercial_api
+// 복수 엔진 활성화 예시
+{
+  "engine_type": "commercial_api",
+  "enabled_engines": ["commercial_api", "vllm"],
+  "commercial_api": {
+    "provider": "gemini",
+    "api_key": "...",
+    "model": "gemini-3-flash-preview"
+  },
+  "vllm": { "host": "localhost", "port": 8000, "model": "datalab-to/chandra" }
+}
+
+// 단일 엔진 (기존 호환)
 {
   "engine_type": "commercial_api",
   "commercial_api": {
@@ -122,6 +153,8 @@ PDF 업로드
 { "engine_type": "pdfminer" }
 ```
 
+`enabled_engines`가 비어있거나 생략되면 `[engine_type]`으로 폴백하여 하위 호환을 유지한다.
+
 ## 구현 파일
 
 ### 엔진 추상화 (`services/engines/`)
@@ -147,8 +180,9 @@ PDF 업로드
 ### 통합
 
 - `services/document_service.py`: asyncio 백그라운드 태스크 (`build_engine()` → `asyncio.to_thread(engine.extract_page())`)
-- `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `VllmServerConfig`, `SplitPipelineConfig`
-- `OcrSettingsPanel.svelte`: 엔진 타입 선택 카드 UI + 연결 테스트
+- `schemas/project.py`: `EngineType`, `CommercialApiConfig`, `VllmServerConfig`, `SplitPipelineConfig`, `AvailableEngine`
+- `services/text_extraction_service.py`: `build_text_provider(ocr_config, engine_type_override)` 요소별 엔진 오버라이드
+- `OcrSettingsPanel.svelte`: 복수 엔진 활성화 UI (기본 엔진 라디오 + 추가 엔진 토글)
 
 ## 재추출 (Re-extract)
 
