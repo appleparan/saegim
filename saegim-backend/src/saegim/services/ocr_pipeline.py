@@ -11,8 +11,8 @@ from typing import Any, Protocol
 
 from PIL import Image
 
+from saegim.services.exporters.omnidocbench import bbox_to_poly
 from saegim.services.layout_types import LayoutDetector, LayoutRegion
-from saegim.services.ocr_provider import bbox_to_poly
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def _build_layout_det(
     Returns:
         OmniDocBench-compatible layout_det dict.
     """
-    poly = bbox_to_poly(list(region.bbox))
+    poly = bbox_to_poly(region.bbox)
     det: dict[str, Any] = {
         'category_type': region.category,
         'poly': poly,

@@ -1,25 +1,25 @@
 """vLLM-based OCR service for structured layout detection.
 
 Sends page images to a local vLLM server (OpenAI-compatible API)
-and parses structured output into OmniDocBench-compatible format.
+and parses structured output into OmniDocBench-compatible format
+via the adapter → exporter pipeline.
 """
 
 import base64
-import json
 import logging
 from pathlib import Path
 from typing import Any
 
 import httpx
-from partialjson import JSONParser
 
-from saegim.services.ocr_provider import (
-    STRUCTURED_OCR_PROMPT,
-    build_omnidocbench_page,
-    get_text_prompt,
-)
+from saegim.services.adapters.base import ModelAdapter
+from saegim.services.adapters.resolver import resolve_adapter
+from saegim.services.exporters.omnidocbench import export_page
+from saegim.services.ocr_provider import get_text_prompt
 
 logger = logging.getLogger(__name__)
+
+_MIME_MAP = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
 
 
 class VllmOcrProvider:
@@ -30,6 +30,8 @@ class VllmOcrProvider:
         host: str = 'localhost',
         port: int = 8000,
         model: str = 'allenai/olmOCR-2-7B-1025',
+        *,
+        adapter: ModelAdapter | None = None,
     ) -> None:
         """Initialize vLLM OCR provider.
 
@@ -37,10 +39,12 @@ class VllmOcrProvider:
             host: vLLM server host.
             port: vLLM server port.
             model: Model name to use.
+            adapter: Model adapter override. Resolved from model name if None.
         """
         self._host = host
         self._port = port
         self._model = model
+        self._adapter = adapter or resolve_adapter(model)
 
     @property
     def base_url(self) -> str:
@@ -70,31 +74,15 @@ class VllmOcrProvider:
         Raises:
             RuntimeError: If vLLM API call fails.
         """
-        prompt = STRUCTURED_OCR_PROMPT.format(width=page_width, height=page_height)
         image_data = image_path.read_bytes()
         image_b64 = base64.b64encode(image_data).decode('utf-8')
+        mime_type = _MIME_MAP.get(image_path.suffix.lower(), 'image/png')
 
-        suffix = image_path.suffix.lower()
-        mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
-        mime_type = mime_map.get(suffix, 'image/png')
-
+        messages = self._adapter.build_messages(image_b64, mime_type, page_width, page_height)
         url = f'{self.base_url}/v1/chat/completions'
         payload = {
             'model': self._model,
-            'messages': [
-                {
-                    'role': 'user',
-                    'content': [
-                        {'type': 'text', 'text': prompt},
-                        {
-                            'type': 'image_url',
-                            'image_url': {
-                                'url': f'data:{mime_type};base64,{image_b64}',
-                            },
-                        },
-                    ],
-                },
-            ],
+            'messages': messages,
             'temperature': 0.1,
             'max_tokens': 4096,
         }
@@ -111,107 +99,8 @@ class VllmOcrProvider:
             msg = f'vLLM API request failed: {exc}'
             raise RuntimeError(msg) from exc
 
-        elements = _parse_vllm_response(result)
-        return build_omnidocbench_page(elements)
-
-
-_partial_parser = JSONParser(strict=False)
-
-
-def _loads_lenient(text: str) -> list | dict | str | int | float | bool | None:
-    r"""Parse JSON with lenient handling of LLM output quirks.
-
-    Handles common vLLM JSON issues:
-    - Control characters (tabs, newlines) inside strings -> strict=False
-    - Invalid escape sequences (\R, \U) -> partialjson repair
-    - Missing commas, unclosed brackets -> partialjson repair
-    - Extra trailing data after valid JSON -> JSONDecoder.raw_decode
-
-    Args:
-        text: Raw JSON string from LLM.
-
-    Returns:
-        Parsed JSON value.
-
-    Raises:
-        json.JSONDecodeError: If text cannot be parsed even with repair.
-    """
-    # 1) Try strict stdlib first (fast path)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-
-    # 2) Allow control characters
-    try:
-        return json.loads(text, strict=False)
-    except json.JSONDecodeError:
-        pass
-
-    # 3) Repair with partialjson (handles invalid escapes, missing commas, etc.)
-    return _partial_parser.parse(text)
-
-
-def _strip_markdown_fences(text: str) -> str:
-    """Remove markdown code fences from LLM output.
-
-    Args:
-        text: Raw text that may be wrapped in markdown code fences.
-
-    Returns:
-        Inner content with fences removed, or original text if no fences.
-    """
-    text = text.strip()
-    if not text.startswith('```'):
-        return text
-    lines = text.split('\n')
-    # Remove opening fence (```json or ```) and closing fence (```)
-    if len(lines) > 2 and lines[-1].strip() == '```':
-        return '\n'.join(lines[1:-1])
-    if len(lines) > 1:
-        return '\n'.join(lines[1:])
-    return text
-
-
-def _parse_vllm_response(result: dict[str, Any]) -> list[dict[str, Any]]:
-    """Parse vLLM OpenAI-compatible response to extract layout elements.
-
-    Args:
-        result: Raw vLLM API JSON response.
-
-    Returns:
-        List of element dicts with category_type, bbox, text, order.
-    """
-    text = ''
-    try:
-        choices = result.get('choices', [])
-        if not choices:
-            logger.warning('vLLM response has no choices')
-            return []
-
-        message = choices[0].get('message', {})
-        text = message.get('content', '')
-        if not text.strip():
-            return []
-
-        # Strip markdown code fences and check for empty content
-        text = _strip_markdown_fences(text)
-        text = text.strip()
-        if not text:
-            logger.warning('vLLM response empty after stripping markdown fences')
-            return []
-
-        elements = _loads_lenient(text)
-        if not isinstance(elements, list):
-            logger.warning('vLLM response is not a list: %s', type(elements))
-            return []
-
-        return elements
-
-    except (json.JSONDecodeError, KeyError, IndexError, ValueError) as exc:
-        raw_preview = text[:200] if text else '(empty)'
-        logger.warning('Failed to parse vLLM response: %s | raw preview: %s', exc, raw_preview)
-        return []
+        page_ir = self._adapter.parse_response(result, page_width, page_height)
+        return export_page(page_ir)
 
 
 class VllmTextOcrProvider:

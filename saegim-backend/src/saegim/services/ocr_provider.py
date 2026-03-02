@@ -5,7 +5,6 @@ Shared constants and helper functions used by OCR provider implementations
 """
 
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,59 +33,6 @@ STRUCTURED_OCR_PROMPT = (
     '- Maintain correct reading order\n'
     '- Return [] if no elements are found'
 )
-
-
-def bbox_to_poly(bbox: list[float]) -> list[float]:
-    """Convert [x1, y1, x2, y2] bbox to 8-float polygon.
-
-    Args:
-        bbox: Bounding box [x1, y1, x2, y2].
-
-    Returns:
-        8-float polygon [x1,y1, x2,y1, x2,y2, x1,y2].
-    """
-    x1, y1, x2, y2 = bbox
-    return [x1, y1, x2, y1, x2, y2, x1, y2]
-
-
-def build_omnidocbench_page(
-    elements: list[dict[str, Any]],
-) -> dict[str, Any]:
-    """Build an OmniDocBench page dict from extracted elements.
-
-    Args:
-        elements: List of extracted element dicts with category_type, bbox, text, order.
-
-    Returns:
-        OmniDocBench-compatible page dict.
-    """
-    layout_dets = []
-    for i, elem in enumerate(elements):
-        bbox = elem.get('bbox', [0, 0, 0, 0])
-        poly = bbox_to_poly(bbox)
-        det: dict[str, Any] = {
-            'category_type': elem.get('category_type', 'text_block'),
-            'poly': poly,
-            'ignore': False,
-            'order': elem.get('order', i),
-            'anno_id': i,
-        }
-        text = elem.get('text')
-        if text:
-            det['text'] = text
-        latex = elem.get('latex')
-        if latex:
-            det['latex'] = latex
-        html = elem.get('html')
-        if html:
-            det['html'] = html
-        layout_dets.append(det)
-
-    return {
-        'layout_dets': layout_dets,
-        'page_attribute': {},
-        'extra': {'relation': []},
-    }
 
 
 # --- Text-only OCR for 2-stage pipeline ---

@@ -9,123 +9,7 @@ from saegim.services.vllm_ocr_service import (
     VllmOcrProvider,
     VllmTextOcrProvider,
     _extract_text_from_vllm,
-    _loads_lenient,
-    _parse_vllm_response,
-    _strip_markdown_fences,
 )
-
-
-class TestParseVllmResponse:
-    """Test vLLM response parsing."""
-
-    def test_parse_valid_response(self):
-        elements = [
-            {'category_type': 'title', 'bbox': [10, 20, 400, 60], 'text': 'Hello', 'order': 0},
-        ]
-        response = {
-            'choices': [{'message': {'content': json.dumps(elements)}}],
-        }
-        result = _parse_vllm_response(response)
-        assert len(result) == 1
-        assert result[0]['category_type'] == 'title'
-
-    def test_parse_markdown_wrapped_response(self):
-        elements = [
-            {'category_type': 'text_block', 'bbox': [0, 0, 100, 50], 'text': 'Body', 'order': 0},
-        ]
-        text = f'```json\n{json.dumps(elements)}\n```'
-        response = {'choices': [{'message': {'content': text}}]}
-        result = _parse_vllm_response(response)
-        assert len(result) == 1
-        assert result[0]['category_type'] == 'text_block'
-
-    def test_parse_empty_choices(self):
-        assert _parse_vllm_response({'choices': []}) == []
-
-    def test_parse_empty_content(self):
-        assert _parse_vllm_response({'choices': [{'message': {'content': ''}}]}) == []
-
-    def test_parse_invalid_json(self):
-        response = {'choices': [{'message': {'content': 'not json at all'}}]}
-        assert _parse_vllm_response(response) == []
-
-    def test_parse_non_list_json(self):
-        response = {'choices': [{'message': {'content': '{"key": "val"}'}}]}
-        assert _parse_vllm_response(response) == []
-
-    def test_parse_empty_markdown_fence(self):
-        """Markdown fence with no content should return empty list."""
-        response = {'choices': [{'message': {'content': '```json\n\n```'}}]}
-        assert _parse_vllm_response(response) == []
-
-    def test_parse_invalid_escape_sequence(self):
-        r"""Invalid escape sequences like \R, \U should be repaired."""
-        raw = (
-            r'[{"category_type": "text_block",'
-            r' "bbox": [0,0,100,50],'
-            r' "text": "path\\Report",'
-            r' "order": 0}]'
-        )
-        response = {'choices': [{'message': {'content': raw}}]}
-        result = _parse_vllm_response(response)
-        assert len(result) == 1
-        assert result[0]['category_type'] == 'text_block'
-
-    def test_parse_missing_comma(self):
-        """Missing comma in JSON should be repaired by partialjson."""
-        raw = '[{"category_type": "title" "bbox": [0,0,100,50], "text": "Hi", "order": 0}]'
-        response = {'choices': [{'message': {'content': raw}}]}
-        result = _parse_vllm_response(response)
-        assert len(result) >= 1
-
-    def test_parse_incomplete_json(self):
-        """Incomplete JSON (truncated) should be partially parsed."""
-        raw = (
-            '[{"category_type": "title",'
-            ' "bbox": [0,0,100,50],'
-            ' "text": "Hello", "order": 0},'
-            ' {"category_type": "text_block"'
-        )
-        response = {'choices': [{'message': {'content': raw}}]}
-        result = _parse_vllm_response(response)
-        assert len(result) >= 1
-        assert result[0]['category_type'] == 'title'
-
-
-class TestStripMarkdownFences:
-    def test_no_fences(self):
-        assert _strip_markdown_fences('[{"key": "val"}]') == '[{"key": "val"}]'
-
-    def test_json_fence(self):
-        text = '```json\n[{"key": "val"}]\n```'
-        assert _strip_markdown_fences(text) == '[{"key": "val"}]'
-
-    def test_plain_fence(self):
-        text = '```\n[{"key": "val"}]\n```'
-        assert _strip_markdown_fences(text) == '[{"key": "val"}]'
-
-    def test_empty_fence(self):
-        assert _strip_markdown_fences('```json\n\n```').strip() == ''
-
-    def test_unclosed_fence(self):
-        text = '```json\n[{"key": "val"}]'
-        assert _strip_markdown_fences(text) == '[{"key": "val"}]'
-
-
-class TestLoadsLenient:
-    def test_valid_json(self):
-        assert _loads_lenient('[1, 2, 3]') == [1, 2, 3]
-
-    def test_control_characters(self):
-        result = _loads_lenient('{"text": "line1\tline2"}')
-        assert isinstance(result, dict)
-        assert result['text'] == 'line1\tline2'
-
-    def test_invalid_escape_repaired(self):
-        raw = r'{"text": "C:\\Users\\Report"}'
-        result = _loads_lenient(raw)
-        assert isinstance(result, dict)
-        assert 'text' in result
 
 
 class TestVllmOcrProvider:
@@ -167,7 +51,7 @@ class TestVllmOcrProvider:
         assert len(result['layout_dets']) == 1
         det = result['layout_dets'][0]
         assert det['category_type'] == 'text_block'
-        assert det['poly'] == [50, 100, 500, 100, 500, 300, 50, 300]
+        assert det['poly'] == [50.0, 100.0, 500.0, 100.0, 500.0, 300.0, 50.0, 300.0]
         assert det['text'] == 'Hello world'
 
     def test_extract_page_api_error(self, tmp_path):
@@ -209,6 +93,17 @@ class TestVllmOcrProvider:
             provider = VllmOcrProvider()
             with pytest.raises(RuntimeError, match='vLLM API request failed'):
                 provider.extract_page(image_path, 800, 1200)
+
+    def test_adapter_resolved_from_model(self):
+        from saegim.services.adapters.chandra import ChandraAdapter
+
+        provider = VllmOcrProvider(model='datalab-to/chandra')
+        assert isinstance(provider._adapter, ChandraAdapter)
+
+    def test_custom_adapter_injection(self):
+        mock_adapter = MagicMock()
+        provider = VllmOcrProvider(adapter=mock_adapter)
+        assert provider._adapter is mock_adapter
 
 
 class TestExtractTextFromVllm:
