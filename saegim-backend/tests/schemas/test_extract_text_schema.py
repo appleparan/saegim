@@ -1,4 +1,4 @@
-"""Tests for ExtractTextRequest schema with engine_type field."""
+"""Tests for ExtractTextRequest schema with engine_id field."""
 
 import pytest
 
@@ -6,26 +6,26 @@ from saegim.schemas.page import ExtractTextRequest
 
 
 class TestExtractTextRequest:
-    def test_default_engine_type_is_none(self):
+    def test_default_engine_id_is_none(self):
         req = ExtractTextRequest(
             poly=[0, 0, 100, 0, 100, 100, 0, 100],
         )
-        assert req.engine_type is None
+        assert req.engine_id is None
         assert req.category_type == 'text_block'
 
-    def test_engine_type_override(self):
+    def test_engine_id_override(self):
         req = ExtractTextRequest(
             poly=[0, 0, 100, 0, 100, 100, 0, 100],
-            engine_type='commercial_api',
+            engine_id='gemini-flash',
         )
-        assert req.engine_type == 'commercial_api'
+        assert req.engine_id == 'gemini-flash'
 
-    def test_engine_type_vllm(self):
+    def test_engine_id_vllm_instance(self):
         req = ExtractTextRequest(
             poly=[0, 0, 100, 0, 100, 100, 0, 100],
-            engine_type='vllm',
+            engine_id='vllm-chandra',
         )
-        assert req.engine_type == 'vllm'
+        assert req.engine_id == 'vllm-chandra'
 
     def test_poly_validation_min_length(self):
         with pytest.raises(ValueError, match=r'ensure this value has at least 8|too_short'):
