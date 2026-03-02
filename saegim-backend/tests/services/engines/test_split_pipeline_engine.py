@@ -70,9 +70,7 @@ class TestSplitPipelineEngineInit:
     def test_pp_doclayout_creates_engine(self, mock_text, mock_pipeline_cls):
         mock_text.return_value = MagicMock()
 
-        with patch(
-            'saegim.services.pp_doclayout_service.PPDocLayoutV3Detector'
-        ) as mock_pp:
+        with patch('saegim.services.pp_doclayout_service.PPDocLayoutV3Detector') as mock_pp:
             mock_pp.return_value = MagicMock()
             engine = SplitPipelineEngine(
                 docling_model_name='ibm-granite/granite-docling-258M',
