@@ -50,6 +50,7 @@ export interface OcrConfigResponse {
   readonly commercial_api?: CommercialApiConfig
   readonly vllm?: VllmServerConfig
   readonly split_pipeline?: SplitPipelineConfig
+  readonly enabled_engines?: readonly EngineType[]
   readonly env_gemini_api_key?: string
 }
 
@@ -58,6 +59,18 @@ export interface OcrConfigUpdate {
   readonly commercial_api?: CommercialApiConfig
   readonly vllm?: VllmServerConfig
   readonly split_pipeline?: SplitPipelineConfig
+  readonly enabled_engines?: readonly EngineType[]
+}
+
+// --- Available Engines (for per-element OCR) ---
+
+export interface AvailableEngine {
+  readonly engine_type: EngineType
+  readonly label: string
+}
+
+export interface AvailableEnginesResponse {
+  readonly engines: readonly AvailableEngine[]
 }
 
 export interface OcrConnectionTestResponse {
