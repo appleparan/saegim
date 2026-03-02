@@ -172,6 +172,7 @@ bun run docker:gpu:up && bun run test:gpu  # GPU 테스트
 
 ## 상세 문서
 
+- [아키텍처 문서](architecture/README.md)
 - [백엔드 API 가이드](backend/guide/api.md)
 - [백엔드 시작하기](backend/guide/getting-started.md)
 - [E2E 테스트 가이드](../e2e/README.md)

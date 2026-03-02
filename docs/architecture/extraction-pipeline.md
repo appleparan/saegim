@@ -1,5 +1,8 @@
 # 자동 추출 파이프라인
 
+> **참고**: 모델별 파싱 아키텍처(Provider-Adapter-Exporter 3-stage 파이프라인)와
+> 중간 표현(DocIR) 명세는 [DocIR 아키텍처](docir-architecture.md)를 참고한다.
+
 ## 다중 인스턴스 OCR 엔진 아키텍처
 
 프로젝트별 `ocr_config` JSONB에 다수의 엔진 인스턴스를 등록하고,
