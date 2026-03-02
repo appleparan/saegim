@@ -214,6 +214,7 @@ export interface TaskResponse {
 // --- Export ---
 
 export interface ExportResponse {
-  readonly download_url: string
-  readonly filename: string
+  readonly project_name: string
+  readonly total_pages: number
+  readonly data: readonly Record<string, unknown>[]
 }
