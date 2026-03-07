@@ -47,6 +47,39 @@ def _document_dir_name(filename: str) -> str:
     return sanitize_filename(stem)
 
 
+def _build_export_entry(
+    page: asyncpg.Record,
+    *,
+    image_path: str | None = None,
+) -> dict[str, Any]:
+    """Build an OmniDocBench export entry from a page record.
+
+    Args:
+        page: Database record with annotation_data, page_no, height, width, image_path.
+        image_path: Override image_path in page_info (e.g. relative path for ZIP).
+
+    Returns:
+        OmniDocBench entry dict with page_info.
+    """
+    annotation = page['annotation_data']
+    if isinstance(annotation, str):
+        annotation = json.loads(annotation)
+    annotation = annotation or {}
+
+    page_attribute = annotation.pop('page_attribute', {})
+
+    return {
+        **annotation,
+        'page_info': {
+            'page_no': page['page_no'],
+            'height': page['height'],
+            'width': page['width'],
+            'image_path': image_path or page['image_path'],
+            'page_attribute': page_attribute,
+        },
+    }
+
+
 async def export_project(
     pool: asyncpg.Pool,
     project_id: uuid.UUID,
@@ -69,26 +102,7 @@ async def export_project(
 
     pages = await page_repo.get_all_by_project(pool, project_id)
 
-    result: list[dict[str, Any]] = []
-    for page in pages:
-        annotation = page['annotation_data']
-        if isinstance(annotation, str):
-            annotation = json.loads(annotation)
-        annotation = annotation or {}
-
-        page_attribute = annotation.pop('page_attribute', {})
-
-        entry = {
-            **annotation,
-            'page_info': {
-                'page_no': page['page_no'],
-                'height': page['height'],
-                'width': page['width'],
-                'image_path': page['image_path'],
-                'page_attribute': page_attribute,
-            },
-        }
-        result.append(entry)
+    result = [_build_export_entry(page) for page in pages]
 
     return {
         'project_name': project['name'],
@@ -129,33 +143,17 @@ async def export_project_zip(
 
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for page in pages:
-            annotation = page['annotation_data']
-            if isinstance(annotation, str):
-                annotation = json.loads(annotation)
-            annotation = annotation or {}
-
-            page_attribute = annotation.pop('page_attribute', {})
-
             doc_dir = _document_dir_name(page['document_filename'])
             image_name = f'page_{page["page_no"]:03d}.png'
             relative_image_path = f'images/{doc_dir}/{image_name}'
 
-            # Add page image to ZIP
             source_path = Path(page['image_path'])
             if source_path.exists():
                 zf.write(str(source_path), relative_image_path)
 
-            entry = {
-                **annotation,
-                'page_info': {
-                    'page_no': page['page_no'],
-                    'height': page['height'],
-                    'width': page['width'],
-                    'image_path': relative_image_path,
-                    'page_attribute': page_attribute,
-                },
-            }
-            annos_data.append(entry)
+            annos_data.append(
+                _build_export_entry(page, image_path=relative_image_path),
+            )
 
         annos_json = json.dumps(
             {
@@ -201,13 +199,6 @@ async def export_document_zip(
 
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for page in pages:
-            annotation = page['annotation_data']
-            if isinstance(annotation, str):
-                annotation = json.loads(annotation)
-            annotation = annotation or {}
-
-            page_attribute = annotation.pop('page_attribute', {})
-
             image_name = f'page_{page["page_no"]:03d}.png'
             relative_image_path = f'images/{doc_dir}/{image_name}'
 
@@ -215,17 +206,9 @@ async def export_document_zip(
             if source_path.exists():
                 zf.write(str(source_path), relative_image_path)
 
-            entry = {
-                **annotation,
-                'page_info': {
-                    'page_no': page['page_no'],
-                    'height': page['height'],
-                    'width': page['width'],
-                    'image_path': relative_image_path,
-                    'page_attribute': page_attribute,
-                },
-            }
-            annos_data.append(entry)
+            annos_data.append(
+                _build_export_entry(page, image_path=relative_image_path),
+            )
 
         annos_json = json.dumps(
             {
