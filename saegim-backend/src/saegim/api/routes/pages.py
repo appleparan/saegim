@@ -4,9 +4,11 @@ import asyncio
 import logging
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from saegim.api.deps import get_current_user
 from saegim.core.database import get_pool
+from saegim.repositories import task_repo
 from saegim.schemas.page import (
     ElementCreate,
     ExtractTextRequest,
@@ -18,6 +20,8 @@ from saegim.schemas.page import (
     RelationCreate,
     RelationDelete,
 )
+from saegim.schemas.task import AssignRequest, ReviewRequest
+from saegim.schemas.user import UserResponse
 from saegim.services import labeling_service
 from saegim.services.text_extraction_service import (
     NoTextProviderError,
@@ -325,3 +329,129 @@ async def delete_element(page_id: uuid.UUID, anno_id: int) -> PageResponse:
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Page not found')
     return PageResponse(**result)
+
+
+# --- Task workflow endpoints ---
+
+
+async def _check_page_project_role(
+    pool: object,
+    page_id: uuid.UUID,
+    user: UserResponse,
+    allowed_roles: frozenset[str],
+) -> None:
+    """Check that the user has an allowed project role for the page.
+
+    Admin users bypass the check. Raises HTTPException on failure.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+        user: Current authenticated user.
+        allowed_roles: Set of allowed project_members roles.
+
+    Raises:
+        HTTPException: 404 if page/project not found, 403 if insufficient permissions.
+    """
+    if user.role == 'admin':
+        return
+
+    project_id = await task_repo.get_project_id_for_page(pool, page_id)
+    if project_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Page not found')
+
+    member_role = await task_repo.get_project_member_role(pool, project_id, user.id)
+    if member_role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Insufficient permissions',
+        )
+
+
+@router.post('/pages/{page_id}/assign', response_model=PageResponse)
+async def assign_page(
+    page_id: uuid.UUID,
+    body: AssignRequest,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
+    """Assign a page to a user. Only project owner or admin can assign.
+
+    Args:
+        page_id: Page UUID.
+        body: Assignment request with target user_id.
+        current_user: Authenticated user.
+
+    Returns:
+        PageResponse: Updated page data.
+
+    Raises:
+        HTTPException: 403 if not owner/admin, 404 if not found, 409 if invalid state.
+    """
+    pool = get_pool()
+    await _check_page_project_role(pool, page_id, current_user, frozenset({'owner'}))
+
+    result = await task_repo.assign_page(pool, page_id, body.user_id, current_user.id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Page not found or cannot be assigned in current state',
+        )
+    return PageResponse(**dict(result))
+
+
+@router.post('/pages/{page_id}/submit', response_model=PageResponse)
+async def submit_page(
+    page_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
+    """Submit a page for review. Only the assigned user can submit.
+
+    Args:
+        page_id: Page UUID.
+        current_user: Authenticated user.
+
+    Returns:
+        PageResponse: Updated page data.
+
+    Raises:
+        HTTPException: 409 if not assigned to user or invalid state.
+    """
+    pool = get_pool()
+    result = await task_repo.submit_page(pool, page_id, current_user.id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Page not found, not assigned to you, or not in progress',
+        )
+    return PageResponse(**dict(result))
+
+
+@router.post('/pages/{page_id}/review', response_model=PageResponse)
+async def review_page(
+    page_id: uuid.UUID,
+    body: ReviewRequest,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
+    """Review a submitted page (approve or reject). Only reviewer or admin can review.
+
+    Args:
+        page_id: Page UUID.
+        body: Review request with action and optional comment.
+        current_user: Authenticated user.
+
+    Returns:
+        PageResponse: Updated page data.
+
+    Raises:
+        HTTPException: 403 if not reviewer/admin, 409 if invalid state.
+    """
+    pool = get_pool()
+    await _check_page_project_role(pool, page_id, current_user, frozenset({'reviewer', 'owner'}))
+
+    result = await task_repo.review_page(pool, page_id, current_user.id, body.action, body.comment)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Page not found or not in submitted state',
+        )
+    return PageResponse(**dict(result))
