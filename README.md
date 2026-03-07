@@ -6,56 +6,6 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여
 [OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
 
-## 아키텍처
-
-```mermaid
-graph TB
-    subgraph Frontend ["Svelte 5 (:5173)"]
-        FE["PDF.js + Konva.js<br/>Runes 상태관리<br/>3-Layer 에디터"]
-    end
-
-    subgraph Backend ["FastAPI (:5000)"]
-        API["PDF 변환, CRUD<br/>Engine Factory<br/>Repository 패턴"]
-        BG["asyncio<br/>background"]
-    end
-
-    subgraph DB ["PostgreSQL"]
-        PG["JSONB"]
-    end
-
-    subgraph OCR ["OCR 엔진 (4종)"]
-        GEMINI["Gemini API"]
-        VLLM["vLLM (Chandra)"]
-        SPLIT["Layout + OCR<br/>(Docling / PP-DocLayoutV3)"]
-        PDFMINER["pdfminer"]
-    end
-
-    FE <-->|"REST/JSON"| API
-    API <-->|"asyncpg/SQL"| PG
-    API --> BG
-    BG --> GEMINI
-    BG --> VLLM
-    BG --> SPLIT
-    BG --> PDFMINER
-```
-
-## 기술 스택
-
-| 계층 | 기술 |
-| ---- | ---- |
-| **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, shadcn-svelte + Tailwind CSS 4, PDF.js, Konva.js, 다크모드 (mode-watcher) |
-| **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
-| **데이터베이스** | PostgreSQL 15+ (JSONB) |
-| **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
-| **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
-| | - `pdfminer`: pdfminer.six 폴백 (GPU 불필요, 동기) |
-| | - `commercial_api`: Gemini API / vLLM (full-page VLM) |
-| | - `vllm`: vLLM 서버 (Chandra 등) |
-| | - `split_pipeline`: 레이아웃 감지 (Docling / PP-DocLayoutV3) + Gemini/vLLM OCR |
-| **비동기 태스크** | asyncio 백그라운드 태스크 |
-| **패키지 관리** | Backend: uv / Frontend: Bun |
-| **E2E 테스트** | Vitest + Docker Compose (기본 + GPU 프로파일) |
-
 ## 주요 기능
 
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
@@ -66,10 +16,10 @@ graph TB
 - **읽기 순서 에디터**: 드래그앤드롭 재정렬 + 캔버스 오버레이 (`O` 단축키)
 - **관계 도구**: 요소 간 관계 CRUD + SVG 화살표 시각화
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
+- **인증/인가**: JWT 기반 인증, 시스템 역할 (admin/annotator/reviewer)
+- **관리자 대시보드**: 유저/프로젝트/시스템 통계 관리
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
-- **사용자 역할**: admin, annotator, reviewer (WIP)
-- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기 (WIP)
-- **E2E 테스트**: Vitest 기반 자동화 (기본 + GPU 프로파일)
+- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
 
 ## 시작하기
 
@@ -178,6 +128,7 @@ API_HOST=0.0.0.0
 API_PORT=5000
 DEBUG=true
 LOG_LEVEL=DEBUG
+SECRET_KEY=your-secret-key-change-in-production
 EOF
 
 # 서버 실행
@@ -205,131 +156,6 @@ bun run dev
 | <http://localhost:5000/docs> | Swagger UI (DEBUG=true) |
 | <http://localhost:5000/redoc> | ReDoc (DEBUG=true) |
 
-## 프로젝트 구조
-
-```text
-saegim/
-├── saegim-backend/
-│   ├── src/saegim/
-│   │   ├── app.py                  # FastAPI 앱 팩토리
-│   │   ├── api/routes/             # REST 엔드포인트
-│   │   ├── schemas/                # Pydantic 모델 (EngineType, OcrConfig 등)
-│   │   ├── services/
-│   │   │   ├── engines/            # OCR 엔진 Strategy 패턴 (4종)
-│   │   │   │   ├── base.py         # BaseOCREngine ABC
-│   │   │   │   ├── factory.py      # build_engine_by_id() 팩토리
-│   │   │   │   ├── pdfminer_engine.py
-│   │   │   │   ├── commercial_api_engine.py
-│   │   │   │   ├── vllm_engine.py
-│   │   │   │   └── split_pipeline_engine.py
-│   │   │   ├── docir.py                   # DocIR 중간 표현 (PageIR, ElementIR 등)
-│   │   │   ├── adapters/                  # 모델별 Adapter (raw → DocIR)
-│   │   │   │   ├── base.py               # ModelAdapter Protocol
-│   │   │   │   ├── resolver.py            # resolve_adapter() 자동 선택
-│   │   │   │   ├── chandra.py             # ChandraAdapter
-│   │   │   │   ├── lightonocr.py          # LightOnOcrAdapter
-│   │   │   │   └── paddleocr_vl.py        # PaddleOcrVlAdapter
-│   │   │   ├── exporters/                 # DocIR → 최종 출력 변환
-│   │   │   │   └── omnidocbench.py        # export_page(PageIR) → OmniDocBench dict
-│   │   │   ├── labeling_service.py        # 저장, 읽기 순서, 관계 CRUD
-│   │   │   ├── attribute_classifier.py    # 페이지/요소 속성 자동 분류
-│   │   │   ├── layout_types.py            # LayoutRegion, LayoutDetector Protocol
-│   │   │   ├── docling_layout_service.py  # Docling 레이아웃 감지
-│   │   │   ├── pp_doclayout_service.py    # PP-DocLayoutV3 레이아웃 감지
-│   │   │   ├── gemini_ocr_service.py      # Gemini VLM 프로바이더
-│   │   │   ├── vllm_ocr_service.py        # vLLM 프로바이더 (Chandra 등)
-│   │   │   └── ocr_pipeline.py            # 2단계 파이프라인 오케스트레이터
-│   │   ├── repositories/           # 데이터 접근 (raw SQL)
-│   │   └── core/                   # DB 커넥션 풀
-│   ├── migrations/                 # SQL 마이그레이션
-│   ├── tests/                      # pytest 테스트
-│   └── docs/                       # MkDocs 문서
-├── saegim-frontend/
-│   ├── src/
-│   │   ├── routes/                 # SvelteKit 라우트 페이지
-│   │   └── lib/
-│   │       ├── types/              # OmniDocBench 타입 정의
-│   │       ├── api/                # HTTP 클라이언트
-│   │       ├── stores/             # Svelte 5 Runes 스토어
-│   │       ├── components/         # UI: ui/ (shadcn-svelte), canvas/, panels/, layout/, settings/
-│   │       └── utils/              # 유틸리티 함수
-│   └── tests/                      # Vitest 테스트
-├── e2e/                            # E2E 테스트 (Vitest + Docker Compose)
-│   ├── docker-compose.e2e.yml      # 기본 + GPU 프로파일
-│   ├── tests/                      # 기본 테스트
-│   └── tests/gpu/                  # GPU 전용 테스트 (vLLM)
-├── docker-compose.yml              # 개발/배포용 (--profile gpu으로 GPU 서비스 활성화)
-├── Makefile                        # make up / make up-gpu 편의 명령
-├── .env.gpu                        # GPU 빌드 설정 (CUDA 13.0)
-├── k8s/
-│   ├── base/                       # Kustomize 공통 매니페스트
-│   └── overlays/
-│       ├── cpu/                    # CPU 전용 배포
-│       └── gpu/                    # GPU 배포 (vLLM 포함)
-└── AGENTS.md                       # 플래닝 가이드
-```
-
-## API 엔드포인트
-
-### 프로젝트
-
-| Method | Path | 설명 |
-| ------ | ---- | ---- |
-| `POST` | `/api/v1/projects` | 프로젝트 생성 |
-| `GET` | `/api/v1/projects` | 프로젝트 목록 |
-| `GET` | `/api/v1/projects/:id` | 프로젝트 조회 |
-| `DELETE` | `/api/v1/projects/:id` | 프로젝트 삭제 |
-
-### OCR 엔진 설정
-
-| Method | Path | 설명 |
-| ------ | ---- | ---- |
-| `GET` | `/api/v1/projects/:id/ocr-config` | OCR 설정 조회 |
-| `POST` | `/api/v1/projects/:id/ocr-config/engines` | 엔진 인스턴스 등록 |
-| `PUT` | `/api/v1/projects/:id/ocr-config/engines/:eid` | 엔진 인스턴스 수정 |
-| `DELETE` | `/api/v1/projects/:id/ocr-config/engines/:eid` | 엔진 인스턴스 삭제 |
-| `PUT` | `/api/v1/projects/:id/ocr-config/default-engine` | 기본 엔진 설정 |
-| `POST` | `/api/v1/projects/:id/ocr-config/test` | OCR 연결 테스트 |
-| `GET` | `/api/v1/projects/:id/available-engines` | 사용 가능한 엔진 목록 |
-
-### 문서
-
-| Method | Path | 설명 |
-| ------ | ---- | ---- |
-| `GET` | `/api/v1/projects/:id/documents` | 문서 목록 |
-| `POST` | `/api/v1/projects/:id/documents` | PDF 업로드 |
-| `GET` | `/api/v1/documents/:id` | 문서 조회 |
-| `DELETE` | `/api/v1/documents/:id` | 문서 삭제 |
-| `GET` | `/api/v1/documents/:id/status` | 문서 상태 조회 |
-| `GET` | `/api/v1/documents/:id/pages` | 문서 페이지 목록 |
-| `POST` | `/api/v1/documents/:id/re-extract` | OCR 재추출 |
-
-### 페이지 레이블링
-
-| Method | Path | 설명 |
-| ------ | ---- | ---- |
-| `GET` | `/api/v1/pages/:id` | 페이지 + 어노테이션 조회 |
-| `PUT` | `/api/v1/pages/:id` | 어노테이션 저장 |
-| `PUT` | `/api/v1/pages/:id/attributes` | 페이지 속성 저장 |
-| `POST` | `/api/v1/pages/:id/elements` | 레이아웃 요소 추가 |
-| `DELETE` | `/api/v1/pages/:id/elements/:anno_id` | 요소 삭제 |
-| `PUT` | `/api/v1/pages/:id/reading-order` | 읽기 순서 업데이트 |
-| `POST` | `/api/v1/pages/:id/relations` | 관계 추가 |
-| `DELETE` | `/api/v1/pages/:id/relations` | 관계 삭제 |
-| `POST` | `/api/v1/pages/:id/accept-extraction` | 자동 추출 결과 수락 |
-| `POST` | `/api/v1/pages/:id/force-accept-extraction` | 자동 추출 결과 강제 수락 |
-| `POST` | `/api/v1/pages/:id/extract-text` | 요소별 텍스트 추출 (엔진 선택) |
-
-### 기타
-
-| Method | Path | 설명 |
-| ------ | ---- | ---- |
-| `POST` | `/api/v1/projects/:id/export` | OmniDocBench JSON 내보내기 |
-| `POST` | `/api/v1/users` | 사용자 생성 |
-| `GET` | `/api/v1/users` | 사용자 목록 |
-| `GET` | `/api/v1/health` | 헬스 체크 |
-| `GET` | `/api/v1/health/ready` | 레디니스 체크 |
-
 ## 개발
 
 ```bash
@@ -344,6 +170,20 @@ bun run check                       # 타입 체크
 bun run test                        # 테스트
 bun run build                       # 프로덕션 빌드
 ```
+
+## 상세 문서
+
+| 문서 | 설명 |
+| ---- | ---- |
+| [아키텍처 개요](docs/architecture/README.md) | 시스템 구조, 기술 스택, 인증 |
+| [백엔드 아키텍처](docs/backend/architecture/architecture.md) | 레이어드 아키텍처, 데이터 흐름 |
+| [프론트엔드 아키텍처](docs/frontend/architecture/architecture.md) | 컴포넌트 구조, 상태 관리 |
+| [API 가이드](docs/backend/guide/api.md) | REST API 엔드포인트 |
+| [추출 파이프라인](docs/architecture/extraction-pipeline.md) | OCR 엔진 아키텍처 |
+| [데이터 스키마](docs/architecture/data-schema.md) | DB 구조, OmniDocBench 포맷 |
+| [멀티유저 협업](docs/architecture/multi-user-collaboration.md) | 인증, 역할, 태스크 워크플로우 |
+| [배포 가이드](docs/deployment/quickstart.md) | Docker, Kubernetes |
+| [플래닝 가이드](AGENTS.md) | 프로젝트 비전, 로드맵 |
 
 ## 라이선스
 
