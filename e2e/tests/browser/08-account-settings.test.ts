@@ -2,18 +2,21 @@ import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import {
   connectMcp,
   disconnectMcp,
-  loginAsAdmin,
+  loginAsUser,
   waitForText,
   clickByPattern,
   fillByPattern,
   takeSnapshot,
-  getCurrentPath,
-  openPage,
-  loginAs,
+  navigateTo,
 } from '../../helpers/mcp'
 import { waitForBackendReady, register } from '../../helpers/api'
 
 const ts = Date.now().toString().slice(-6)
+const ACCT_USER = {
+  loginId: `acct-user-${ts}`,
+  password: 'TestPassword123!',
+  name: `Account User ${ts}`,
+}
 const CHANGEPW_USER = {
   loginId: `pw-user-${ts}`,
   password: 'TestPassword123!',
@@ -23,7 +26,7 @@ const CHANGEPW_USER = {
 describe('Browser Account Settings', () => {
   beforeAll(async () => {
     await waitForBackendReady()
-    // Register a user for password change test
+    await register(ACCT_USER.name, ACCT_USER.loginId, ACCT_USER.password)
     await register(CHANGEPW_USER.name, CHANGEPW_USER.loginId, CHANGEPW_USER.password)
     await connectMcp()
   }, 120000)
@@ -33,7 +36,9 @@ describe('Browser Account Settings', () => {
   })
 
   test('security page shows all form fields', async () => {
-    await loginAsAdmin()
+    await loginAsUser(ACCT_USER.loginId, ACCT_USER.password)
+    await navigateTo('/account/security')
+    await waitForText('계정 보안 설정', 20000)
     const snapshot = await takeSnapshot()
     expect(snapshot).toContain('현재 비밀번호')
     expect(snapshot).toContain('새 ID (선택)')
@@ -41,20 +46,18 @@ describe('Browser Account Settings', () => {
   }, 60000)
 
   test('submit without changes shows validation error', async () => {
-    await loginAsAdmin()
-    await fillByPattern(/textbox "현재 비밀번호"/, 'admin')
+    await loginAsUser(ACCT_USER.loginId, ACCT_USER.password)
+    await navigateTo('/account/security')
+    await waitForText('계정 보안 설정', 20000)
+    await fillByPattern(/textbox "현재 비밀번호"/, ACCT_USER.password)
     await clickByPattern(/button "계정 정보 변경"/)
     await waitForText('변경할 항목', 20000)
   }, 60000)
 
   test('successful password change redirects to home', async () => {
     const newPassword = `NewPW${ts}!`
-    await loginAs(CHANGEPW_USER.loginId, CHANGEPW_USER.password)
-    // Non-admin users with no must_change_password go to / but can navigate to /account/security
-    await waitForText('프로젝트', 20000)
-
-    // Navigate to account security
-    await openPage('/account/security')
+    await loginAsUser(CHANGEPW_USER.loginId, CHANGEPW_USER.password)
+    await navigateTo('/account/security')
     await waitForText('계정 보안 설정', 20000)
 
     await fillByPattern(/textbox "현재 비밀번호"/, CHANGEPW_USER.password)
