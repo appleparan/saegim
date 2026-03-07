@@ -32,6 +32,7 @@ services:
       STORAGE_PATH: /workspace/storage
       CORS_ORIGINS: '["http://localhost:23000"]'
       LOG_LEVEL: INFO
+      SECRET_KEY: e2e-test-secret-key-for-jwt-signing-only
     volumes:
       - e2e_storage:/workspace/storage
     ports:
