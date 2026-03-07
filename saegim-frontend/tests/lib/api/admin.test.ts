@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  listAdminUsers,
-  updateAdminUser,
-  listAdminProjects,
-  getAdminStats,
-} from '$lib/api/admin'
+import { listAdminUsers, updateAdminUser, listAdminProjects, getAdminStats } from '$lib/api/admin'
 import { ApiError } from '$lib/api/client'
 
 const mockFetch = vi.fn()
