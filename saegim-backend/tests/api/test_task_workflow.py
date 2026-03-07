@@ -4,11 +4,22 @@ import datetime
 import uuid
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from saegim.api.deps import create_access_token
+from saegim.api.deps import create_access_token, get_current_user
 from saegim.api.settings import Settings
+
+
+@pytest.fixture(autouse=True)
+def _clear_auth_override(app):
+    """Remove global get_current_user override for task workflow tests.
+
+    Task workflow tests manage their own JWT tokens and need real auth behavior.
+    """
+    app.dependency_overrides.pop(get_current_user, None)
+    return
 
 
 def _user_record(role='annotator', user_id=None):
