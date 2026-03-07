@@ -1,8 +1,17 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import { annotationStore } from '$lib/stores/annotation.svelte'
+  import { authStore } from '$lib/stores/auth.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
+  import LogOut from '@lucide/svelte/icons/log-out'
+  import Shield from '@lucide/svelte/icons/shield'
   import ShortcutHelp from './ShortcutHelp.svelte'
   import ThemeToggle from './ThemeToggle.svelte'
+
+  function handleLogout() {
+    authStore.logout()
+    goto('/login')
+  }
 
   interface Props {
     title?: string
@@ -58,7 +67,27 @@
       <ShortcutHelp bind:open={shortcutHelpOpen} />
     {/if}
 
+    {#if authStore.isAdmin}
+      <a
+        href="/admin"
+        class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <Shield class="size-4" />
+        <span>관리</span>
+      </a>
+    {/if}
+
     <ThemeToggle />
+
+    {#if authStore.isAuthenticated}
+      <button
+        class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+        onclick={handleLogout}
+      >
+        <LogOut class="size-4" />
+        <span>로그아웃</span>
+      </button>
+    {/if}
   </div>
 
   {#if uiStore.notification}

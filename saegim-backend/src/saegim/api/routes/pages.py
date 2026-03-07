@@ -36,7 +36,10 @@ router = APIRouter()
 
 
 @router.get('/pages/{page_id}', response_model=PageResponse)
-async def get_page(page_id: uuid.UUID) -> PageResponse:
+async def get_page(
+    page_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Get a page with annotation data for labeling.
 
     Args:
@@ -56,7 +59,11 @@ async def get_page(page_id: uuid.UUID) -> PageResponse:
 
 
 @router.put('/pages/{page_id}', response_model=PageResponse)
-async def update_annotation(page_id: uuid.UUID, body: PageAnnotationUpdate) -> PageResponse:
+async def update_annotation(
+    page_id: uuid.UUID,
+    body: PageAnnotationUpdate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Save annotation data for a page.
 
     Args:
@@ -77,7 +84,11 @@ async def update_annotation(page_id: uuid.UUID, body: PageAnnotationUpdate) -> P
 
 
 @router.put('/pages/{page_id}/attributes', response_model=PageResponse)
-async def update_page_attributes(page_id: uuid.UUID, body: PageAttributeUpdate) -> PageResponse:
+async def update_page_attributes(
+    page_id: uuid.UUID,
+    body: PageAttributeUpdate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Save page-level attributes.
 
     Args:
@@ -102,7 +113,11 @@ async def update_page_attributes(page_id: uuid.UUID, body: PageAttributeUpdate) 
     response_model=PageResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_element(page_id: uuid.UUID, body: ElementCreate) -> PageResponse:
+async def add_element(
+    page_id: uuid.UUID,
+    body: ElementCreate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Add a new layout element to the page.
 
     Args:
@@ -124,7 +139,10 @@ async def add_element(page_id: uuid.UUID, body: ElementCreate) -> PageResponse:
 
 
 @router.post('/pages/{page_id}/accept-extraction', response_model=PageResponse)
-async def accept_extraction(page_id: uuid.UUID) -> PageResponse:
+async def accept_extraction(
+    page_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Accept auto-extracted data as the initial annotation.
 
     Copies auto_extracted_data to annotation_data. Only works when
@@ -150,7 +168,10 @@ async def accept_extraction(page_id: uuid.UUID) -> PageResponse:
 
 
 @router.post('/pages/{page_id}/force-accept-extraction', response_model=PageResponse)
-async def force_accept_extraction(page_id: uuid.UUID) -> PageResponse:
+async def force_accept_extraction(
+    page_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Force-accept auto-extracted data, overwriting existing annotations.
 
     Unlike accept-extraction, this replaces annotation_data even when
@@ -176,7 +197,11 @@ async def force_accept_extraction(page_id: uuid.UUID) -> PageResponse:
 
 
 @router.post('/pages/{page_id}/extract-text', response_model=ExtractTextResponse)
-async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractTextResponse:
+async def extract_text(
+    page_id: uuid.UUID,
+    body: ExtractTextRequest,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> ExtractTextResponse:
     """Extract text from a drawn region using OCR.
 
     Crops the specified polygon region from the page image and sends it
@@ -234,7 +259,11 @@ async def extract_text(page_id: uuid.UUID, body: ExtractTextRequest) -> ExtractT
     response_model=PageResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_relation(page_id: uuid.UUID, body: RelationCreate) -> PageResponse:
+async def add_relation(
+    page_id: uuid.UUID,
+    body: RelationCreate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Add a relation between two elements on a page.
 
     Args:
@@ -261,7 +290,11 @@ async def add_relation(page_id: uuid.UUID, body: RelationCreate) -> PageResponse
 
 
 @router.delete('/pages/{page_id}/relations', response_model=PageResponse)
-async def delete_relation(page_id: uuid.UUID, body: RelationDelete) -> PageResponse:
+async def delete_relation(
+    page_id: uuid.UUID,
+    body: RelationDelete,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Delete a relation between two elements on a page.
 
     Args:
@@ -287,6 +320,7 @@ async def delete_relation(page_id: uuid.UUID, body: RelationDelete) -> PageRespo
 async def update_reading_order(
     page_id: uuid.UUID,
     body: ReadingOrderUpdate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> PageResponse:
     """Update reading order of layout elements.
 
@@ -311,7 +345,11 @@ async def update_reading_order(
 
 
 @router.delete('/pages/{page_id}/elements/{anno_id}', response_model=PageResponse)
-async def delete_element(page_id: uuid.UUID, anno_id: int) -> PageResponse:
+async def delete_element(
+    page_id: uuid.UUID,
+    anno_id: int,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
     """Delete a layout element by annotation ID.
 
     Args:
