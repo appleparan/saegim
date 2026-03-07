@@ -9,6 +9,7 @@ graph TB
     end
 
     subgraph Backend
+        AUTH[Auth Middleware]
         API[FastAPI Routes]
         SVC[Services]
         REPO[Repositories]
@@ -19,7 +20,8 @@ graph TB
         FS[File System]
     end
 
-    FE -->|HTTP/REST| API
+    FE -->|HTTP/REST + JWT| AUTH
+    AUTH --> API
     API --> SVC
     SVC --> REPO
     REPO -->|asyncpg raw SQL| PG
@@ -35,18 +37,34 @@ saegim 백엔드는 3계층 구조를 따릅니다:
 HTTP 요청을 받아 적절한 서비스를 호출하고 응답을 반환합니다.
 
 ```text
-src/saegim/api/routes/
-├── health.py       # GET /api/v1/health, /health/ready
-├── projects.py     # 프로젝트 CRUD, OCR 엔진 인스턴스 CRUD, 기본 엔진 설정
-├── documents.py    # 문서 업로드/조회/삭제/재추출
-├── pages.py        # 페이지 레이블링, 읽기 순서, 관계 CRUD, 강제 수락, 요소별 텍스트 추출
-├── users.py        # 사용자 관리
-└── export.py       # OmniDocBench JSON 내보내기
+src/saegim/api/
+├── deps.py         # 인증/인가 dependency (get_current_user, require_admin, require_project_member)
+└── routes/
+    ├── health.py       # GET /api/v1/health, /health/ready
+    ├── auth.py         # 회원가입, 로그인, 토큰 갱신, 로그아웃, 자격증명 변경
+    ├── admin.py        # 유저/프로젝트/시스템 통계 관리 (admin 전용)
+    ├── projects.py     # 프로젝트 CRUD, OCR 엔진 인스턴스 CRUD, 기본 엔진 설정
+    ├── documents.py    # 문서 업로드/조회/삭제/재추출
+    ├── pages.py        # 페이지 레이블링, 읽기 순서, 관계 CRUD, 강제 수락, 요소별 텍스트 추출
+    ├── users.py        # 사용자 관리
+    └── export.py       # OmniDocBench JSON 내보내기
 ```
 
 - FastAPI의 `APIRouter`를 사용
 - Pydantic 스키마로 요청/응답 검증
 - 모든 엔드포인트는 `/api/v1` 접두사
+- 보호된 엔드포인트는 `get_current_user` dependency로 JWT 검증
+
+### 인증/인가 (deps.py)
+
+`api/deps.py`에 인증 관련 FastAPI Depends를 정의합니다:
+
+- `get_current_user`: Bearer token에서 JWT 디코딩, user_id/role 추출
+- `require_admin`: `role == 'admin'` 검증 (403 Forbidden)
+- `require_project_member`: 프로젝트 멤버십 또는 admin 확인
+- `create_access_token` / `create_refresh_token`: JWT/refresh token 생성
+- `rotate_refresh_token`: token rotation (이전 토큰 폐기 + 새 토큰 발급)
+- `validate_refresh_token`: grace period 기반 theft detection
 
 ### Services (비즈니스 로직)
 
@@ -95,10 +113,12 @@ asyncpg를 사용하여 PostgreSQL에 raw SQL을 실행합니다.
 
 ```text
 src/saegim/repositories/
-├── project_repo.py    # INSERT/SELECT projects
-├── document_repo.py   # INSERT/SELECT/UPDATE documents
-├── page_repo.py       # JSONB 연산 (jsonb_set, jsonb_agg), 관계 CRUD (add_relation, delete_relation)
-└── user_repo.py       # INSERT/SELECT users
+├── project_repo.py         # INSERT/SELECT projects
+├── document_repo.py        # INSERT/SELECT/UPDATE documents
+├── page_repo.py            # JSONB 연산 (jsonb_set, jsonb_agg), 관계 CRUD (add_relation, delete_relation)
+├── user_repo.py            # 유저 CRUD, password hash 관리, login_id/email 중복 검사
+├── refresh_token_repo.py   # Refresh token CRUD, family-based rotation, theft detection
+└── admin_repo.py           # 시스템 통계, 프로젝트 통계 (admin 전용)
 ```
 
 - 모든 함수는 `asyncpg.Pool`을 첫 번째 인자로 받음
@@ -252,6 +272,39 @@ sequenceDiagram
     PR-->>LS: updated record (or None)
     LS-->>R: page data dict (or None → 409)
     R-->>C: 200 OK / 409 Conflict
+```
+
+### 인증 플로우
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant R as Auth Router
+    participant D as deps.py
+    participant UR as UserRepo
+    participant TR as RefreshTokenRepo
+
+    C->>R: POST /auth/login (login_id, password)
+    R->>UR: get_by_login_id(pool, login_id)
+    UR-->>R: user record (with password_hash)
+    R->>R: verify_password(password, hash)
+    R->>D: create_access_token(user_id, role)
+    R->>D: create_refresh_token(pool, user_id)
+    D->>TR: create(pool, user_id, token_hash, family_id)
+    R-->>C: {access_token} + Set-Cookie: refresh_token (HttpOnly)
+```
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as Protected Route
+    participant D as deps.py
+
+    C->>API: GET /api/v1/projects (Authorization: Bearer <token>)
+    API->>D: get_current_user (Depends)
+    D->>D: jwt.decode(token, SECRET_KEY)
+    D-->>API: UserResponse(id, role)
+    API-->>C: 200 OK (projects list)
 ```
 
 ## 커넥션 풀 관리

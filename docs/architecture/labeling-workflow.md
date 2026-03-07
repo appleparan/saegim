@@ -2,45 +2,29 @@
 
 ## 어노테이터 작업 흐름
 
-```text
-Step 1: 페이지 로드
-  → 자동 추출 결과가 bbox로 오버레이된 이미지를 본다
-
-Step 2: 페이지 속성 확인/수정
-  → data_source, language, layout, watermark, fuzzy_scan, colorful_background
-  → 드롭다운 선택 방식
-
-Step 3: Block-level 요소 검수
-  → 각 bbox를 클릭하면:
-     (a) category_type 확인/변경 (드롭다운)
-     (b) bounding box 위치/크기 조정 (드래그)
-     (c) 해당 카테고리의 attribute labels 부여 (조건부 UI)
-         - text_block이면 → text_language, text_background, text_rotate
-         - table이면 → table_layout, with_span, line, language 등
-         - equation이면 → formula_type, equation_language
-     (d) text / latex / html 내용 검수/수정
-     (e) ignore 여부 토글
-  → 새 요소 그리기 시 OCR 팝업:
-     (a) 프로젝트에 엔진이 2개 이상 활성화되면 엔진 드롭다운 표시
-     (b) 원하는 엔진 선택 후 OCR 실행
-     (c) 추출 결과와 사용 엔진 정보(ocr_engine)가 annotation_data에 저장
-
-Step 4: Span-level 요소 검수
-  → Block 내부의 line_with_spans 편집
-  → 필요 시 인라인 수식, 각주 마크 등 추가/삭제
-
-Step 5: 읽기 순서(order) 설정
-  → 번호 자동 부여 결과를 확인
-  → 드래그로 순서 변경 또는 직접 숫자 입력
-
-Step 6: 관계(Relation) 설정
-  → figure ↔ figure_caption 연결
-  → table ↔ table_caption / table_footnote 연결
-  → 잘린 단락(truncated) 관계 설정
-
-Step 7: 완료 & 제출
-  → 자동 검증 통과 확인 후 제출
+```mermaid
+flowchart TD
+    S1["Step 1: 페이지 로드"] --> S2["Step 2: 페이지 속성 확인/수정"]
+    S2 --> S3["Step 3: Block-level 요소 검수"]
+    S3 --> S4["Step 4: Span-level 요소 검수"]
+    S4 --> S5["Step 5: 읽기 순서 설정"]
+    S5 --> S6["Step 6: 관계 설정"]
+    S6 --> S7["Step 7: 완료 & 제출"]
 ```
+
+각 단계 상세:
+
+1. **페이지 로드**: 자동 추출 결과가 bbox로 오버레이된 이미지 확인
+2. **페이지 속성**: data_source, language, layout, watermark 등 드롭다운 선택
+3. **Block-level 검수**:
+   - category_type 확인/변경, bbox 위치/크기 조정
+   - 카테고리별 attribute labels 부여 (text_block → text_language 등)
+   - text/latex/html 내용 검수, ignore 토글
+   - 새 요소 그리기 시 OCR 엔진 선택 팝업
+4. **Span-level 검수**: Block 내부 line_with_spans 편집
+5. **읽기 순서**: 드래그 재정렬 또는 직접 숫자 입력
+6. **관계 설정**: figure↔caption, table↔caption/footnote, truncated 관계
+7. **제출**: 자동 검증 통과 확인 후 제출
 
 ## UI 핵심 기능 요구사항
 

@@ -2,6 +2,10 @@
 
 모든 엔드포인트는 `/api/v1` 접두사를 사용합니다.
 
+**인증**: Health와 Auth 엔드포인트를 제외한 모든 엔드포인트는
+`Authorization: Bearer <access_token>` 헤더가 필요합니다.
+Admin 엔드포인트는 추가로 `admin` 역할이 필요합니다.
+
 ## Health
 
 ### `GET /api/v1/health`
@@ -29,6 +33,218 @@
   "status": "ready",
   "message": "All systems operational",
   "version": "0.1.0"
+}
+```
+
+---
+
+## Auth
+
+인증 관련 엔드포인트. 모두 인증 불필요 (credentials update 제외).
+
+### `GET /api/v1/auth/check-login-id`
+
+로그인 ID 사용 가능 여부 확인.
+
+**Query Parameters:**
+
+| 파라미터 | 타입 | 설명 |
+| -------- | ---- | ---- |
+| `login_id` | string | 확인할 로그인 ID |
+
+**응답:** `200 OK`
+
+```json
+{ "available": true }
+```
+
+### `POST /api/v1/auth/register`
+
+회원가입. 최초 유저는 자동으로 `admin` 역할이 부여됩니다.
+
+**요청 Body:**
+
+```json
+{
+  "name": "김철수",
+  "login_id": "chulsoo",
+  "email": "chulsoo@example.com",
+  "password": "securepassword123"
+}
+```
+
+**응답:** `201 Created`
+
+```json
+{
+  "access_token": "eyJhbG...",
+  "token_type": "bearer"
+}
+```
+
+Set-Cookie: `refresh_token` (HttpOnly, Secure, SameSite=Lax)
+
+### `POST /api/v1/auth/login`
+
+로그인.
+
+**요청 Body:**
+
+```json
+{
+  "login_id": "chulsoo",
+  "password": "securepassword123"
+}
+```
+
+**응답:** `200 OK`
+
+```json
+{
+  "access_token": "eyJhbG...",
+  "token_type": "bearer"
+}
+```
+
+Set-Cookie: `refresh_token` (HttpOnly, Secure, SameSite=Lax)
+
+**오류:**
+
+| 코드 | 설명 |
+| ---- | ---- |
+| `401` | 잘못된 로그인 ID 또는 비밀번호 |
+| `403` | 비활성화된 계정 |
+
+### `POST /api/v1/auth/refresh`
+
+Refresh token으로 새 access token 발급. Token rotation 적용.
+
+**요청:** Cookie에 포함된 `refresh_token` 사용
+
+**응답:** `200 OK`
+
+```json
+{
+  "access_token": "eyJhbG...",
+  "token_type": "bearer"
+}
+```
+
+Set-Cookie: 새로운 `refresh_token`
+
+**오류:**
+
+| 코드 | 설명 |
+| ---- | ---- |
+| `401` | 유효하지 않거나 만료된 refresh token |
+
+### `POST /api/v1/auth/logout`
+
+현재 refresh token family 폐기.
+
+**요청:** Cookie에 포함된 `refresh_token` 사용
+
+**응답:** `200 OK`
+
+### `PATCH /api/v1/auth/me/credentials`
+
+로그인 ID, 이메일, 비밀번호 변경. **인증 필요.**
+
+**요청 Body:**
+
+```json
+{
+  "login_id": "new_login_id",
+  "email": "new@example.com",
+  "current_password": "oldpassword",
+  "new_password": "newpassword123"
+}
+```
+
+모든 필드는 선택적. `new_password` 제공 시 `current_password` 필수.
+변경 시 모든 세션이 무효화됩니다 (refresh token hard delete).
+
+**응답:** `200 OK`
+
+---
+
+## Admin
+
+관리자 전용 엔드포인트. `admin` 역할 필요.
+
+### `GET /api/v1/admin/users`
+
+전체 유저 목록 조회.
+
+**응답:** `200 OK`
+
+```json
+[
+  {
+    "id": "880e8400-...",
+    "name": "김철수",
+    "login_id": "chulsoo",
+    "email": "chulsoo@example.com",
+    "role": "annotator",
+    "is_active": true,
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+### `PATCH /api/v1/admin/users/{user_id}`
+
+유저 역할 변경 또는 비활성화.
+
+**요청 Body:**
+
+```json
+{
+  "role": "reviewer",
+  "is_active": false
+}
+```
+
+모든 필드는 선택적.
+
+**응답:** `200 OK`
+
+### `GET /api/v1/admin/projects`
+
+전체 프로젝트 목록 (통계 포함).
+
+**응답:** `200 OK`
+
+```json
+[
+  {
+    "id": "550e8400-...",
+    "name": "한국어 논문 벤치마크",
+    "description": "...",
+    "created_at": "2025-01-15T10:30:00Z",
+    "member_count": 3,
+    "total_pages": 120,
+    "completed_pages": 45,
+    "submitted_pages": 10
+  }
+]
+```
+
+### `GET /api/v1/admin/stats`
+
+시스템 전체 통계.
+
+**응답:** `200 OK`
+
+```json
+{
+  "total_users": 10,
+  "active_users": 8,
+  "total_projects": 5,
+  "total_pages": 500,
+  "completed_pages": 200,
+  "submitted_pages": 50,
+  "completion_rate": 40.0
 }
 ```
 
@@ -623,25 +839,11 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 
 ## Users
 
+> **참고**: 사용자 등록은 `POST /api/v1/auth/register`를 사용하세요. 아래 엔드포인트는 레거시이며, 향후 제거될 수 있습니다.
+
 ### `POST /api/v1/users`
 
-사용자 생성.
-
-**요청 Body:**
-
-```json
-{
-  "name": "김철수",
-  "email": "chulsoo@example.com",
-  "role": "annotator"
-}
-```
-
-| 필드 | 타입 | 필수 | 설명 |
-| ------ | ------ | ------ | ------ |
-| `name` | string | O | 사용자 이름 |
-| `email` | EmailStr | O | 이메일 (고유) |
-| `role` | string | X | `admin`, `annotator`, `reviewer` (기본값: `annotator`) |
+사용자 생성 (레거시).
 
 **응답:** `201 Created`
 
@@ -650,18 +852,6 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 사용자 목록 조회.
 
 **응답:** `200 OK`
-
-```json
-[
-  {
-    "id": "880e8400-...",
-    "name": "김철수",
-    "email": "chulsoo@example.com",
-    "role": "annotator",
-    "created_at": "2025-01-15T10:00:00Z"
-  }
-]
-```
 
 ---
 
@@ -711,11 +901,19 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 
 ## 미구현 엔드포인트 (계획)
 
-다음 엔드포인트는 후속 Phase에서 구현 예정입니다:
+다음 엔드포인트는 Phase 3 후속 PR에서 구현 예정입니다:
 
 ```text
-# 작업 관리 (Task)
-GET    /api/v1/tasks                         내 할당 작업 목록
-PUT    /api/v1/tasks/{id}/submit             작업 제출
-PUT    /api/v1/tasks/{id}/review             리뷰 결과 (승인/반려)
+# 프로젝트 멤버 관리
+GET    /api/v1/projects/{id}/members              멤버 목록
+POST   /api/v1/projects/{id}/members              멤버 초대
+PATCH  /api/v1/projects/{id}/members/{user_id}     멤버 역할 변경
+DELETE /api/v1/projects/{id}/members/{user_id}     멤버 제거
+
+# 태스크 워크플로우
+POST   /api/v1/pages/{id}/assign                   페이지 할당
+POST   /api/v1/pages/{id}/submit                   검수 제출
+POST   /api/v1/pages/{id}/review                   승인/반려
+GET    /api/v1/users/me/tasks                       내 할당 작업 목록
+GET    /api/v1/projects/{id}/review-queue           검수 대기 큐
 ```
