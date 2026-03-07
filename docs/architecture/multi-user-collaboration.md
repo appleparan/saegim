@@ -12,13 +12,13 @@
 - **프론트엔드 인증**: 로그인/회원가입 페이지, auth guard, proactive token refresh (1분 주기)
 - **관리자 대시보드**: 유저 관리, 프로젝트 통계, 시스템 현황
 - **기존 라우트 보호**: 모든 API 엔드포인트에 `get_current_user` auth middleware 적용
+- **프로젝트 멤버 관리**: `project_members` 테이블 CRUD, 멤버십 기반 프로젝트 접근 제어
+- **태스크 워크플로우 API**: 할당/제출/승인·반려, `locked_at` 30분 타임아웃 동시 편집 방지
+- **프론트엔드 태스크 UI**: 태스크 대시보드 (`/tasks`), 검수 큐 (`/projects/[id]/review`), 상태 배지
 
 ### 미구현
 
-- 프로젝트-유저 매핑 (`project_members` 테이블)
-- 태스크 할당/제출/승인·반려 워크플로우 API
-- 동시 편집 방지 (기존 `pages.locked_at` 활용)
-- 프론트엔드: 태스크 대시보드, 검수 큐
+- 작업 현황 보드 (프로젝트 전체 진행률)
 
 ## 목표
 
@@ -126,9 +126,9 @@ sequenceDiagram
 graph TD
     PR1["PR 1: Backend Auth ✅"]
     PR2["PR 2: Frontend Login ✅"]
-    PR3["PR 3: Project Members — 대기"]
-    PR4["PR 4: Task Workflow API — 대기"]
-    PR5["PR 5: Task Dashboard — 대기"]
+    PR3["PR 3: Project Members ✅"]
+    PR4["PR 4: Task Workflow API ✅"]
+    PR5["PR 5: Task Dashboard ✅"]
     PR6["PR 6: Admin Dashboard ✅"]
 
     PR1 --> PR2
@@ -164,29 +164,31 @@ graph TD
 - Header에 admin 전용 `/admin` 링크
 - 백엔드 687 tests, 프론트엔드 202 tests 통과
 
-### PR 3: 프로젝트 멤버 관리 — 대기
+### PR 3: 프로젝트 멤버 관리 ✅
 
-**브랜치**: `feat/project-members` | **의존**: PR 1 + PR 2
+**브랜치**: `feat/project-members` | **PR**: #92
 
 - `repositories/project_member_repo.py`: CRUD
 - `GET/POST/PATCH/DELETE /projects/:id/members`
 - 프로젝트 접근 시 멤버십 체크 (`require_project_member`)
 - 프로젝트 생성 시 생성자 → owner 자동 등록
 - 프론트엔드: `/projects/[id]/settings`에 멤버 관리 탭
+- 백엔드 747 tests, 프론트엔드 221 tests, E2E 10 API tests 통과
 
-### PR 4: 태스크 워크플로우 API — 대기
+### PR 4: 태스크 워크플로우 API ✅
 
-**브랜치**: `feat/task-workflow` | **의존**: PR 1
+**브랜치**: `feat/task-workflow` | **PR**: #87
 
 - `repositories/task_repo.py`: 할당/제출/검수 로직
 - `POST /pages/:id/assign`, `POST /pages/:id/submit`, `POST /pages/:id/review`
 - `locked_at` 관리 (30분 타임아웃 자동 해제)
 - `GET /users/me/tasks`, `GET /projects/:id/review-queue`
 - `task_history` 자동 기록
+- 721 tests 통과, 커버리지 84.13%
 
-### PR 5: 태스크 대시보드 + 검수 큐 UI — 대기
+### PR 5: 태스크 대시보드 + 검수 큐 UI ✅
 
-**브랜치**: `feat/task-dashboard` | **의존**: PR 2 + PR 4
+**브랜치**: `feat/task-dashboard` | **PR**: #91
 
 - `/tasks` 페이지: 내 할당 목록, 상태별 필터, 진행률
 - `/projects/[id]/review` 페이지: reviewer 전용 검수 큐
@@ -202,7 +204,7 @@ graph TD
 - `GET /api/v1/admin/stats` 시스템 통계 엔드포인트
 - 백엔드 772 tests, 프론트엔드 245 tests 통과
 
-## 태스크 워크플로우 (미구현)
+## 태스크 워크플로우
 
 ### 워크플로우
 
@@ -235,13 +237,14 @@ stateDiagram-v2
 | 회원가입 페이지 (`/register`) | 사용자 등록 | 공개 |
 | 관리자 대시보드 (`/admin`) | 유저/프로젝트/시스템 관리 | admin |
 
+| 프로젝트 멤버 관리 (`/projects/[id]/settings`) | 초대, 역할 변경, 제거 | owner / admin |
+| 태스크 대시보드 (`/tasks`) | 내 할당 목록, 상태별 필터, 진행률 | 인증된 유저 |
+| 검수 큐 (`/projects/[id]/review`) | reviewer 전용, 승인/반려 UI | reviewer / admin |
+
 ### 미구현
 
 | 컴포넌트 | 설명 | 접근 권한 |
 | -------- | ---- | -------- |
-| 프로젝트 멤버 관리 | 초대, 역할 변경, 제거 | owner / admin |
-| 태스크 대시보드 | 내 할당 목록, 진행률 | 인증된 유저 |
-| 검수 큐 | reviewer 전용, 승인/반려 UI | reviewer / admin |
 | 작업 현황 보드 | 프로젝트 전체 진행률 | 멤버 |
 
 ## 리스크

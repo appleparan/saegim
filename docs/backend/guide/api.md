@@ -899,21 +899,21 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 
 ---
 
-## 미구현 엔드포인트 (계획)
+## 프로젝트 멤버 관리 API
 
-다음 엔드포인트는 Phase 3 후속 PR에서 구현 예정입니다:
+| Method | Path | 인증 | 설명 |
+| ------ | ---- | ---- | ---- |
+| `GET` | `/api/v1/projects/{id}/members` | member | 멤버 목록 |
+| `POST` | `/api/v1/projects/{id}/members` | owner/admin | 멤버 초대 |
+| `PATCH` | `/api/v1/projects/{id}/members/{user_id}` | owner/admin | 멤버 역할 변경 |
+| `DELETE` | `/api/v1/projects/{id}/members/{user_id}` | owner/admin | 멤버 제거 |
 
-```text
-# 프로젝트 멤버 관리
-GET    /api/v1/projects/{id}/members              멤버 목록
-POST   /api/v1/projects/{id}/members              멤버 초대
-PATCH  /api/v1/projects/{id}/members/{user_id}     멤버 역할 변경
-DELETE /api/v1/projects/{id}/members/{user_id}     멤버 제거
+## 태스크 워크플로우 API
 
-# 태스크 워크플로우
-POST   /api/v1/pages/{id}/assign                   페이지 할당
-POST   /api/v1/pages/{id}/submit                   검수 제출
-POST   /api/v1/pages/{id}/review                   승인/반려
-GET    /api/v1/users/me/tasks                       내 할당 작업 목록
-GET    /api/v1/projects/{id}/review-queue           검수 대기 큐
-```
+| Method | Path | 인증 | 설명 |
+| ------ | ---- | ---- | ---- |
+| `POST` | `/api/v1/pages/{id}/assign` | owner/admin | 페이지 할당 |
+| `POST` | `/api/v1/pages/{id}/submit` | assigned user | 검수 제출 |
+| `POST` | `/api/v1/pages/{id}/review` | reviewer/admin | 승인/반려 |
+| `GET` | `/api/v1/users/me/tasks` | 인증 필요 | 내 할당 작업 목록 |
+| `GET` | `/api/v1/projects/{id}/review-queue` | member | 검수 대기 큐 |
