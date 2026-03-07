@@ -1,6 +1,10 @@
 /**
  * Base HTTP client for communicating with the FastAPI backend.
+ * Automatically injects Bearer token when authenticated and
+ * handles 401 responses with auto-logout.
  */
+
+import { authStore } from '$lib/stores/auth.svelte'
 
 export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -25,17 +29,29 @@ export class NetworkError extends Error {
   }
 }
 
+function authHeaders(): Record<string, string> {
+  authStore.checkExpiration()
+  if (authStore.token) {
+    return { Authorization: `Bearer ${authStore.token}` }
+  }
+  return {}
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders(),
         ...options?.headers,
       },
     })
 
     if (!res.ok) {
+      if (res.status === 401) {
+        authStore.logout()
+      }
       const body = await res.json().catch(() => undefined)
       throw new ApiError(res.status, res.statusText, body)
     }
@@ -56,9 +72,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 async function requestRaw(path: string, options?: RequestInit): Promise<Response> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, options)
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        ...authHeaders(),
+        ...options?.headers,
+      },
+    })
 
     if (!res.ok) {
+      if (res.status === 401) {
+        authStore.logout()
+      }
       const body = await res.json().catch(() => undefined)
       throw new ApiError(res.status, res.statusText, body)
     }
