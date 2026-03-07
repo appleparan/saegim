@@ -38,6 +38,7 @@ def _admin_record(user_id: uuid.UUID | None = None) -> dict:
         'email': 'admin@example.com',
         'role': 'admin',
         'must_change_password': False,
+        'is_active': True,
         'created_at': datetime.datetime.now(tz=datetime.UTC),
     }
 
@@ -56,6 +57,7 @@ class TestAdminListUsers:
             'email': 'user@example.com',
             'role': 'annotator',
             'must_change_password': False,
+            'is_active': True,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(
@@ -93,6 +95,7 @@ class TestAdminListUsers:
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 1
+        assert data[0]['is_active'] is True
 
 
 class TestAdminUpdateUser:
@@ -106,6 +109,7 @@ class TestAdminUpdateUser:
             'email': 'target@example.com',
             'role': 'reviewer',
             'must_change_password': False,
+            'is_active': True,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         token = create_access_token(str(admin_rec['id']), 'admin', test_settings)
@@ -116,7 +120,7 @@ class TestAdminUpdateUser:
                 return_value=admin_rec,
             ),
             patch(
-                'saegim.repositories.user_repo.update_role',
+                'saegim.repositories.user_repo.update_user',
                 new_callable=AsyncMock,
                 return_value=updated_record,
             ),
@@ -129,6 +133,40 @@ class TestAdminUpdateUser:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()['role'] == 'reviewer'
 
+    def test_update_is_active(self, client: TestClient, test_settings: Settings):
+        admin_rec = _admin_record()
+        target_id = uuid.uuid4()
+        updated_record = {
+            'id': target_id,
+            'name': 'Target',
+            'login_id': 'target',
+            'email': 'target@example.com',
+            'role': 'annotator',
+            'must_change_password': False,
+            'is_active': False,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        token = create_access_token(str(admin_rec['id']), 'admin', test_settings)
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=admin_rec,
+            ),
+            patch(
+                'saegim.repositories.user_repo.update_user',
+                new_callable=AsyncMock,
+                return_value=updated_record,
+            ),
+        ):
+            response = client.patch(
+                f'/api/v1/admin/users/{target_id}',
+                headers={'Authorization': f'Bearer {token}'},
+                json={'is_active': False},
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['is_active'] is False
+
     def test_user_not_found(self, client: TestClient, test_settings: Settings):
         admin_rec = _admin_record()
         token = create_access_token(str(admin_rec['id']), 'admin', test_settings)
@@ -139,7 +177,7 @@ class TestAdminUpdateUser:
                 return_value=admin_rec,
             ),
             patch(
-                'saegim.repositories.user_repo.update_role',
+                'saegim.repositories.user_repo.update_user',
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -176,6 +214,10 @@ class TestAdminListProjects:
                 'id': uuid.uuid4(),
                 'name': 'Project 1',
                 'description': 'Test',
+                'member_count': 3,
+                'total_pages': 10,
+                'completed_pages': 5,
+                'submitted_pages': 2,
                 'created_at': datetime.datetime.now(tz=datetime.UTC),
             },
         ]
@@ -186,7 +228,7 @@ class TestAdminListProjects:
                 return_value=admin_rec,
             ),
             patch(
-                'saegim.repositories.project_repo.list_all',
+                'saegim.repositories.admin_repo.list_projects_with_stats',
                 new_callable=AsyncMock,
                 return_value=project_records,
             ),
@@ -200,6 +242,8 @@ class TestAdminListProjects:
         assert isinstance(data, list)
         assert len(data) == 1
         assert data[0]['name'] == 'Project 1'
+        assert data[0]['member_count'] == 3
+        assert data[0]['total_pages'] == 10
 
     def test_non_admin_returns_403(self, client: TestClient, test_settings: Settings):
         token = _make_annotator_token(test_settings)
@@ -210,6 +254,7 @@ class TestAdminListProjects:
             'email': 'user@example.com',
             'role': 'annotator',
             'must_change_password': False,
+            'is_active': True,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(
@@ -219,6 +264,95 @@ class TestAdminListProjects:
         ):
             response = client.get(
                 '/api/v1/admin/projects',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestAdminGetStats:
+    def test_stats_success(self, client: TestClient, test_settings: Settings):
+        admin_rec = _admin_record()
+        token = create_access_token(str(admin_rec['id']), 'admin', test_settings)
+        stats_record = {
+            'total_users': 10,
+            'active_users': 8,
+            'total_projects': 5,
+            'total_pages': 100,
+            'completed_pages': 40,
+            'submitted_pages': 15,
+        }
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=admin_rec,
+            ),
+            patch(
+                'saegim.repositories.admin_repo.get_system_stats',
+                new_callable=AsyncMock,
+                return_value=stats_record,
+            ),
+        ):
+            response = client.get(
+                '/api/v1/admin/stats',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['total_users'] == 10
+        assert data['active_users'] == 8
+        assert data['total_projects'] == 5
+        assert data['completion_rate'] == 40.0
+
+    def test_zero_pages_rate(self, client: TestClient, test_settings: Settings):
+        admin_rec = _admin_record()
+        token = create_access_token(str(admin_rec['id']), 'admin', test_settings)
+        stats_record = {
+            'total_users': 1,
+            'active_users': 1,
+            'total_projects': 0,
+            'total_pages': 0,
+            'completed_pages': 0,
+            'submitted_pages': 0,
+        }
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=admin_rec,
+            ),
+            patch(
+                'saegim.repositories.admin_repo.get_system_stats',
+                new_callable=AsyncMock,
+                return_value=stats_record,
+            ),
+        ):
+            response = client.get(
+                '/api/v1/admin/stats',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['completion_rate'] == 0.0
+
+    def test_non_admin_returns_403(self, client: TestClient, test_settings: Settings):
+        token = _make_annotator_token(test_settings)
+        annotator_record = {
+            'id': uuid.uuid4(),
+            'name': 'User',
+            'login_id': 'user',
+            'email': 'user@example.com',
+            'role': 'annotator',
+            'must_change_password': False,
+            'is_active': True,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with patch(
+            'saegim.repositories.user_repo.get_by_id',
+            new_callable=AsyncMock,
+            return_value=annotator_record,
+        ):
+            response = client.get(
+                '/api/v1/admin/stats',
                 headers={'Authorization': f'Bearer {token}'},
             )
         assert response.status_code == status.HTTP_403_FORBIDDEN
