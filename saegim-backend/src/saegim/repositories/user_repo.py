@@ -29,7 +29,7 @@ async def create(
         """
         INSERT INTO users (name, login_id, email, role)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, name, login_id, email, role, must_change_password, created_at
+        RETURNING id, name, login_id, email, role, must_change_password, is_active, created_at
         """,
         name,
         resolved_login_id,
@@ -50,7 +50,7 @@ async def get_by_id(pool: asyncpg.Pool, user_id: uuid.UUID) -> asyncpg.Record | 
     """
     return await pool.fetchrow(
         """
-        SELECT id, name, login_id, email, role, must_change_password, created_at
+        SELECT id, name, login_id, email, role, must_change_password, is_active, created_at
         FROM users
         WHERE id = $1
         """,
@@ -70,7 +70,8 @@ async def get_with_password_by_id(pool: asyncpg.Pool, user_id: uuid.UUID) -> asy
     """
     return await pool.fetchrow(
         """
-        SELECT id, name, login_id, email, role, password_hash, must_change_password, created_at
+        SELECT id, name, login_id, email, role, password_hash,
+               must_change_password, is_active, created_at
         FROM users
         WHERE id = $1
         """,
@@ -90,7 +91,8 @@ async def get_by_login_id(pool: asyncpg.Pool, login_id: str) -> asyncpg.Record |
     """
     return await pool.fetchrow(
         """
-        SELECT id, name, login_id, email, role, password_hash, must_change_password, created_at
+        SELECT id, name, login_id, email, role, password_hash,
+               must_change_password, is_active, created_at
         FROM users
         WHERE login_id = $1
         """,
@@ -129,7 +131,8 @@ async def get_by_email(pool: asyncpg.Pool, email: str) -> asyncpg.Record | None:
     """Get a user by email address (includes password_hash)."""
     return await pool.fetchrow(
         """
-        SELECT id, name, login_id, email, role, password_hash, must_change_password, created_at
+        SELECT id, name, login_id, email, role, password_hash,
+               must_change_password, is_active, created_at
         FROM users
         WHERE email = $1
         """,
@@ -193,7 +196,7 @@ async def create_with_password(
         """
         INSERT INTO users (name, login_id, email, password_hash, must_change_password, role)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, name, login_id, email, role, must_change_password, created_at
+        RETURNING id, name, login_id, email, role, must_change_password, is_active, created_at
         """,
         name,
         login_id,
@@ -234,7 +237,7 @@ async def update_credentials(
             password_hash = $3,
             must_change_password = $4
         WHERE id = $5
-        RETURNING id, name, login_id, email, role, must_change_password, created_at
+        RETURNING id, name, login_id, email, role, must_change_password, is_active, created_at
         """,
         login_id,
         email,
@@ -276,7 +279,7 @@ async def update_role(
         """
         UPDATE users SET role = $1
         WHERE id = $2
-        RETURNING id, name, login_id, email, role, must_change_password, created_at
+        RETURNING id, name, login_id, email, role, must_change_password, is_active, created_at
         """,
         role,
         user_id,
@@ -294,8 +297,59 @@ async def list_all(pool: asyncpg.Pool) -> list[asyncpg.Record]:
     """
     return await pool.fetch(
         """
-        SELECT id, name, login_id, email, role, must_change_password, created_at
+        SELECT id, name, login_id, email, role, must_change_password, is_active, created_at
         FROM users
         ORDER BY created_at DESC
         """,
+    )
+
+
+async def update_user(
+    pool: asyncpg.Pool,
+    user_id: uuid.UUID,
+    *,
+    role: str | None = None,
+    is_active: bool | None = None,
+) -> asyncpg.Record | None:
+    """Update a user's role and/or active status.
+
+    Args:
+        pool: Database connection pool.
+        user_id: User UUID.
+        role: New role value (optional).
+        is_active: New active status (optional).
+
+    Returns:
+        asyncpg.Record or None: Updated user record, or None if not found.
+    """
+    sets: list[str] = []
+    params: list[object] = []
+    idx = 1
+
+    if role is not None:
+        sets.append(f'role = ${idx}')
+        params.append(role)
+        idx += 1
+
+    if is_active is not None:
+        sets.append(f'is_active = ${idx}')
+        params.append(is_active)
+        idx += 1
+
+    if not sets:
+        return None
+
+    params.append(user_id)
+    set_clause = ', '.join(sets)
+
+    query = f"""
+        UPDATE users SET {set_clause}"""  # noqa: S608
+    query += f"""
+        WHERE id = ${idx}
+        RETURNING id, name, login_id, email, role, must_change_password,
+                  is_active, created_at
+        """
+    return await pool.fetchrow(
+        query,
+        *params,
     )

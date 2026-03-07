@@ -24,9 +24,10 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    """Schema for admin user update (role change)."""
+    """Schema for admin user update (role change and activation toggle)."""
 
     role: UserRole | None = None
+    is_active: bool | None = None
 
 
 class UserResponse(BaseModel):
@@ -38,4 +39,5 @@ class UserResponse(BaseModel):
     email: str
     role: UserRole
     must_change_password: bool = False
+    is_active: bool = True
     created_at: datetime.datetime
