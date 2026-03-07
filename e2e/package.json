@@ -6,6 +6,7 @@
   "description": "E2E tests for saegim labeling platform",
   "scripts": {
     "test": "bunx vitest run",
+    "test:browser:mcp": "bunx vitest run tests/browser-auth-mcp.test.ts",
     "test:health": "bunx vitest run health",
     "test:benchmark": "bunx vitest run benchmark",
     "test:extraction": "bunx vitest run extraction",
@@ -22,6 +23,7 @@
     "docker:logs": "docker compose -f docker-compose.e2e.yml logs -f"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@types/node": "^24.10.1",
     "tsx": "^4.19.0",
     "vitest": "^4.0.18"

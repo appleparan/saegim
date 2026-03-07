@@ -29,6 +29,7 @@ bun run test:reading-order # 읽기 순서 CRUD
 bun run test:relations     # 관계 CRUD
 bun run test:re-extract    # 문서 재추출 + 강제 수락
 bun run test:benchmark     # API 벤치마크
+bun run test:browser:mcp   # chrome-devtools MCP 브라우저 E2E (로그인/ID 중복체크)
 
 # 4. 정리
 bun run docker:down
