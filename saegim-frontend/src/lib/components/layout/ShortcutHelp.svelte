@@ -27,6 +27,8 @@
       label: '편집',
       items: [
         { key: `${modKey}+S`, description: '저장' },
+        { key: `${modKey}+Z`, description: '실행 취소' },
+        { key: `${modKey}+Shift+Z`, description: '다시 실행' },
         { key: 'X', description: '요소 삭제' },
       ],
     },

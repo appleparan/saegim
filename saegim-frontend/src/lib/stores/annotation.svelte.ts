@@ -5,6 +5,7 @@
 
 import type { AnnotationData, LayoutElement, PageAttribute } from '$lib/types/omnidocbench'
 import type { BlockCategoryType } from '$lib/types/categories'
+import { historyStore } from './history.svelte'
 
 class AnnotationStore {
   pageId = $state<string | null>(null)
@@ -24,12 +25,24 @@ class AnnotationStore {
 
   relations = $derived(this.annotationData?.extra?.relation ?? [])
 
+  canUndo = $derived(historyStore.canUndo)
+  canRedo = $derived(historyStore.canRedo)
+
+  /** Record current annotationData snapshot for undo before a mutation. */
+  private recordHistory(): void {
+    if (this.annotationData) {
+      // $state.snapshot strips the Svelte 5 deep proxy so structuredClone works
+      historyStore.push($state.snapshot(this.annotationData) as AnnotationData)
+    }
+  }
+
   load(pageId: string, data: AnnotationData): void {
     this.pageId = pageId
     this.annotationData = data
     this.selectedElementId = null
     this.isDirty = false
     this.error = null
+    historyStore.clear()
   }
 
   clear(): void {
@@ -38,6 +51,7 @@ class AnnotationStore {
     this.selectedElementId = null
     this.isDirty = false
     this.error = null
+    historyStore.clear()
   }
 
   selectElement(annoId: number | null): void {
@@ -46,6 +60,7 @@ class AnnotationStore {
 
   updateElement(annoId: number, updates: Partial<LayoutElement>): void {
     if (!this.annotationData) return
+    this.recordHistory()
     this.annotationData = {
       ...this.annotationData,
       layout_dets: this.annotationData.layout_dets.map((el) =>
@@ -57,6 +72,7 @@ class AnnotationStore {
 
   updateElementAttribute(annoId: number, key: string, value: string | boolean): void {
     if (!this.annotationData) return
+    this.recordHistory()
     this.annotationData = {
       ...this.annotationData,
       layout_dets: this.annotationData.layout_dets.map((el) =>
@@ -68,6 +84,7 @@ class AnnotationStore {
 
   addElement(categoryType: BlockCategoryType, poly: readonly number[]): number {
     if (!this.annotationData) return -1
+    this.recordHistory()
 
     const layoutDets = this.annotationData.layout_dets ?? []
     const annoId = this.getNextAnnoId()
@@ -90,6 +107,7 @@ class AnnotationStore {
 
   removeElement(annoId: number): void {
     if (!this.annotationData) return
+    this.recordHistory()
 
     const layoutDets = this.annotationData.layout_dets ?? []
     const relations = this.annotationData.extra?.relation ?? []
@@ -113,6 +131,7 @@ class AnnotationStore {
 
   addRelation(sourceAnnoId: number, targetAnnoId: number, relationType: string): void {
     if (!this.annotationData) return
+    this.recordHistory()
     this.annotationData = {
       ...this.annotationData,
       extra: {
@@ -132,6 +151,7 @@ class AnnotationStore {
 
   removeRelation(sourceAnnoId: number, targetAnnoId: number): void {
     if (!this.annotationData) return
+    this.recordHistory()
     this.annotationData = {
       ...this.annotationData,
       extra: {
@@ -150,6 +170,7 @@ class AnnotationStore {
 
   reorderElements(orderMap: Record<number, number>): void {
     if (!this.annotationData) return
+    this.recordHistory()
     this.annotationData = {
       ...this.annotationData,
       layout_dets: this.annotationData.layout_dets.map((el) =>
@@ -172,6 +193,7 @@ class AnnotationStore {
 
   updatePageAttribute(updates: Partial<PageAttribute>): void {
     if (!this.annotationData) return
+    this.recordHistory()
     this.annotationData = {
       ...this.annotationData,
       page_attribute: { ...this.annotationData.page_attribute, ...updates },
@@ -185,6 +207,38 @@ class AnnotationStore {
       return 0
     }
     return Math.max(...layoutDets.map((el) => el.anno_id)) + 1
+  }
+
+  /** Undo the last mutation, restoring previous annotationData. */
+  undo(): void {
+    if (!this.annotationData) return
+    const current = $state.snapshot(this.annotationData) as AnnotationData
+    const restored = historyStore.undo(current)
+    if (!restored) return
+    this.annotationData = restored
+    if (
+      this.selectedElementId !== null &&
+      !restored.layout_dets.some((el) => el.anno_id === this.selectedElementId)
+    ) {
+      this.selectedElementId = null
+    }
+    this.isDirty = true
+  }
+
+  /** Redo the last undone mutation. */
+  redo(): void {
+    if (!this.annotationData) return
+    const current = $state.snapshot(this.annotationData) as AnnotationData
+    const restored = historyStore.redo(current)
+    if (!restored) return
+    this.annotationData = restored
+    if (
+      this.selectedElementId !== null &&
+      !restored.layout_dets.some((el) => el.anno_id === this.selectedElementId)
+    ) {
+      this.selectedElementId = null
+    }
+    this.isDirty = true
   }
 
   markSaved(): void {

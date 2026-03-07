@@ -132,6 +132,10 @@ export async function handleDialog(action: 'accept' | 'dismiss'): Promise<void> 
   await callTool('handle_dialog', { action })
 }
 
+export async function pressKey(key: string): Promise<void> {
+  await callTool('press_key', { key })
+}
+
 // --- Common flows ---
 
 export async function loginAs(
