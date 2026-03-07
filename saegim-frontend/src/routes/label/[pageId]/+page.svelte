@@ -10,6 +10,7 @@
   import ExtractionPreview from '$lib/components/panels/ExtractionPreview.svelte'
   import PageNavigator from '$lib/components/panels/PageNavigator.svelte'
   import { annotationStore } from '$lib/stores/annotation.svelte'
+  import { autosaveStore } from '$lib/stores/autosave.svelte'
   import { canvasStore } from '$lib/stores/canvas.svelte'
   import { pdfStore } from '$lib/stores/pdf.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
@@ -171,6 +172,23 @@
       uiStore.showNotification('저장 실패', 'error')
     } finally {
       saving = false
+    }
+  }
+
+  async function handleAutoSave() {
+    const pageId = page.params.pageId
+    if (!pageId || !annotationStore.annotationData) return
+    if (!annotationStore.isDirty || saving || autosaveStore.isSaving) return
+    autosaveStore.markSaving()
+    try {
+      await savePage(pageId, {
+        annotation_data: annotationStore.annotationData,
+      })
+      annotationStore.markSaved()
+      autosaveStore.markSaved()
+    } catch {
+      autosaveStore.markSaveFailed()
+      uiStore.showNotification('자동 저장 실패', 'error')
     }
   }
 
@@ -351,6 +369,7 @@
   $effect(() => {
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener('beforeunload', handleBeforeUnload)
+    autosaveStore.init()
     return () => {
       window.removeEventListener('keydown', handleKeydown)
       window.removeEventListener('beforeunload', handleBeforeUnload)
@@ -358,12 +377,24 @@
       pdfStore.destroy()
     }
   })
+
+  // Auto-save interval: save every 30 seconds when enabled and dirty
+  $effect(() => {
+    if (!autosaveStore.enabled) return
+
+    const intervalId = setInterval(() => {
+      handleAutoSave()
+    }, 30_000)
+
+    return () => clearInterval(intervalId)
+  })
 </script>
 
 <div class="flex h-full flex-col">
   <Header
     title={pageData?.project_name ?? '레이블링'}
     showSave
+    showAutoSave
     onsave={handleSave}
     {saving}
     showShortcutHelp
