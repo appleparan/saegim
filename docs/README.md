@@ -11,12 +11,13 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 ```mermaid
 graph TB
     subgraph Frontend ["Svelte 5 (:5173)"]
-        FE["PDF.js + Konva.js<br/>Runes 상태관리<br/>3-Layer 에디터"]
+        FE["PDF.js + Konva.js + Auth Guard"]
     end
 
     subgraph Backend ["FastAPI (:5000)"]
-        API["PDF 변환, CRUD<br/>Engine Factory<br/>Repository 패턴"]
-        BG["asyncio<br/>background"]
+        AUTH["JWT Auth Middleware"]
+        API["REST API + Engine Factory"]
+        BG["asyncio background"]
     end
 
     subgraph DB ["PostgreSQL"]
@@ -25,12 +26,13 @@ graph TB
 
     subgraph OCR ["OCR 엔진 (4종)"]
         GEMINI["Gemini API"]
-        VLLM["vLLM (Chandra)"]
+        VLLM["vLLM"]
         DOCLING_OCR["Docling + OCR"]
         PDFMINER["pdfminer"]
     end
 
-    FE <-->|"REST/JSON"| API
+    FE <-->|"REST/JSON"| AUTH
+    AUTH --> API
     API <-->|"asyncpg/SQL"| PG
     API --> BG
     BG --> GEMINI
@@ -44,14 +46,15 @@ graph TB
 - **PDF 업로드 및 변환**: PDF를 페이지별 고해상도 PNG로 자동 변환
 - **다중 인스턴스 OCR 엔진**: 프로젝트별 엔진 등록·관리 (Gemini API, vLLM, Docling+OCR)
 - **텍스트/이미지 자동 추출**: OCR 엔진으로 레이아웃+텍스트 추출, 수락 시 어노테이션에 반영
-- **문서 재추출**: OCR 엔진 변경 후 기존 문서를 새 엔진으로 전체 재스캔
 - **자동 속성 분류**: 페이지/테이블/텍스트/수식 속성 자동 분류
 - **캔버스 에디터**: 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
 - **읽기 순서 에디터**: 드래그앤드롭 재정렬 + 캔버스 오버레이 (`O` 단축키)
 - **관계 도구**: 요소 간 관계 CRUD + SVG 화살표 시각화
 - **OmniDocBench 레이블링**: 15종 Block-level + 4종 Span-level 카테고리, 페이지/요소 속성 편집
+- **인증/인가**: JWT 기반 인증, 시스템 역할 (admin/annotator/reviewer)
+- **관리자 대시보드**: 유저/프로젝트/시스템 통계 관리
 - **프로젝트 관리**: 프로젝트 → 문서 → 페이지 계층 구조
-- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기 (WIP)
+- **JSON Export**: OmniDocBench 표준 포맷으로 내보내기
 
 ## 기술 스택
 
@@ -59,6 +62,7 @@ graph TB
 | ---- | ---- |
 | **프론트엔드** | Svelte 5 (Runes), TypeScript, Vite 7, Tailwind CSS 4, Konva.js, PDF.js |
 | **백엔드** | Python 3.13+, FastAPI, asyncpg (raw SQL), Pydantic |
+| **인증** | JWT (access token in-memory + refresh token HttpOnly cookie) + bcrypt |
 | **데이터베이스** | PostgreSQL 15+ (JSONB) |
 | **PDF 처리** | pypdfium2 (2x 해상도 렌더링) + pdfminer.six (텍스트/이미지 자동 추출) |
 | **OCR 엔진** | 4종 Strategy 패턴 (`BaseOCREngine` ABC) |
@@ -172,8 +176,13 @@ bun run docker:gpu:up && bun run test:gpu  # GPU 테스트
 
 ## 상세 문서
 
-- [아키텍처 문서](architecture/README.md)
-- [백엔드 API 가이드](backend/guide/api.md)
-- [백엔드 시작하기](backend/guide/getting-started.md)
-- [E2E 테스트 가이드](../e2e/README.md)
-- [플래닝 가이드 (AGENTS.md)](../AGENTS.md)
+| 문서 | 설명 |
+| ---- | ---- |
+| [아키텍처 개요](architecture/README.md) | 시스템 구조, 기술 스택, 인증 |
+| [백엔드 아키텍처](backend/architecture/architecture.md) | 레이어드 아키텍처, 데이터 흐름 |
+| [프론트엔드 아키텍처](frontend/architecture/architecture.md) | 컴포넌트 구조, 상태 관리 |
+| [API 가이드](backend/guide/api.md) | REST API 엔드포인트 (Auth, Admin 포함) |
+| [멀티유저 협업](architecture/multi-user-collaboration.md) | 인증, 역할, 태스크 워크플로우 |
+| [백엔드 시작하기](backend/guide/getting-started.md) | 개발 환경 설정 |
+| [E2E 테스트](../e2e/README.md) | E2E 테스트 가이드 |
+| [플래닝 가이드](../AGENTS.md) | 프로젝트 비전, 로드맵 |
