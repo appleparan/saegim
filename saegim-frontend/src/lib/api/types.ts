@@ -141,6 +141,7 @@ export interface PageResponse {
   readonly annotation_data: AnnotationData
   readonly auto_extracted_data: AnnotationData | null
   readonly status: PageStatus
+  readonly assigned_to?: string | null
   readonly project_id?: string
   readonly project_name?: string
   readonly document_filename?: string
@@ -205,12 +206,31 @@ export interface RelationResponse {
 export type TaskAction = 'assigned' | 'started' | 'saved' | 'submitted' | 'approved' | 'rejected'
 
 export interface TaskResponse {
-  readonly id: string
   readonly page_id: string
-  readonly document_name: string
   readonly page_no: number
+  readonly document_id: string
+  readonly document_filename: string
+  readonly project_id: string
+  readonly project_name: string
   readonly status: PageStatus
   readonly assigned_at: string
+}
+
+export interface ReviewQueueItem {
+  readonly page_id: string
+  readonly page_no: number
+  readonly document_id: string
+  readonly document_filename: string
+  readonly assigned_to: string | null
+  readonly assigned_to_name: string | null
+  readonly submitted_at: string
+}
+
+export type ReviewAction = 'approved' | 'rejected'
+
+export interface ReviewRequest {
+  readonly action: ReviewAction
+  readonly comment?: string
 }
 
 // --- Export ---

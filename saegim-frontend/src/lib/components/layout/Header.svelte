@@ -3,6 +3,7 @@
   import { annotationStore } from '$lib/stores/annotation.svelte'
   import { authStore } from '$lib/stores/auth.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
+  import ClipboardList from '@lucide/svelte/icons/clipboard-list'
   import LogOut from '@lucide/svelte/icons/log-out'
   import Shield from '@lucide/svelte/icons/shield'
   import ShortcutHelp from './ShortcutHelp.svelte'
@@ -65,6 +66,16 @@
 
     {#if showShortcutHelp}
       <ShortcutHelp bind:open={shortcutHelpOpen} />
+    {/if}
+
+    {#if authStore.isAuthenticated}
+      <a
+        href="/tasks"
+        class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <ClipboardList class="size-4" />
+        <span>내 작업</span>
+      </a>
     {/if}
 
     {#if authStore.isAdmin}
