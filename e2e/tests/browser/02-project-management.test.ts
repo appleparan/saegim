@@ -7,9 +7,7 @@ import {
   clickByPattern,
   fillByPattern,
   getCurrentPath,
-  takeSnapshot,
   handleDialog,
-  openPage,
 } from '../../helpers/mcp'
 import { waitForBackendReady, register, setAuthToken } from '../../helpers/api'
 

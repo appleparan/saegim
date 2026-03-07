@@ -2,11 +2,9 @@ import { describe, test, expect, beforeAll, afterAll } from 'vitest'
 import {
   connectMcp,
   disconnectMcp,
-  loginAsAdmin,
   loginAsUser,
   waitForText,
   clickByPattern,
-  fillByPattern,
   takeSnapshot,
   navigateTo,
   getCurrentPath,

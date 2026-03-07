@@ -513,6 +513,19 @@ export async function waitForVllmReady(
 
 // --- Auth ---
 
+export function getUserIdFromToken(token: string): string {
+  const parts = token.split('.')
+  if (parts.length !== 3) {
+    throw new Error('Invalid JWT token format')
+  }
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+  const payload = JSON.parse(atob(base64))
+  if (!payload.sub || typeof payload.sub !== 'string') {
+    throw new Error('JWT payload missing "sub" claim')
+  }
+  return payload.sub
+}
+
 interface TokenResponse {
   access_token: string
 }

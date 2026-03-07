@@ -7,7 +7,6 @@ import {
   clickByPattern,
   takeSnapshot,
   navigateTo,
-  fillByPattern,
 } from '../../helpers/mcp'
 import {
   waitForBackendReady,
@@ -21,6 +20,7 @@ import {
   submitPage,
   deleteProject,
   getDocument,
+  getUserIdFromToken,
 } from '../../helpers/api'
 import { getTestPdfPath } from '../../helpers/pdf'
 
@@ -33,7 +33,6 @@ const REVIEWER = {
 
 let projectId: string
 let reviewerToken: string
-let submittedPageIds: string[] = []
 
 describe('Browser Review Flow', () => {
   beforeAll(async () => {
@@ -54,22 +53,26 @@ describe('Browser Review Flow', () => {
     const { data: docData } = await uploadPdf(projectId, getTestPdfPath())
 
     // Wait for document processing
+    let docReady = false
     for (let i = 0; i < 30; i++) {
       const { data: doc } = await getDocument(docData.id)
-      if (doc.status === 'ready') break
+      if (doc.status === 'ready') {
+        docReady = true
+        break
+      }
       await new Promise((r) => setTimeout(r, 3000))
     }
+    if (!docReady) throw new Error('Document processing timed out')
 
     // Get pages, assign and submit them
     const { data: docs } = await listDocuments(projectId)
     const { data: pages } = await listPages(docs[0].id)
-    const payload = JSON.parse(atob(reviewerToken.split('.')[1]))
+    const userId = getUserIdFromToken(reviewerToken)
 
     // Submit first 2 pages
     for (const p of pages.slice(0, 2)) {
-      await assignPage(p.id, payload.sub)
+      await assignPage(p.id, userId)
       await submitPage(p.id)
-      submittedPageIds.push(p.id)
     }
 
     await connectMcp()

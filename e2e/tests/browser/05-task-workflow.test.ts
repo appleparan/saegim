@@ -18,8 +18,8 @@ import {
   listPages,
   assignPage,
   deleteProject,
-  login,
   getDocument,
+  getUserIdFromToken,
 } from '../../helpers/api'
 import { getTestPdfPath } from '../../helpers/pdf'
 
@@ -69,9 +69,7 @@ describe('Browser Task Workflow', () => {
     const { data: docs } = await listDocuments(projectId)
     const { data: pages } = await listPages(docs[0].id)
 
-    // Need to decode JWT to get user_id
-    const payload = JSON.parse(atob(workerToken.split('.')[1]))
-    await assignPage(pages[0].id, payload.sub)
+    await assignPage(pages[0].id, getUserIdFromToken(workerToken))
 
     // Register idle user
     await register(IDLE_USER.name, IDLE_USER.loginId, IDLE_USER.password)

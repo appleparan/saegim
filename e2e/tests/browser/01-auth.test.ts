@@ -9,9 +9,7 @@ import {
   getCurrentPath,
   loginAsAdmin,
   registerUser,
-  callTool,
-  snapshotText,
-  parseJsonCodeFence,
+  reloadPage,
   evaluateScript,
 } from '../../helpers/mcp'
 import { waitForBackendReady } from '../../helpers/api'
@@ -65,7 +63,7 @@ describe('Browser Auth Flow', () => {
     await loginAsAdmin()
     await expect(getCurrentPath()).resolves.toBe('/account/security')
 
-    await callTool('navigate_page', { type: 'reload', timeout: 20000 })
+    await reloadPage()
     await waitForText('계정 보안 설정', 20000)
 
     await expect(getCurrentPath()).resolves.toBe('/account/security')
