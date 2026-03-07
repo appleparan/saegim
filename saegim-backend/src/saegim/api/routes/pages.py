@@ -1,9 +1,12 @@
 """Page labeling endpoints."""
 
 import asyncio
+import json
 import logging
 import uuid
+from typing import Any
 
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from saegim.api.deps import get_current_user
@@ -33,6 +36,23 @@ from saegim.services.text_extraction_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _record_to_page_response(record: asyncpg.Record) -> PageResponse:
+    """Convert a raw asyncpg Record to PageResponse, parsing JSON fields."""
+    data: dict[str, Any] = dict(record)
+
+    annotation_data = data.get('annotation_data')
+    if isinstance(annotation_data, str):
+        annotation_data = json.loads(annotation_data)
+    data['annotation_data'] = annotation_data or {}
+
+    auto_extracted = data.get('auto_extracted_data')
+    if isinstance(auto_extracted, str):
+        auto_extracted = json.loads(auto_extracted)
+    data['auto_extracted_data'] = auto_extracted
+
+    return PageResponse(**data)
 
 
 @router.get('/pages/{page_id}', response_model=PageResponse)
@@ -434,7 +454,7 @@ async def assign_page(
             status_code=status.HTTP_409_CONFLICT,
             detail='Page not found or cannot be assigned in current state',
         )
-    return PageResponse(**dict(result))
+    return _record_to_page_response(result)
 
 
 @router.post('/pages/{page_id}/submit', response_model=PageResponse)
@@ -461,7 +481,7 @@ async def submit_page(
             status_code=status.HTTP_409_CONFLICT,
             detail='Page not found, not assigned to you, or not in progress',
         )
-    return PageResponse(**dict(result))
+    return _record_to_page_response(result)
 
 
 @router.post('/pages/{page_id}/review', response_model=PageResponse)
@@ -492,4 +512,4 @@ async def review_page(
             status_code=status.HTTP_409_CONFLICT,
             detail='Page not found or not in submitted state',
         )
-    return PageResponse(**dict(result))
+    return _record_to_page_response(result)
