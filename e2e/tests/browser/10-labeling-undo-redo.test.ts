@@ -8,6 +8,7 @@ import {
   navigateTo,
   pressKey,
   callTool,
+  evaluateScript,
 } from '../../helpers/mcp'
 import {
   waitForBackendReady,
@@ -235,6 +236,7 @@ describe('Browser Labeling Undo/Redo', () => {
 
     const revertUid = findRevertButtonUid(snapshot)
     if (!revertUid) return
+    await evaluateScript('() => { window.confirm = () => true; return true }')
     await callTool('click', { uid: revertUid })
     await new Promise((r) => setTimeout(r, 500))
 
