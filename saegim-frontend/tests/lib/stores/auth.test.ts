@@ -17,6 +17,14 @@ function validToken(role: string = 'annotator', mustChangePassword: boolean = fa
   })
 }
 
+function expiringToken(): string {
+  return fakeJwt({
+    sub: 'user-abc',
+    role: 'annotator',
+    exp: Math.floor(Date.now() / 1000) + 60, // expires in 60s (< 120s threshold)
+  })
+}
+
 function expiredToken(): string {
   return fakeJwt({
     sub: 'user-abc',
@@ -25,10 +33,14 @@ function expiredToken(): string {
   })
 }
 
+const mockFetch = vi.fn()
+
 describe('AuthStore', () => {
   beforeEach(() => {
-    authStore.logout()
-    localStorage.clear()
+    vi.stubGlobal('fetch', mockFetch)
+    mockFetch.mockReset()
+    // Reset token directly to avoid triggering logoutFromServer fetch
+    authStore.token = null
   })
 
   afterEach(() => {
@@ -49,11 +61,12 @@ describe('AuthStore', () => {
       })
     })
 
-    it('persists token to localStorage', () => {
+    it('stores token in memory only (not localStorage)', () => {
       const token = validToken()
       authStore.setToken(token)
 
-      expect(localStorage.getItem('saegim_auth_token')).toBe(token)
+      expect(authStore.token).toBe(token)
+      expect(localStorage.getItem('saegim_auth_token')).toBeNull()
     })
   })
 
@@ -67,11 +80,16 @@ describe('AuthStore', () => {
       expect(authStore.user).toBeNull()
     })
 
-    it('removes token from localStorage', () => {
+    it('calls logoutFromServer to revoke refresh token', () => {
       authStore.setToken(validToken())
       authStore.logout()
 
-      expect(localStorage.getItem('saegim_auth_token')).toBeNull()
+      // logoutFromServer fires a POST to /auth/logout
+      expect(mockFetch).toHaveBeenCalledOnce()
+      const [url, init] = mockFetch.mock.calls[0]
+      expect(url).toContain('/api/v1/auth/logout')
+      expect(init.method).toBe('POST')
+      expect(init.credentials).toBe('include')
     })
   })
 
@@ -82,11 +100,115 @@ describe('AuthStore', () => {
       expect(authStore.isAuthenticated).toBe(true)
     })
 
-    it('returns true and logs out for an expired token', () => {
-      // Directly set an expired token (bypassing setToken validation)
+    it('returns true and clears token for an expired token', () => {
       authStore.token = expiredToken()
       expect(authStore.checkExpiration()).toBe(true)
       expect(authStore.isAuthenticated).toBe(false)
+    })
+  })
+
+  describe('shouldRefresh', () => {
+    it('returns false when no token', () => {
+      expect(authStore.shouldRefresh()).toBe(false)
+    })
+
+    it('returns false for a token expiring far in the future', () => {
+      authStore.setToken(validToken()) // expires in 3600s
+      expect(authStore.shouldRefresh()).toBe(false)
+    })
+
+    it('returns true for a token expiring within 2 minutes', () => {
+      authStore.token = expiringToken() // expires in 60s < 120s
+      expect(authStore.shouldRefresh()).toBe(true)
+    })
+  })
+
+  describe('refreshToken', () => {
+    it('sets new token on successful refresh', async () => {
+      const newToken = validToken('admin')
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: newToken,
+            token_type: 'bearer',
+            must_change_password: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+
+      const result = await authStore.refreshToken()
+
+      expect(result).toBe(true)
+      expect(authStore.token).toBe(newToken)
+    })
+
+    it('returns false on refresh failure', async () => {
+      mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+      const result = await authStore.refreshToken()
+
+      expect(result).toBe(false)
+    })
+
+    it('deduplicates concurrent refresh calls', async () => {
+      const newToken = validToken()
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: newToken,
+            token_type: 'bearer',
+            must_change_password: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+
+      // Fire two refreshes concurrently
+      const [r1, r2] = await Promise.all([authStore.refreshToken(), authStore.refreshToken()])
+
+      expect(r1).toBe(true)
+      expect(r2).toBe(true)
+      // Only one fetch call should have been made
+      expect(mockFetch).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('initialize', () => {
+    it('calls refresh and sets isInitialized on success', async () => {
+      const newToken = validToken()
+      mockFetch.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: newToken,
+            token_type: 'bearer',
+            must_change_password: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+
+      await authStore.initialize()
+
+      expect(authStore.isInitialized).toBe(true)
+      expect(authStore.token).toBe(newToken)
+    })
+
+    it('sets isInitialized even on refresh failure', async () => {
+      mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+      await authStore.initialize()
+
+      expect(authStore.isInitialized).toBe(true)
+      expect(authStore.token).toBeNull()
+    })
+
+    it('removes legacy localStorage token', async () => {
+      localStorage.setItem('saegim_auth_token', 'legacy-token')
+      mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+      await authStore.initialize()
+
       expect(localStorage.getItem('saegim_auth_token')).toBeNull()
     })
   })
