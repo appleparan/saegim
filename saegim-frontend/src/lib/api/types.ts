@@ -201,6 +201,27 @@ export interface RelationResponse {
   readonly relation_type: string
 }
 
+// --- Project Members ---
+
+export type ProjectMemberRole = 'owner' | 'annotator' | 'reviewer'
+
+export interface ProjectMemberResponse {
+  readonly user_id: string
+  readonly user_name: string
+  readonly user_email: string
+  readonly role: ProjectMemberRole
+  readonly joined_at: string
+}
+
+export interface AddProjectMemberRequest {
+  readonly user_id: string
+  readonly role: ProjectMemberRole
+}
+
+export interface UpdateProjectMemberRequest {
+  readonly role: ProjectMemberRole
+}
+
 // --- Tasks ---
 
 export type TaskAction = 'assigned' | 'started' | 'saved' | 'submitted' | 'approved' | 'rejected'

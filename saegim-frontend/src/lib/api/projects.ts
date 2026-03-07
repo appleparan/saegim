@@ -4,7 +4,9 @@
 
 import { api } from './client'
 import type {
+  AddProjectMemberRequest,
   ProjectResponse,
+  ProjectMemberResponse,
   CreateProjectRequest,
   AvailableEnginesResponse,
   DefaultEngineUpdate,
@@ -13,6 +15,7 @@ import type {
   OcrConfigResponse,
   OcrConnectionTestRequest,
   OcrConnectionTestResponse,
+  UpdateProjectMemberRequest,
 } from './types'
 
 export async function listProjects(): Promise<readonly ProjectResponse[]> {
@@ -78,4 +81,31 @@ export async function testEngineConnection(
 
 export async function getAvailableEngines(projectId: string): Promise<AvailableEnginesResponse> {
   return api.get<AvailableEnginesResponse>(`/api/v1/projects/${projectId}/available-engines`)
+}
+
+// --- Project Members ---
+
+export async function listProjectMembers(
+  projectId: string,
+): Promise<readonly ProjectMemberResponse[]> {
+  return api.get<ProjectMemberResponse[]>(`/api/v1/projects/${projectId}/members`)
+}
+
+export async function addProjectMember(
+  projectId: string,
+  data: AddProjectMemberRequest,
+): Promise<ProjectMemberResponse> {
+  return api.post<ProjectMemberResponse>(`/api/v1/projects/${projectId}/members`, data)
+}
+
+export async function updateProjectMemberRole(
+  projectId: string,
+  userId: string,
+  data: UpdateProjectMemberRequest,
+): Promise<ProjectMemberResponse> {
+  return api.patch<ProjectMemberResponse>(`/api/v1/projects/${projectId}/members/${userId}`, data)
+}
+
+export async function removeProjectMember(projectId: string, userId: string): Promise<void> {
+  await api.delete(`/api/v1/projects/${projectId}/members/${userId}`)
 }

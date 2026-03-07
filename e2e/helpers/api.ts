@@ -88,13 +88,31 @@ interface OcrConnectionTestResponse {
   message: string
 }
 
+// --- Auth token management ---
+
+let _authToken: string | null = null
+
+export function setAuthToken(token: string | null): void {
+  _authToken = token
+}
+
+export function getAuthToken(): string | null {
+  return _authToken
+}
+
 async function request<T>(
   method: string,
   path: string,
-  options?: { body?: unknown; formData?: FormData },
+  options?: { body?: unknown; formData?: FormData; token?: string },
 ): Promise<{ data: T; status: number; duration: number }> {
   const url = `${API_URL}${path}`
   const start = performance.now()
+
+  const headers: Record<string, string> = {}
+  const token = options?.token ?? _authToken
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   const init: RequestInit = {
     method,
@@ -102,10 +120,13 @@ async function request<T>(
   }
 
   if (options?.formData) {
+    init.headers = { ...headers }
     init.body = options.formData
   } else if (options?.body) {
-    init.headers = { 'Content-Type': 'application/json' }
+    init.headers = { ...headers, 'Content-Type': 'application/json' }
     init.body = JSON.stringify(options.body)
+  } else {
+    init.headers = headers
   }
 
   const response = await fetch(url, init)
@@ -488,4 +509,72 @@ export async function waitForVllmReady(
     await new Promise((r) => setTimeout(r, intervalMs))
   }
   throw new Error(`vLLM not ready after ${maxWaitMs}ms`)
+}
+
+// --- Auth ---
+
+interface TokenResponse {
+  access_token: string
+}
+
+export async function register(
+  name: string,
+  email: string,
+  password: string,
+): Promise<{ data: TokenResponse; status: number; duration: number }> {
+  return request<TokenResponse>('POST', '/auth/register', {
+    body: { name, email, password },
+  })
+}
+
+export async function login(
+  email: string,
+  password: string,
+): Promise<{ data: TokenResponse; status: number; duration: number }> {
+  return request<TokenResponse>('POST', '/auth/login', {
+    body: { email, password },
+  })
+}
+
+// --- Project Members ---
+
+interface ProjectMemberResponse {
+  user_id: string
+  user_name: string
+  user_email: string
+  role: string
+  joined_at: string
+}
+
+export async function listProjectMembers(
+  projectId: string,
+): Promise<{ data: ProjectMemberResponse[]; status: number; duration: number }> {
+  return request<ProjectMemberResponse[]>('GET', `/projects/${projectId}/members`)
+}
+
+export async function addProjectMember(
+  projectId: string,
+  userId: string,
+  role: string = 'annotator',
+): Promise<{ data: ProjectMemberResponse; status: number; duration: number }> {
+  return request<ProjectMemberResponse>('POST', `/projects/${projectId}/members`, {
+    body: { user_id: userId, role },
+  })
+}
+
+export async function updateProjectMemberRole(
+  projectId: string,
+  userId: string,
+  role: string,
+): Promise<{ data: ProjectMemberResponse; status: number; duration: number }> {
+  return request<ProjectMemberResponse>('PATCH', `/projects/${projectId}/members/${userId}`, {
+    body: { role },
+  })
+}
+
+export async function removeProjectMember(
+  projectId: string,
+  userId: string,
+): Promise<{ data: void; status: number; duration: number }> {
+  return request<void>('DELETE', `/projects/${projectId}/members/${userId}`)
 }
