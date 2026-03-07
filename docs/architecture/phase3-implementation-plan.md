@@ -149,6 +149,7 @@ PR 1 (Backend Auth)
 
 **브랜치**: `feat/admin-dashboard`
 **의존**: PR 2 (+ PR 1의 admin API)
+**상태**: 구현 완료
 
 ### 범위
 
@@ -158,12 +159,18 @@ PR 1 (Backend Auth)
   - **시스템 현황**: 통계 카드 (총 유저, 총 프로젝트, 전체 완료율)
 - admin route guard (non-admin → `/` 리다이렉트)
 - `src/lib/api/admin.ts`: admin API 호출 모듈
+- `is_active` 컬럼 추가 (users 테이블)
+- `GET /api/v1/admin/stats` 시스템 통계 엔드포인트 추가
+- `GET /api/v1/admin/projects` 프로젝트 통계 포함으로 향상
 
 ### 테스트
 
-- [ ] non-admin → `/admin` 접근 시 리다이렉트
-- [ ] 유저 역할 변경 → API 호출 → 목록 갱신
-- [ ] 프로젝트 목록 + 통계 렌더링
+- [x] non-admin → `/admin` 접근 시 리다이렉트
+- [x] 유저 역할 변경 → API 호출 → 목록 갱신
+- [x] 유저 비활성화 토글
+- [x] 프로젝트 목록 + 통계 렌더링
+- [x] 시스템 현황 통계 카드 렌더링
+- [x] 백엔드 772 tests, 프론트엔드 245 tests 전부 통과
 
 ## 구현 순서 (권장)
 
