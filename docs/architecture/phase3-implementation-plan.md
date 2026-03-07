@@ -111,11 +111,11 @@ PR 1 (Backend Auth)
 
 ### 테스트
 
-- [ ] 할당 → 상태 전이 (pending → in_progress)
-- [ ] 제출 → submitted, task_history 기록
-- [ ] 검수 승인 → reviewed, 검수 반려 → in_progress (재작업)
-- [ ] locked_at 충돌 → 409
-- [ ] 30분 타임아웃 후 다른 유저 접근 → 성공
+- [x] 할당 → 상태 전이 (pending → in_progress)
+- [x] 제출 → submitted, task_history 기록
+- [x] 검수 승인 → reviewed, 검수 반려 → in_progress (재작업)
+- [x] locked_at 충돌 → 409
+- [x] 30분 타임아웃 후 다른 유저 접근 → 성공
 
 ## PR 5: 태스크 대시보드 + 검수 큐 UI (3-C)
 
