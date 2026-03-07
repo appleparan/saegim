@@ -100,3 +100,30 @@ class TestExportEndpoints:
         assert 'page_info' in page
         assert 'layout_dets' in page
         assert page['page_info']['page_attribute']['language'] == 'ko'
+
+    def test_export_zip(self, client: TestClient):
+        zip_data = (b'PK\x03\x04fake-zip', 'Test_20260307_120000.zip')
+        with patch(
+            'saegim.services.export_service.export_project_zip',
+            new_callable=AsyncMock,
+            return_value=zip_data,
+        ):
+            response = client.get(
+                '/api/v1/projects/00000000-0000-0000-0000-000000000001/export/zip'
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers['content-type'] == 'application/zip'
+        assert 'Test_20260307_120000.zip' in response.headers['content-disposition']
+
+    def test_export_zip_not_found(self, client: TestClient):
+        with patch(
+            'saegim.services.export_service.export_project_zip',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.get(
+                '/api/v1/projects/00000000-0000-0000-0000-000000000000/export/zip'
+            )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
