@@ -89,8 +89,9 @@ GPU 서비스(vLLM)는 `--profile gpu`으로 활성화합니다.
 
 ### 의존성 순서
 
-```text
-postgres (healthy) → backend (healthy) → frontend
+```mermaid
+graph LR
+    PG["postgres (healthy)"] --> BE["backend (healthy)"] --> FE["frontend"]
 ```
 
 - `postgres`: `pg_isready` healthcheck 통과 후 backend 시작

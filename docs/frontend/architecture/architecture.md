@@ -110,27 +110,41 @@ SvelteKit 파일 기반 라우팅 (`adapter-static` SPA 모드):
 
 ### 인증 흐름
 
-```text
-앱 시작 → authStore.initialize() → POST /auth/refresh (silent)
-       → 성공: token 저장, 보호된 페이지 접근 허용
-       → 실패: /login 리다이렉트
+```mermaid
+flowchart TD
+    subgraph INIT["앱 시작"]
+        A1["authStore.initialize()"] --> A2["POST /auth/refresh (silent)"]
+        A2 -->|성공| A3["token 저장, 보호 페이지 접근"]
+        A2 -->|실패| A4["/login 리다이렉트"]
+    end
 
-API 요청 → client.ts → Bearer 헤더 주입 → 서버
-         → 401: refreshToken() → 재시도 (1회)
-         → 성공: 응답 반환
-         → 실패: logout() → /login
+    subgraph REQ["API 요청"]
+        B1["client.ts — Bearer 헤더 주입"] --> B2["서버"]
+        B2 -->|401| B3["refreshToken() → 재시도 1회"]
+        B2 -->|성공| B4["응답 반환"]
+        B3 -->|실패| B5["logout() → /login"]
+    end
 
-1분 주기 → shouldRefresh() (만료 2분 전) → refreshToken()
-         → checkExpiration() → 만료 시 logout()
+    subgraph TIMER["1분 주기"]
+        C1["shouldRefresh() — 만료 2분 전"] --> C2["refreshToken()"]
+        C1 --> C3["checkExpiration()"]
+        C3 -->|만료| C4["logout()"]
+    end
 ```
 
 ### 레이블링 흐름
 
-```text
-Backend API  →  api/client.ts  →  stores/annotation.svelte.ts  →  components
-                                  stores/canvas.svelte.ts
-                                  stores/pdf.svelte.ts
-                                  stores/ui.svelte.ts
+```mermaid
+flowchart LR
+    API["Backend API"] --> CLIENT["api/client.ts"]
+    CLIENT --> ANNO["annotation.svelte.ts"]
+    CLIENT --> CANVAS["canvas.svelte.ts"]
+    CLIENT --> PDF["pdf.svelte.ts"]
+    CLIENT --> UI["ui.svelte.ts"]
+    ANNO --> COMP["components"]
+    CANVAS --> COMP
+    PDF --> COMP
+    UI --> COMP
 ```
 
 1. 페이지 로드 시 `getPage()` API 호출

@@ -64,11 +64,17 @@
 
 ### 토큰 갱신 흐름
 
-```text
-1. 클라이언트: access token으로 API 요청
-2. 401 응답 → refresh token으로 POST /auth/refresh
-3. 서버: old refresh token 폐기, new refresh token + access token 발급 (token rotation)
-4. 재시도: 새 access token으로 원래 요청 재전송
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: API 요청 (access token)
+    S-->>C: 401 Unauthorized
+    C->>S: POST /auth/refresh (refresh token)
+    S->>S: old token 폐기, new tokens 발급 (token rotation)
+    S-->>C: new access token + refresh token (Set-Cookie)
+    C->>S: 원래 요청 재전송 (new access token)
+    S-->>C: 200 OK
 ```
 
 ### Theft Detection (Family-based)
@@ -116,13 +122,21 @@
 
 ### 의존 관계
 
-```text
-PR 1 (Backend Auth) ✅
- ├── PR 2 (Frontend Login + Auth Guard) ✅
- │    ├── PR 3 (Project Members) — 대기
- │    ├── PR 5 (Task Dashboard + Review Queue UI) — 대기 (PR 4 필요)
- │    └── PR 6 (Admin Dashboard) ✅
- └── PR 4 (Task Workflow API) — 대기
+```mermaid
+graph TD
+    PR1["PR 1: Backend Auth ✅"]
+    PR2["PR 2: Frontend Login ✅"]
+    PR3["PR 3: Project Members — 대기"]
+    PR4["PR 4: Task Workflow API — 대기"]
+    PR5["PR 5: Task Dashboard — 대기"]
+    PR6["PR 6: Admin Dashboard ✅"]
+
+    PR1 --> PR2
+    PR1 --> PR4
+    PR2 --> PR3
+    PR2 --> PR5
+    PR4 --> PR5
+    PR2 --> PR6
 ```
 
 ### PR 1: Backend Auth 기반 ✅
@@ -192,14 +206,15 @@ PR 1 (Backend Auth) ✅
 
 ### 워크플로우
 
-```text
-[미할당] → assigned → [작업 중] → submitted → [검수 대기]
-                         ↑                        │
-                         │                   ┌────┴────┐
-                         │               approved   rejected
-                         │                   │        │
-                         │              [완료]    [재작업]
-                         └────────────────────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> 미할당
+    미할당 --> 작업중 : assigned
+    작업중 --> 검수대기 : submitted
+    검수대기 --> 완료 : approved
+    검수대기 --> 재작업 : rejected
+    재작업 --> 작업중
+    완료 --> [*]
 ```
 
 ### 동시 편집 방지

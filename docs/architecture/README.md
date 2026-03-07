@@ -4,28 +4,37 @@ saegim의 시스템 아키텍처를 구성 요소별로 설명한다.
 
 ## 전체 구조
 
-```text
-saegim
-  ├── Frontend (Svelte 5 SPA)
-  │     ├── Auth (JWT in-memory + route guard)
-  │     ├── 캔버스 에디터 (Konva.js)
-  │     ├── PDF 렌더러 (PDF.js)
-  │     ├── OCR 설정 패널
-  │     └── 관리자 대시보드 (admin 전용)
-  │
-  ├── Backend (FastAPI)
-  │     ├── Auth Middleware (JWT + Refresh Token Rotation)
-  │     ├── REST API / asyncpg
-  │     ├── OCR Engine Factory
-  │     │     ├── DocIR 중간 표현
-  │     │     ├── Adapter (모델별 파싱)
-  │     │     └── Exporter (OmniDocBench 변환)
-  │     └── 비동기 추출 태스크
-  │
-  └── 외부 서비스
-        ├── PostgreSQL (JSONB)
-        ├── vLLM 서버 (GPU)
-        └── Gemini API (Cloud)
+```mermaid
+graph TD
+    subgraph FE["Frontend (Svelte 5 SPA)"]
+        FE1["Auth — JWT in-memory + route guard"]
+        FE2["캔버스 에디터 — Konva.js"]
+        FE3["PDF 렌더러 — PDF.js"]
+        FE4["OCR 설정 패널"]
+        FE5["관리자 대시보드 — admin 전용"]
+    end
+
+    subgraph BE["Backend (FastAPI)"]
+        BE1["Auth Middleware — JWT + Refresh Token Rotation"]
+        BE2["REST API / asyncpg"]
+        subgraph ENGINE["OCR Engine Factory"]
+            E1["DocIR 중간 표현"]
+            E2["Adapter — 모델별 파싱"]
+            E3["Exporter — OmniDocBench 변환"]
+        end
+        BE4["비동기 추출 태스크"]
+    end
+
+    subgraph EXT["외부 서비스"]
+        EXT1["PostgreSQL (JSONB)"]
+        EXT2["vLLM 서버 (GPU)"]
+        EXT3["Gemini API (Cloud)"]
+    end
+
+    FE -->|REST/JSON| BE1
+    BE2 -->|asyncpg| EXT1
+    BE4 --> EXT2
+    BE4 --> EXT3
 ```
 
 ## 기술 스택

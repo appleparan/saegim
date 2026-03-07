@@ -9,13 +9,13 @@
 `default_engine_id`로 기본 엔진을 지정한다.
 `BaseOCREngine` ABC를 통한 Strategy 패턴으로, 3가지 등록 가능한 엔진 타입을 지원한다:
 
-```text
-ocr_config.engines
-  ├── "gemini-flash"     → commercial_api (Gemini API full-page 분석)
-  ├── "vllm-chandra"     → vllm (vLLM 서버)
-  ├── "vllm-olmocr"      → vllm (다른 vLLM 서버/모델)
-  ├── "docling-gemini"   → split_pipeline (Docling + Gemini OCR)
-  └── "ppdoclayout-vllm" → split_pipeline (PP-DocLayoutV3 + vLLM OCR)
+```mermaid
+graph LR
+    CONFIG["ocr_config.engines"] --> A["gemini-flash: commercial_api"]
+    CONFIG --> B["vllm-chandra: vllm"]
+    CONFIG --> C["vllm-olmocr: vllm"]
+    CONFIG --> D["docling-gemini: split_pipeline"]
+    CONFIG --> E["ppdoclayout-vllm: split_pipeline"]
 ```
 
 `pdfminer`는 항상 사용 가능한 폴백 엔진으로, 등록 없이 `default_engine_id`가 null일 때 자동 사용된다.
@@ -29,31 +29,33 @@ ocr_config.engines
 
 ## pdfminer.six 폴백 (`engine_type: pdfminer`)
 
-```text
-PDF 업로드
-  → pypdfium2 페이지 렌더링 (2x scale PNG)
-  → pdfminer.six extract_pages() → LTPage 트리 (동기)
-     ├── LTTextBox → category_type: "text_block", get_text() 추출
-     └── LTFigure/LTImage → category_type: "figure"
-  → 좌표 변환: pdfminer 좌하단 원점 → 좌상단 원점 (y-flip) × 2.0 = 이미지 픽셀 좌표
-  → auto_extracted_data JSONB에 OmniDocBench 형식으로 저장
-  → document status: processing → ready (즉시)
-  → 프론트엔드에서 "수락" → annotation_data로 복사
+```mermaid
+flowchart TD
+    A["PDF 업로드"] --> B["pypdfium2 페이지 렌더링 (2x scale PNG)"]
+    B --> C["pdfminer.six extract_pages() — LTPage 트리 (동기)"]
+    C --> D["LTTextBox → text_block, get_text()"]
+    C --> E["LTFigure/LTImage → figure"]
+    D --> F["좌표 변환: y-flip × 2.0 → 이미지 픽셀 좌표"]
+    E --> F
+    F --> G["auto_extracted_data JSONB 저장 (OmniDocBench)"]
+    G --> H["status: processing → ready (즉시)"]
+    H --> I["프론트엔드에서 수락 → annotation_data"]
 ```
 
 ## Commercial API Engine (`engine_type: commercial_api`)
 
-```text
-PDF 업로드
-  → pypdfium2 페이지 렌더링 (2x scale PNG)
-  → asyncio 백그라운드 태스크 디스패치
-     → 페이지별:
-        1. VLM API에 full-page 이미지 전송
-           - gemini: Google Gemini API (structured output 프롬프트)
-           - vllm: vLLM OpenAI-compatible API
-        2. JSON 응답 파싱 → OmniDocBench layout_dets 변환
-     → asyncpg로 각 페이지 auto_extracted_data 업데이트
-     → document status: extracting → ready (또는 extraction_failed)
+```mermaid
+flowchart TD
+    A["PDF 업로드"] --> B["pypdfium2 페이지 렌더링 (2x scale PNG)"]
+    B --> C["asyncio 백그라운드 태스크"]
+    C --> D["페이지별: VLM API에 full-page 이미지 전송"]
+    D --> E{"provider"}
+    E -->|gemini| F["Google Gemini API (structured output)"]
+    E -->|vllm| G["vLLM OpenAI-compatible API"]
+    F --> H["JSON 파싱 → OmniDocBench layout_dets"]
+    G --> H
+    H --> I["asyncpg: auto_extracted_data 업데이트"]
+    I --> J["status: extracting → ready / extraction_failed"]
 ```
 
 ## vLLM Engine (`engine_type: vllm`)
@@ -61,21 +63,22 @@ PDF 업로드
 vLLM OpenAI-compatible API를 통한 full-page OCR.
 DocIR 3-stage 파이프라인 (Provider → Adapter → Exporter) 적용:
 
-```text
-PDF 업로드
-  → pypdfium2 페이지 렌더링 (2x scale PNG)
-  → asyncio 백그라운드 태스크 디스패치
-     → 페이지별:
-        1. resolve_adapter(model_name) → ModelAdapter 자동 선택
-           - chandra, olmocr → ChandraAdapter
-           - lighton → LightOnOcrAdapter
-           - paddleocr-vl → PaddleOcrVlAdapter
-        2. adapter.build_messages(image_b64, ...) → API 메시지 생성
-        3. vLLM /v1/chat/completions POST
-        4. adapter.parse_response(result, ...) → PageIR
-        5. export_page(PageIR) → OmniDocBench dict
-     → asyncpg로 각 페이지 auto_extracted_data 업데이트
-     → document status: extracting → ready (또는 extraction_failed)
+```mermaid
+flowchart TD
+    A["PDF 업로드"] --> B["pypdfium2 페이지 렌더링 (2x scale PNG)"]
+    B --> C["asyncio 백그라운드 태스크"]
+    C --> D["resolve_adapter(model_name)"]
+    D --> D1["chandra/olmocr → ChandraAdapter"]
+    D --> D2["lighton → LightOnOcrAdapter"]
+    D --> D3["paddleocr-vl → PaddleOcrVlAdapter"]
+    D1 --> E["adapter.build_messages() → API 메시지"]
+    D2 --> E
+    D3 --> E
+    E --> F["vLLM /v1/chat/completions POST"]
+    F --> G["adapter.parse_response() → PageIR"]
+    G --> H["export_page(PageIR) → OmniDocBench dict"]
+    H --> I["asyncpg: auto_extracted_data 업데이트"]
+    I --> J["status: extracting → ready / extraction_failed"]
 ```
 
 ## Split Pipeline Engine (`engine_type: split_pipeline`)
@@ -88,40 +91,47 @@ PDF 업로드
 | `docling` (기본값) | ibm-granite/granite-docling-258M | DocTags XML 파싱, 텍스트 포함 가능 |
 | `pp_doclayout` | PaddlePaddle/PP-DocLayoutV3_safetensors | 25종 카테고리, pixel bbox, 텍스트 없음 |
 
-```text
-PDF 업로드
-  → pypdfium2 페이지 렌더링 (2x scale PNG)
-  → asyncio 백그라운드 태스크 디스패치
-     → 페이지별:
-        1. LayoutDetector.detect_layout(image_path)
-           - docling: DoclingLayoutDetector (ibm-granite/granite-docling-258M)
-           - pp_doclayout: PPDocLayoutV3Detector (PP-DocLayoutV3_safetensors)
-           → list[LayoutRegion(bbox, category, score, text)]
-        2. 텍스트 영역 크롭 (PIL/Pillow)
-        3. 외부 OCR 프로바이더로 텍스트 추출:
-           - gemini: Gemini API (category_hint별 프롬프트)
-           - vllm: vLLM API (OlmOCR 등)
-        4. OmniDocBench 조합 (equation→latex, table→html, 기타→text)
-     → asyncpg로 각 페이지 auto_extracted_data 업데이트
-     → document status: extracting → ready (또는 extraction_failed)
-  → 프론트엔드에서 "수락" → annotation_data로 복사
+```mermaid
+flowchart TD
+    A["PDF 업로드"] --> B["pypdfium2 페이지 렌더링 (2x scale PNG)"]
+    B --> C["asyncio 백그라운드 태스크"]
+    C --> D["LayoutDetector.detect_layout()"]
+    D --> D1{"layout_provider"}
+    D1 -->|docling| D2["DoclingLayoutDetector"]
+    D1 -->|pp_doclayout| D3["PPDocLayoutV3Detector"]
+    D2 --> E["LayoutRegion 목록"]
+    D3 --> E
+    E --> F["텍스트 영역 크롭 (PIL)"]
+    F --> G{"OCR 프로바이더"}
+    G -->|gemini| G1["Gemini API"]
+    G -->|vllm| G2["vLLM API"]
+    G1 --> H["OmniDocBench 조합"]
+    G2 --> H
+    H --> I["asyncpg: auto_extracted_data 업데이트"]
+    I --> J["status: extracting → ready / extraction_failed"]
+    J --> K["프론트엔드에서 수락 → annotation_data"]
 ```
 
 ## 요소별 엔진 선택 (Per-Element Engine Override)
 
 프로젝트에 등록된 모든 엔진 인스턴스를 레이블링 화면에서 선택할 수 있다.
 
-```text
-프로젝트 설정
-  → default_engine_id: 기본 엔진 (full-page 추출용)
-  → engines: { "gemini-flash": {...}, "vllm-chandra": {...} }
+```mermaid
+flowchart TD
+    subgraph CONFIG["프로젝트 설정"]
+        C1["default_engine_id: 기본 엔진"]
+        C2["engines: 등록된 엔진 목록"]
+    end
 
-레이블링 화면
-  → 요소 그리기 → OCR 팝업
-     ├── 엔진이 1개: 바로 OCR 실행
-     └── 엔진이 2개+: 드롭다운으로 엔진 선택 후 실행
-  → POST /pages/{id}/extract-text { engine_id: "vllm-chandra" }
-  → 추출 결과 + 사용 엔진 정보를 annotation_data에 저장 (ocr_engine 필드)
+    subgraph LABEL["레이블링 화면"]
+        L1["요소 그리기"] --> L2["OCR 팝업"]
+        L2 --> L3{"엔진 수"}
+        L3 -->|1개| L4["바로 OCR 실행"]
+        L3 -->|2개+| L5["드롭다운으로 엔진 선택"]
+        L4 --> L6["POST /pages/id/extract-text"]
+        L5 --> L6
+        L6 --> L7["추출 결과 + 엔진 정보 → annotation_data"]
+    end
 ```
 
 ## `ocr_config` JSONB 구조
@@ -208,17 +218,19 @@ PDF 업로드
 
 OCR 엔진을 변경한 후 기존 문서를 새 엔진으로 재추출할 수 있다.
 
-```text
-라벨 페이지 좌측 패널의 "전체 재스캔" 버튼 클릭
-  → POST /documents/{id}/re-extract
-  → document_service.re_extract()
-     1. 문서 상태 확인 (이미 extracting이면 409)
-     2. 프로젝트 OCR 설정 로드 (_resolve_ocr_config)
-     3. page_repo.list_for_extraction()으로 페이지 목록 조회
-     4. 엔진 타입에 따라 동기/비동기 추출
-  → auto_extracted_data만 갱신 (annotation_data는 유지)
-  → 프론트엔드: 3초 간격 폴링 (extracting → ready)
-  → 완료 후 ExtractionPreview에서 수락/강제 수락 가능
+```mermaid
+flowchart TD
+    A["전체 재스캔 버튼 클릭"] --> B["POST /documents/id/re-extract"]
+    B --> C["문서 상태 확인 (extracting이면 409)"]
+    C --> D["프로젝트 OCR 설정 로드"]
+    D --> E["page_repo.list_for_extraction()"]
+    E --> F{"엔진 타입"}
+    F -->|pdfminer| G["동기 추출"]
+    F -->|기타| H["비동기 추출"]
+    G --> I["auto_extracted_data만 갱신"]
+    H --> I
+    I --> J["프론트엔드: 3초 폴링 (extracting → ready)"]
+    J --> K["ExtractionPreview에서 수락/강제 수락"]
 ```
 
 **강제 수락**: 재추출 후 기존 어노테이션이 있는 경우,
