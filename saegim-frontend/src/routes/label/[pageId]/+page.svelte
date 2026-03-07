@@ -161,6 +161,7 @@
   async function handleSave() {
     const pageId = page.params.pageId
     if (!pageId || !annotationStore.annotationData) return
+    if (autosaveStore.isSaving) return
     saving = true
     try {
       await savePage(pageId, {
@@ -175,9 +176,14 @@
     }
   }
 
+  let autoSaveFailCount = $state(0)
+  const MAX_AUTO_SAVE_FAILURES = 3
+
   async function handleAutoSave() {
     const pageId = page.params.pageId
     if (!pageId || !annotationStore.annotationData) return
+    if (annotationStore.pageId !== pageId) return
+    if (isLockedByOther) return
     if (!annotationStore.isDirty || saving || autosaveStore.isSaving) return
     autosaveStore.markSaving()
     try {
@@ -186,9 +192,17 @@
       })
       annotationStore.markSaved()
       autosaveStore.markSaved()
+      autoSaveFailCount = 0
     } catch {
       autosaveStore.markSaveFailed()
-      uiStore.showNotification('자동 저장 실패', 'error')
+      autoSaveFailCount++
+      if (autoSaveFailCount >= MAX_AUTO_SAVE_FAILURES) {
+        autosaveStore.setEnabled(false)
+        uiStore.showNotification('자동 저장 반복 실패로 비활성화됨', 'error')
+        autoSaveFailCount = 0
+      } else {
+        uiStore.showNotification('자동 저장 실패', 'error')
+      }
     }
   }
 
