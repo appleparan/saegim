@@ -41,6 +41,7 @@ describe('AuthStore', () => {
     mockFetch.mockReset()
     // Reset token directly to avoid triggering logoutFromServer fetch
     authStore.token = null
+    authStore.isInitialized = false
   })
 
   afterEach(() => {
@@ -210,6 +211,26 @@ describe('AuthStore', () => {
       await authStore.initialize()
 
       expect(localStorage.getItem('saegim_auth_token')).toBeNull()
+    })
+
+    it('does not clear token set while initialize is awaiting refresh', async () => {
+      let resolveFetch!: (value: Response) => void
+      mockFetch.mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve
+          }),
+      )
+
+      const initPromise = authStore.initialize()
+      const tokenFromLogin = validToken('admin')
+      authStore.setToken(tokenFromLogin)
+
+      resolveFetch(new Response(null, { status: 401 }))
+      await initPromise
+
+      expect(authStore.token).toBe(tokenFromLogin)
+      expect(authStore.isInitialized).toBe(true)
     })
   })
 

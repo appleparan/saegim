@@ -29,6 +29,12 @@ let adminLoginId = 'admin'
 let adminPassword = 'admin'
 const newAdminPassword = `AdminNew${ts}!`
 
+async function openAdminDashboard(): Promise<void> {
+  await loginAsUser(adminLoginId, adminPassword)
+  await navigateTo('/admin')
+  await waitForText('관리자 대시보드', 20000)
+}
+
 describe('Browser Admin Dashboard', () => {
   beforeAll(async () => {
     await waitForBackendReady()
@@ -37,11 +43,17 @@ describe('Browser Admin Dashboard', () => {
     await register(NORMAL_USER.name, NORMAL_USER.loginId, NORMAL_USER.password)
 
     // Login as admin and change password via API to bypass must_change_password
-    const { data: adminAuth } = await login(adminLoginId, adminPassword)
+    const { data: adminAuth, status: loginStatus } = await login(adminLoginId, adminPassword)
+    if (loginStatus !== 200 || !adminAuth.access_token) {
+      throw new Error('Admin login failed in test setup. Rebuild E2E stack for a fresh state.')
+    }
     setAuthToken(adminAuth.access_token)
-    const { data: updatedAuth } = await updateMyCredentials(adminPassword, {
+    const { data: updatedAuth, status: updateStatus } = await updateMyCredentials(adminPassword, {
       new_password: newAdminPassword,
     })
+    if (updateStatus !== 200 || !updatedAuth.access_token) {
+      throw new Error('Admin password update failed in test setup.')
+    }
     setAuthToken(updatedAuth.access_token)
     adminPassword = newAdminPassword
 
@@ -53,24 +65,18 @@ describe('Browser Admin Dashboard', () => {
   })
 
   test('admin can access admin dashboard', async () => {
-    await loginAsUser(adminLoginId, adminPassword)
-    await navigateTo('/admin')
-    await waitForText('관리자 대시보드', 20000)
+    await openAdminDashboard()
   }, 60000)
 
   test('user management tab shows users', async () => {
-    await loginAsUser(adminLoginId, adminPassword)
-    await navigateTo('/admin')
-    await waitForText('관리자 대시보드', 20000)
+    await openAdminDashboard()
     await waitForText('사용자 관리', 10000)
     const snapshot = await takeSnapshot()
     expect(snapshot).toContain(NORMAL_USER.name)
   }, 60000)
 
   test('tab switching between management panels', async () => {
-    await loginAsUser(adminLoginId, adminPassword)
-    await navigateTo('/admin')
-    await waitForText('관리자 대시보드', 20000)
+    await openAdminDashboard()
 
     // Switch to project management
     await clickByPattern(/프로젝트 관리/)

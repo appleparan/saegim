@@ -59,8 +59,10 @@ class AuthStore {
     // Migrate: remove any legacy localStorage token
     localStorage.removeItem('saegim_auth_token')
 
+    const tokenBeforeInit = this.token
     const success = await this.refreshToken()
-    if (!success) {
+    // Preserve token if login completed while initialize() was awaiting refresh.
+    if (!success && this.token === tokenBeforeInit) {
       this.token = null
     }
     this.isInitialized = true
