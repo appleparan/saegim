@@ -1,9 +1,12 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { annotationStore } from '$lib/stores/annotation.svelte'
+  import { autosaveStore } from '$lib/stores/autosave.svelte'
   import { authStore } from '$lib/stores/auth.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
+  import { Switch } from '$lib/components/ui/switch'
   import ClipboardList from '@lucide/svelte/icons/clipboard-list'
+  import Loader from '@lucide/svelte/icons/loader'
   import LogOut from '@lucide/svelte/icons/log-out'
   import Shield from '@lucide/svelte/icons/shield'
   import User from '@lucide/svelte/icons/user'
@@ -18,6 +21,7 @@
   interface Props {
     title?: string
     showSave?: boolean
+    showAutoSave?: boolean
     onsave?: () => void
     saving?: boolean
     showShortcutHelp?: boolean
@@ -27,11 +31,16 @@
   let {
     title = 'saegim',
     showSave = false,
+    showAutoSave = false,
     onsave,
     saving = false,
     showShortcutHelp = false,
     shortcutHelpOpen = $bindable(false),
   }: Props = $props()
+
+  function formatTime(date: Date): string {
+    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  }
 </script>
 
 <header class="flex h-12 shrink-0 items-center bg-zinc-900 px-4 shadow-sm dark:bg-zinc-950">
@@ -44,6 +53,25 @@
   <div class="flex-1"></div>
 
   <div class="flex items-center gap-3">
+    {#if showAutoSave}
+      <div class="flex items-center gap-2">
+        <label class="flex cursor-pointer items-center gap-1.5">
+          <span class="text-xs font-medium text-white/70">자동 저장</span>
+          <Switch
+            checked={autosaveStore.enabled}
+            onCheckedChange={(checked) => autosaveStore.setEnabled(checked)}
+          />
+        </label>
+        {#if autosaveStore.enabled && autosaveStore.isSaving}
+          <Loader class="size-3.5 animate-spin text-white/50" />
+        {/if}
+        {#if autosaveStore.enabled && autosaveStore.lastSavedAt && !autosaveStore.isSaving}
+          <span class="text-[11px] text-white/40">{formatTime(autosaveStore.lastSavedAt)}</span>
+        {/if}
+      </div>
+      <div class="mx-1 h-5 w-px bg-white/20"></div>
+    {/if}
+
     {#if annotationStore.isDirty}
       <span
         class="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300"
