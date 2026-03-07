@@ -11,7 +11,7 @@ from typing import Any
 
 import asyncpg
 
-from saegim.repositories import page_repo, project_repo
+from saegim.repositories import document_repo, page_repo, project_repo
 
 
 def sanitize_filename(name: str) -> str:
@@ -160,6 +160,76 @@ async def export_project_zip(
         annos_json = json.dumps(
             {
                 'project_name': project['name'],
+                'total_pages': len(annos_data),
+                'data': annos_data,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        zf.writestr('annos.json', annos_json)
+
+    return (buf.getvalue(), zip_filename)
+
+
+async def export_document_zip(
+    pool: asyncpg.Pool,
+    project_id: uuid.UUID,
+    document_id: uuid.UUID,
+) -> tuple[bytes, str] | None:
+    """Export a single document as an OmniDocBench-compatible ZIP archive.
+
+    Args:
+        pool: Database connection pool.
+        project_id: Parent project UUID (for validation).
+        document_id: Document UUID.
+
+    Returns:
+        Tuple of (zip_bytes, zip_filename) or None if not found.
+    """
+    doc = await document_repo.get_by_id(pool, document_id)
+    if doc is None or doc['project_id'] != project_id:
+        return None
+
+    pages = await page_repo.list_by_document_for_export(pool, document_id)
+
+    doc_dir = _document_dir_name(doc['filename'])
+    timestamp = datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')
+    zip_filename = f'{doc_dir}_{timestamp}.zip'
+
+    buf = io.BytesIO()
+    annos_data: list[dict[str, Any]] = []
+
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for page in pages:
+            annotation = page['annotation_data']
+            if isinstance(annotation, str):
+                annotation = json.loads(annotation)
+            annotation = annotation or {}
+
+            page_attribute = annotation.pop('page_attribute', {})
+
+            image_name = f'page_{page["page_no"]:03d}.png'
+            relative_image_path = f'images/{doc_dir}/{image_name}'
+
+            source_path = Path(page['image_path'])
+            if source_path.exists():
+                zf.write(str(source_path), relative_image_path)
+
+            entry = {
+                **annotation,
+                'page_info': {
+                    'page_no': page['page_no'],
+                    'height': page['height'],
+                    'width': page['width'],
+                    'image_path': relative_image_path,
+                    'page_attribute': page_attribute,
+                },
+            }
+            annos_data.append(entry)
+
+        annos_json = json.dumps(
+            {
+                'document_name': doc['filename'],
                 'total_pages': len(annos_data),
                 'data': annos_data,
             },

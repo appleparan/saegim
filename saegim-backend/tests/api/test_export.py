@@ -127,3 +127,32 @@ class TestExportEndpoints:
             )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_export_document_zip(self, client: TestClient):
+        zip_data = (b'PK\x03\x04fake-zip', 'report_20260307_120000.zip')
+        with patch(
+            'saegim.services.export_service.export_document_zip',
+            new_callable=AsyncMock,
+            return_value=zip_data,
+        ):
+            response = client.get(
+                '/api/v1/projects/00000000-0000-0000-0000-000000000001'
+                '/documents/00000000-0000-0000-0000-000000000002/export/zip'
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers['content-type'] == 'application/zip'
+        assert 'report_20260307_120000.zip' in response.headers['content-disposition']
+
+    def test_export_document_zip_not_found(self, client: TestClient):
+        with patch(
+            'saegim.services.export_service.export_document_zip',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.get(
+                '/api/v1/projects/00000000-0000-0000-0000-000000000001'
+                '/documents/00000000-0000-0000-0000-000000000099/export/zip'
+            )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND

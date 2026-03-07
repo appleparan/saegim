@@ -444,3 +444,66 @@ class TestExportProjectZip:
             assert 'images/paper_a/page_001.png' in names
             assert 'images/paper_b/page_001.png' in names
             assert 'annos.json' in names
+
+
+class TestExportDocumentZip:
+    @pytest.mark.asyncio
+    async def test_returns_none_when_document_not_found(self, mock_pool, project_id):
+        doc_id = uuid.uuid4()
+        with patch.object(export_service, 'document_repo') as mock_doc:
+            mock_doc.get_by_id = AsyncMock(return_value=None)
+            result = await export_service.export_document_zip(mock_pool, project_id, doc_id)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_document_not_in_project(self, mock_pool, project_id):
+        doc_id = uuid.uuid4()
+        other_project = uuid.uuid4()
+        doc = {'id': doc_id, 'project_id': other_project, 'filename': 'test.pdf'}
+
+        with patch.object(export_service, 'document_repo') as mock_doc:
+            mock_doc.get_by_id = AsyncMock(return_value=doc)
+            result = await export_service.export_document_zip(mock_pool, project_id, doc_id)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_exports_document_zip(self, mock_pool, project_id, tmp_path):
+        doc_id = uuid.uuid4()
+        doc = {'id': doc_id, 'project_id': project_id, 'filename': 'report.pdf'}
+
+        img = tmp_path / 'p1.png'
+        img.write_bytes(b'image-data')
+
+        page = {
+            'page_no': 1,
+            'width': 800,
+            'height': 1000,
+            'image_path': str(img),
+            'annotation_data': {
+                'layout_dets': [{'anno_id': 0, 'category_type': 'title'}],
+                'page_attribute': {'language': 'en'},
+            },
+        }
+
+        with (
+            patch.object(export_service, 'document_repo') as mock_doc,
+            patch.object(export_service, 'page_repo') as mock_page,
+        ):
+            mock_doc.get_by_id = AsyncMock(return_value=doc)
+            mock_page.list_by_document_for_export = AsyncMock(return_value=[page])
+            result = await export_service.export_document_zip(mock_pool, project_id, doc_id)
+
+        assert result is not None
+        zip_bytes, zip_filename = result
+        assert zip_filename.startswith('report_')
+        assert zip_filename.endswith('.zip')
+
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            names = zf.namelist()
+            assert 'images/report/page_001.png' in names
+            assert 'annos.json' in names
+            annos = json.loads(zf.read('annos.json'))
+            assert annos['document_name'] == 'report.pdf'
+            assert annos['total_pages'] == 1

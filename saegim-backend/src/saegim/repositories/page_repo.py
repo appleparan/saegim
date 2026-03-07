@@ -118,6 +118,29 @@ async def list_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> list[a
     )
 
 
+async def list_by_document_for_export(
+    pool: asyncpg.Pool,
+    document_id: uuid.UUID,
+) -> list[asyncpg.Record]:
+    """List all pages for a document with annotation data (for export).
+
+    Args:
+        pool: Database connection pool.
+        document_id: Parent document UUID.
+
+    Returns:
+        list[asyncpg.Record]: Pages with full annotation and image data.
+    """
+    return await pool.fetch(
+        """
+        SELECT id, page_no, width, height, image_path, annotation_data
+        FROM pages WHERE document_id = $1
+        ORDER BY page_no
+        """,
+        document_id,
+    )
+
+
 async def list_for_extraction(
     pool: asyncpg.Pool,
     document_id: uuid.UUID,

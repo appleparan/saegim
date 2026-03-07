@@ -67,3 +67,34 @@ async def export_project_zip(
         media_type='application/zip',
         headers={'Content-Disposition': f'attachment; filename="{zip_filename}"'},
     )
+
+
+@router.get('/projects/{project_id}/documents/{document_id}/export/zip')
+async def export_document_zip(
+    project_id: uuid.UUID,
+    document_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> Response:
+    """Export a single document as an OmniDocBench ZIP archive.
+
+    Args:
+        project_id: Parent project UUID.
+        document_id: Document UUID.
+
+    Returns:
+        Response: ZIP file download.
+
+    Raises:
+        HTTPException: If document not found or not in project.
+    """
+    pool = get_pool()
+    result = await export_service.export_document_zip(pool, project_id, document_id)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Document not found')
+
+    zip_bytes, zip_filename = result
+    return Response(
+        content=zip_bytes,
+        media_type='application/zip',
+        headers={'Content-Disposition': f'attachment; filename="{zip_filename}"'},
+    )
