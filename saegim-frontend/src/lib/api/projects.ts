@@ -7,6 +7,7 @@ import type {
   AddProjectMemberRequest,
   ProjectResponse,
   ProjectMemberResponse,
+  ProjectProgressResponse,
   CreateProjectRequest,
   AvailableEnginesResponse,
   DefaultEngineUpdate,
@@ -81,6 +82,12 @@ export async function testEngineConnection(
 
 export async function getAvailableEngines(projectId: string): Promise<AvailableEnginesResponse> {
   return api.get<AvailableEnginesResponse>(`/api/v1/projects/${projectId}/available-engines`)
+}
+
+// --- Progress Board ---
+
+export async function getProjectProgress(projectId: string): Promise<ProjectProgressResponse> {
+  return api.get<ProjectProgressResponse>(`/api/v1/projects/${projectId}/progress`)
 }
 
 // --- Project Members ---
