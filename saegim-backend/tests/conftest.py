@@ -26,6 +26,9 @@ def test_settings() -> Settings:
         max_workers=1,
         database_url='postgresql://test:test@localhost:5432/test',
         storage_path='./test_storage',
+        secret_key='test-secret-key-for-testing-only-32chars',
+        jwt_algorithm='HS256',
+        access_token_expire_minutes=60,
     )
 
 

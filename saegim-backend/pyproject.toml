@@ -23,6 +23,8 @@ dependencies = [
     "pypdfium2~=5.5.0",
     "python-multipart~=0.0.22",
     "transformers>=5.2.0",
+    "pyjwt>=2.11.0",
+    "bcrypt>=5.0.0",
 ]
 requires-python = ">=3.12, <4.0"
 keywords = [
@@ -336,6 +338,8 @@ max-complexity = 18
     "D103",
     "D104",
     "S101",
+    "S105",
+    "S106",
     "S108",
 ]
 "configs/**.py" = [

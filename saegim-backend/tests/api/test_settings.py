@@ -106,6 +106,36 @@ DATABASE_URL=postgresql://test:test@localhost:5432/test
         assert settings.db_pool_min_size == 5
         assert settings.db_pool_max_size == 20
 
+    def test_jwt_settings_defaults(self):
+        """Test JWT settings have sensible defaults."""
+        settings = Settings()
+
+        assert settings.jwt_algorithm == 'HS256'
+        assert settings.access_token_expire_minutes == 1440
+        assert len(settings.secret_key) == 64  # hex of 32 bytes
+
+    def test_jwt_settings_from_env_vars(self, monkeypatch):
+        """Test JWT settings loaded from environment variables.
+
+        Args:
+            monkeypatch: Pytest monkeypatch fixture.
+        """
+        monkeypatch.setenv('SECRET_KEY', 'my-test-secret-key')
+        monkeypatch.setenv('JWT_ALGORITHM', 'HS256')
+        monkeypatch.setenv('ACCESS_TOKEN_EXPIRE_MINUTES', '30')
+
+        settings = Settings()
+
+        assert settings.secret_key == 'my-test-secret-key'
+        assert settings.jwt_algorithm == 'HS256'
+        assert settings.access_token_expire_minutes == 30
+
+    def test_secret_key_unique_per_instance(self):
+        """Test that secret_key generates a unique value each time."""
+        settings1 = Settings()
+        settings2 = Settings()
+        assert settings1.secret_key != settings2.secret_key
+
     def test_settings_field_descriptions(self):
         """Test that all fields have proper descriptions."""
         settings = Settings()

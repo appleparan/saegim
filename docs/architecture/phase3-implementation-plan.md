@@ -23,10 +23,8 @@ PR 1 (Backend Auth)
 
 ### 범위
 
-- `uv add pyjwt passlib[bcrypt]`
-- DB 마이그레이션 `002_multi_user.sql`
-  - `ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)`
-  - `CREATE TABLE project_members`
+- `uv add pyjwt bcrypt`
+- `001_init.sql`에 `password_hash` 컬럼과 `project_members` 테이블 통합 (DB 새로 생성)
 - `schemas/auth.py`: LoginRequest, RegisterRequest, TokenResponse
 - `repositories/user_repo.py` 확장: `get_by_email()`, password hash 처리
 - `api/routes/auth.py`: `POST /auth/register`, `POST /auth/login`
@@ -39,11 +37,11 @@ PR 1 (Backend Auth)
 
 ### 테스트
 
-- [ ] 회원가입 (최초 유저 → admin, 이후 유저 → annotator)
-- [ ] 로그인 → JWT 발급 → 토큰 디코딩 검증
-- [ ] 잘못된 비밀번호 → 401
-- [ ] `get_current_user` dependency 동작 확인
-- [ ] admin API 권한 검증 (non-admin → 403)
+- [x] 회원가입 (최초 유저 → admin, 이후 유저 → annotator)
+- [x] 로그인 → JWT 발급 → 토큰 디코딩 검증
+- [x] 잘못된 비밀번호 → 401
+- [x] `get_current_user` dependency 동작 확인
+- [x] admin API 권한 검증 (non-admin → 403)
 
 ## PR 2: Frontend 로그인 + Auth Guard (3-A 프론트엔드)
 

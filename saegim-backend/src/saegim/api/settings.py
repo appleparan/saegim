@@ -1,5 +1,6 @@
 """Application settings using Pydantic Settings."""
 
+import secrets
 from functools import lru_cache
 
 from pydantic import Field
@@ -41,6 +42,16 @@ class Settings(BaseSettings):
 
     # Server Settings
     max_workers: int = Field(default=1, description='Maximum number of workers')
+
+    # JWT Settings
+    secret_key: str = Field(
+        default_factory=lambda: secrets.token_hex(32),
+        description='Secret key for JWT signing',
+    )
+    jwt_algorithm: str = Field(default='HS256', description='JWT signing algorithm')
+    access_token_expire_minutes: int = Field(
+        default=1440, description='Access token expiry in minutes (default 24h)'
+    )
 
     # OCR API Keys (optional, pre-filled in UI when available)
     gemini_api_key: str = Field(default='', description='Gemini API key from environment')

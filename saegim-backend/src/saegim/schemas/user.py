@@ -23,6 +23,12 @@ class UserCreate(BaseModel):
     role: UserRole = Field(default=UserRole.ANNOTATOR)
 
 
+class UserUpdate(BaseModel):
+    """Schema for admin user update (role change)."""
+
+    role: UserRole | None = None
+
+
 class UserResponse(BaseModel):
     """Schema for user response."""
 
