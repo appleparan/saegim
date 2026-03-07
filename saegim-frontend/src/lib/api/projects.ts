@@ -103,7 +103,7 @@ export async function updateProjectMemberRole(
   userId: string,
   data: UpdateProjectMemberRequest,
 ): Promise<ProjectMemberResponse> {
-  return api.put<ProjectMemberResponse>(`/api/v1/projects/${projectId}/members/${userId}`, data)
+  return api.patch<ProjectMemberResponse>(`/api/v1/projects/${projectId}/members/${userId}`, data)
 }
 
 export async function removeProjectMember(projectId: string, userId: string): Promise<void> {
