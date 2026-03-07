@@ -2,7 +2,7 @@
 **Goal**: 로그인 직후 `authStore.initialize()`가 토큰을 덮어쓰는 레이스를 제거한다.
 **Success Criteria**: 초기화/로그인 동시 상황에서도 `authStore.token`이 유효 토큰으로 유지되고 강제 로그아웃이 발생하지 않는다.
 **Tests**: `saegim-frontend/tests/lib/stores/auth.test.ts`에 레이스 회귀 테스트 추가 후 통과.
-**Status**: In Progress
+**Status**: Complete
 
 ## Stage 2: Admin Dashboard E2E Stabilization
 **Goal**: admin-dashboard 브라우저 E2E가 기본 admin 계정 상태(`must_change_password`)에 의존하지 않도록 보강한다.
