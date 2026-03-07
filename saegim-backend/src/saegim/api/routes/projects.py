@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from saegim.api.deps import get_current_user
 from saegim.core.database import get_pool
-from saegim.repositories import document_repo, project_repo
+from saegim.repositories import document_repo, project_member_repo, project_repo, user_repo
 from saegim.schemas.project import (
     AvailableEngine,
     AvailableEnginesResponse,
@@ -22,6 +22,11 @@ from saegim.schemas.project import (
     ProjectCreate,
     ProjectResponse,
     generate_engine_id,
+)
+from saegim.schemas.project_member import (
+    ProjectMemberCreate,
+    ProjectMemberResponse,
+    ProjectMemberRoleUpdate,
 )
 from saegim.schemas.user import UserResponse
 
@@ -111,6 +116,178 @@ async def delete_project(
         await document_service.delete_with_files(pool, doc['id'])
 
     await project_repo.delete(pool, project_id)
+
+
+# --- Project Members ---
+
+
+async def _require_owner_or_admin(
+    pool: asyncpg.Pool,
+    project_id: uuid.UUID,
+    current_user: UserResponse,
+) -> None:
+    """Check that user is project owner or system admin.
+
+    Args:
+        pool: Database connection pool.
+        project_id: Project UUID.
+        current_user: Authenticated user.
+
+    Raises:
+        HTTPException: 403 if user is neither owner nor admin.
+    """
+    if current_user.role == 'admin':
+        return
+    member_role = await project_member_repo.get_role(pool, project_id, current_user.id)
+    if member_role != 'owner':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Only project owner or admin can manage members',
+        )
+
+
+@router.get(
+    '/projects/{project_id}/members',
+    response_model=list[ProjectMemberResponse],
+)
+async def list_members(
+    project_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> list[ProjectMemberResponse]:
+    """List all members of a project.
+
+    Args:
+        project_id: Project UUID.
+        current_user: Authenticated user (injected).
+
+    Returns:
+        list[ProjectMemberResponse]: Project members.
+
+    Raises:
+        HTTPException: If project not found or user is not a member.
+    """
+    pool = get_pool()
+    project = await project_repo.get_by_id(pool, project_id)
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+
+    # Admin can view any project's members
+    if current_user.role != 'admin':
+        member_role = await project_member_repo.get_role(pool, project_id, current_user.id)
+        if member_role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Not a project member',
+            )
+
+    records = await project_member_repo.list_by_project(pool, project_id)
+    return [ProjectMemberResponse.model_validate(dict(r)) for r in records]
+
+
+@router.post(
+    '/projects/{project_id}/members',
+    response_model=ProjectMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_member(
+    project_id: uuid.UUID,
+    body: ProjectMemberCreate,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> ProjectMemberResponse:
+    """Add a member to a project.
+
+    Args:
+        project_id: Project UUID.
+        body: Member creation data (user_id, role).
+        current_user: Authenticated user (injected).
+
+    Returns:
+        ProjectMemberResponse: Created member.
+
+    Raises:
+        HTTPException: If not authorized, project/user not found, or duplicate.
+    """
+    pool = get_pool()
+    project = await project_repo.get_by_id(pool, project_id)
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
+
+    await _require_owner_or_admin(pool, project_id, current_user)
+
+    target_user = await user_repo.get_by_id(pool, body.user_id)
+    if target_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+
+    try:
+        record = await project_member_repo.add(pool, project_id, body.user_id, str(body.role))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='User is already a member of this project',
+        ) from exc
+
+    return ProjectMemberResponse.model_validate(dict(record))
+
+
+@router.patch(
+    '/projects/{project_id}/members/{user_id}',
+    response_model=ProjectMemberResponse,
+)
+async def update_member_role(
+    project_id: uuid.UUID,
+    user_id: uuid.UUID,
+    body: ProjectMemberRoleUpdate,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> ProjectMemberResponse:
+    """Update a member's role in a project.
+
+    Args:
+        project_id: Project UUID.
+        user_id: Target user UUID.
+        body: New role.
+        current_user: Authenticated user (injected).
+
+    Returns:
+        ProjectMemberResponse: Updated member.
+
+    Raises:
+        HTTPException: If not authorized or member not found.
+    """
+    pool = get_pool()
+    await _require_owner_or_admin(pool, project_id, current_user)
+
+    record = await project_member_repo.update_role(pool, project_id, user_id, str(body.role))
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Member not found')
+
+    return ProjectMemberResponse.model_validate(dict(record))
+
+
+@router.delete(
+    '/projects/{project_id}/members/{user_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_member(
+    project_id: uuid.UUID,
+    user_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> None:
+    """Remove a member from a project.
+
+    Args:
+        project_id: Project UUID.
+        user_id: Target user UUID.
+        current_user: Authenticated user (injected).
+
+    Raises:
+        HTTPException: If not authorized or member not found.
+    """
+    pool = get_pool()
+    await _require_owner_or_admin(pool, project_id, current_user)
+
+    removed = await project_member_repo.remove(pool, project_id, user_id)
+    if not removed:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Member not found')
 
 
 # --- OCR Config ---
