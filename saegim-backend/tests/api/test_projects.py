@@ -37,7 +37,7 @@ class TestProjectEndpoints:
 
     def test_list_projects(self, client: TestClient, sample_project_record):
         with patch(
-            'saegim.repositories.project_repo.list_all',
+            'saegim.repositories.project_member_repo.list_projects_for_user',
             new_callable=AsyncMock,
             return_value=[sample_project_record],
         ):
@@ -51,7 +51,7 @@ class TestProjectEndpoints:
 
     def test_list_projects_empty(self, client: TestClient):
         with patch(
-            'saegim.repositories.project_repo.list_all',
+            'saegim.repositories.project_member_repo.list_projects_for_user',
             new_callable=AsyncMock,
             return_value=[],
         ):

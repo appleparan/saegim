@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import get_pool
-from saegim.repositories import user_repo
+from saegim.repositories import project_member_repo, user_repo
 from saegim.schemas.user import UserResponse
 
 logger = logging.getLogger(__name__)
@@ -139,5 +139,36 @@ async def require_admin(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Admin access required',
+        )
+    return current_user
+
+
+async def require_project_member(
+    project_id: uuid.UUID,
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> UserResponse:
+    """Require the user to be a member of the project.
+
+    Admin users bypass this check entirely.
+
+    Args:
+        project_id: Project UUID from path parameter.
+        current_user: Current authenticated user.
+
+    Returns:
+        UserResponse: Authorized user.
+
+    Raises:
+        HTTPException: 403 if user is not a project member and not admin.
+    """
+    if current_user.role == 'admin':
+        return current_user
+
+    pool = get_pool()
+    member_role = await project_member_repo.get_role(pool, project_id, current_user.id)
+    if member_role is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Not a project member',
         )
     return current_user

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from saegim.api.deps import get_current_user
+from saegim.api.deps import get_current_user, require_project_member
 from saegim.api.settings import Settings, get_settings
 from saegim.schemas.user import UserResponse
 
@@ -83,6 +83,7 @@ def app(test_settings: Settings, mock_pool):
             created_at=datetime.datetime.now(tz=datetime.UTC),
         )
         app.dependency_overrides[get_current_user] = lambda: mock_user
+        app.dependency_overrides[require_project_member] = lambda: mock_user
 
         yield app
 

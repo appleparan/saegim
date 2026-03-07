@@ -9,14 +9,15 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from saegim.api.deps import create_access_token, get_current_user
+from saegim.api.deps import create_access_token, get_current_user, require_project_member
 from saegim.api.settings import Settings
 
 
 @pytest.fixture(autouse=True)
 def _clear_auth_override(app):
-    """Remove global get_current_user override for member tests."""
+    """Remove global auth overrides for member tests."""
     app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.pop(require_project_member, None)
     return
 
 

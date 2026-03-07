@@ -6,7 +6,7 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from saegim.api.deps import get_current_user
+from saegim.api.deps import get_current_user, require_project_member
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_member_repo, project_repo, user_repo
 from saegim.schemas.project import (
@@ -56,24 +56,34 @@ async def create_project(
 
 @router.get('/projects', response_model=list[ProjectResponse])
 async def list_projects(
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> list[ProjectResponse]:
-    """List all projects.
+    """List projects accessible to the current user.
+
+    Admin users see all projects. Other users see only projects they are a member of.
+
+    Args:
+        current_user: Authenticated user (injected).
 
     Returns:
-        list[ProjectResponse]: All projects.
+        list[ProjectResponse]: Accessible projects.
     """
     pool = get_pool()
-    records = await project_repo.list_all(pool)
+    if current_user.role == 'admin':
+        records = await project_repo.list_all(pool)
+    else:
+        records = await project_member_repo.list_projects_for_user(pool, current_user.id)
     return [ProjectResponse.model_validate(dict(r)) for r in records]
 
 
 @router.get('/projects/{project_id}', response_model=ProjectResponse)
 async def get_project(
     project_id: uuid.UUID,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> ProjectResponse:
     """Get a project by ID.
+
+    Requires project membership or admin role.
 
     Args:
         project_id: Project UUID.
@@ -82,7 +92,7 @@ async def get_project(
         ProjectResponse: Project data.
 
     Raises:
-        HTTPException: If project not found.
+        HTTPException: If project not found or not a member.
     """
     pool = get_pool()
     record = await project_repo.get_by_id(pool, project_id)
@@ -94,17 +104,22 @@ async def get_project(
 @router.delete('/projects/{project_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: uuid.UUID,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> None:
     """Delete a project and all associated data.
 
+    Requires project owner or admin role.
+
     Args:
         project_id: Project UUID.
+        current_user: Authenticated project member (injected).
 
     Raises:
-        HTTPException: If project not found.
+        HTTPException: If project not found or not owner/admin.
     """
     pool = get_pool()
+    await _require_owner_or_admin(pool, project_id, current_user)
+
     project = await project_repo.get_by_id(pool, project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Project not found')
@@ -315,7 +330,7 @@ async def _get_config_or_404(pool: asyncpg.Pool, project_id: uuid.UUID) -> dict[
 @router.get('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
 async def get_ocr_config(
     project_id: uuid.UUID,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> OcrConfigResponse:
     """Get a project's OCR configuration.
 
@@ -353,7 +368,7 @@ async def get_ocr_config(
 async def add_engine(
     project_id: uuid.UUID,
     body: EngineInstanceCreate,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> OcrConfigResponse:
     """Register a new engine instance.
 
@@ -411,7 +426,7 @@ async def update_engine(
     project_id: uuid.UUID,
     engine_id: str,
     body: EngineInstanceUpdate,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> OcrConfigResponse:
     """Update an existing engine instance.
 
@@ -468,7 +483,7 @@ async def update_engine(
 async def delete_engine(
     project_id: uuid.UUID,
     engine_id: str,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> OcrConfigResponse:
     """Delete an engine instance.
 
@@ -523,7 +538,7 @@ async def delete_engine(
 async def set_default_engine(
     project_id: uuid.UUID,
     body: DefaultEngineUpdate,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> OcrConfigResponse:
     """Set the default OCR engine for full-page extraction.
 
@@ -569,7 +584,7 @@ async def set_default_engine(
 async def test_engine_connection(
     project_id: uuid.UUID,
     body: OcrConnectionTestRequest,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008, PT019, PT028
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008, PT019, PT028
 ) -> OcrConnectionTestResponse:
     """Test a specific engine's connection.
 
@@ -614,7 +629,7 @@ async def test_engine_connection(
 )
 async def get_available_engines(
     project_id: uuid.UUID,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
 ) -> AvailableEnginesResponse:
     """Get list of engines available for per-element text extraction.
 
