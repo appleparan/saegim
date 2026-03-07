@@ -126,7 +126,7 @@ DATABASE_URL=postgresql://test:test@localhost:5432/test
 
         settings = Settings()
 
-        assert settings.secret_key == 'my-test-secret-key'  # noqa: S105
+        assert settings.secret_key == 'my-test-secret-key'
         assert settings.jwt_algorithm == 'HS256'
         assert settings.access_token_expire_minutes == 30
 
