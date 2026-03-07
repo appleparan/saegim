@@ -3,7 +3,13 @@
 import pytest
 from pydantic import ValidationError
 
-from saegim.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from saegim.schemas.auth import (
+    CredentialUpdateRequest,
+    LoginIdCheckResponse,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+)
 
 
 class TestRegisterRequest:
@@ -54,3 +60,36 @@ class TestTokenResponse:
     def test_custom_token_type(self):
         token = TokenResponse(access_token='abc', token_type='mac')
         assert token.token_type == 'mac'
+
+
+class TestLoginIdCheckResponse:
+    """Test cases for LoginIdCheckResponse schema."""
+
+    def test_valid_response(self):
+        payload = LoginIdCheckResponse(login_id='testuser', available=True)
+        assert payload.login_id == 'testuser'
+        assert payload.available is True
+
+
+class TestCredentialUpdateRequest:
+    """Test cases for CredentialUpdateRequest schema."""
+
+    def test_valid_with_login_id(self):
+        req = CredentialUpdateRequest(current_password='oldpassword', login_id='newid')
+        assert req.login_id == 'newid'
+
+    def test_valid_with_email(self):
+        req = CredentialUpdateRequest(current_password='oldpassword', email='new@example.com')
+        assert str(req.email) == 'new@example.com'
+
+    def test_valid_with_new_password(self):
+        req = CredentialUpdateRequest(current_password='oldpassword', new_password='newpassword123')
+        assert req.new_password == 'newpassword123'
+
+    def test_requires_at_least_one_target_field(self):
+        with pytest.raises(ValidationError):
+            CredentialUpdateRequest(current_password='oldpassword')
+
+    def test_invalid_email(self):
+        with pytest.raises(ValidationError):
+            CredentialUpdateRequest(current_password='oldpassword', email='invalid')
