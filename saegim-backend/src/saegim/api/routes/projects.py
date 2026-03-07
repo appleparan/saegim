@@ -1,5 +1,6 @@
 """Project management and OCR engine configuration endpoints."""
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -8,7 +9,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from saegim.api.deps import get_current_user, require_project_member
 from saegim.core.database import get_pool
-from saegim.repositories import document_repo, project_member_repo, project_repo, user_repo
+from saegim.repositories import (
+    document_repo,
+    progress_repo,
+    project_member_repo,
+    project_repo,
+    user_repo,
+)
+from saegim.schemas.progress import (
+    DocumentProgress,
+    MemberActivity,
+    ProjectProgressResponse,
+    StatusBreakdown,
+)
 from saegim.schemas.project import (
     AvailableEngine,
     AvailableEnginesResponse,
@@ -666,3 +679,86 @@ async def get_available_engines(
         )
 
     return AvailableEnginesResponse(engines=engines)
+
+
+# --- Progress Board ---
+
+
+@router.get(
+    '/projects/{project_id}/progress',
+    response_model=ProjectProgressResponse,
+)
+async def get_project_progress(
+    project_id: uuid.UUID,
+    _current_user: UserResponse = Depends(require_project_member),  # noqa: B008
+) -> ProjectProgressResponse:
+    """Get project progress board data.
+
+    Requires project membership or admin role.
+
+    Args:
+        project_id: Project UUID.
+
+    Returns:
+        ProjectProgressResponse: Overall progress, per-document, per-member stats.
+    """
+    pool = get_pool()
+
+    summary_record, doc_records, member_records = await asyncio.gather(
+        progress_repo.get_project_status_summary(pool, project_id),
+        progress_repo.get_document_progress(pool, project_id),
+        progress_repo.get_member_activity(pool, project_id),
+    )
+
+    summary = dict(summary_record)
+    total = summary['total_pages']
+    reviewed = summary['reviewed']
+    completion_rate = round(reviewed / total * 100, 1) if total > 0 else 0.0
+
+    status_breakdown = StatusBreakdown(
+        pending=summary['pending'],
+        in_progress=summary['in_progress'],
+        submitted=summary['submitted'],
+        reviewed=reviewed,
+    )
+
+    documents = []
+    for r in doc_records:
+        row = dict(r)
+        doc_total = row['total_pages']
+        doc_reviewed = row['reviewed']
+        documents.append(
+            DocumentProgress(
+                document_id=row['document_id'],
+                filename=row['filename'],
+                total_pages=doc_total,
+                status_counts=StatusBreakdown(
+                    pending=row['pending'],
+                    in_progress=row['in_progress'],
+                    submitted=row['submitted'],
+                    reviewed=doc_reviewed,
+                ),
+                completion_rate=round(doc_reviewed / doc_total * 100, 1) if doc_total > 0 else 0.0,
+            )
+        )
+
+    members = [
+        MemberActivity(
+            user_id=row['user_id'],
+            user_name=row['user_name'],
+            role=row['role'],
+            assigned_pages=row['assigned_pages'],
+            in_progress_pages=row['in_progress_pages'],
+            submitted_pages=row['submitted_pages'],
+            reviewed_pages=row['reviewed_pages'],
+        )
+        for row in (dict(r) for r in member_records)
+    ]
+
+    return ProjectProgressResponse(
+        total_pages=total,
+        completion_rate=completion_rate,
+        status_breakdown=status_breakdown,
+        documents=documents,
+        members=members,
+    )
