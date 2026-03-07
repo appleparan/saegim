@@ -360,6 +360,51 @@ export async function exportProject(
   return { data, duration }
 }
 
+export async function exportProjectZip(
+  projectId: string,
+): Promise<{ blob: Blob; filename: string; status: number; duration: number }> {
+  const url = `${API_URL}/projects/${projectId}/export/zip`
+  const start = performance.now()
+  const headers: Record<string, string> = {}
+  if (_authToken) {
+    headers['Authorization'] = `Bearer ${_authToken}`
+  }
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal: AbortSignal.timeout(TIMEOUT),
+  })
+  const duration = performance.now() - start
+  const blob = await response.blob()
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const match = disposition.match(/filename="(.+)"/)
+  const filename = match?.[1] ?? 'export.zip'
+  return { blob, filename, status: response.status, duration }
+}
+
+export async function exportDocumentZip(
+  projectId: string,
+  documentId: string,
+): Promise<{ blob: Blob; filename: string; status: number; duration: number }> {
+  const url = `${API_URL}/projects/${projectId}/documents/${documentId}/export/zip`
+  const start = performance.now()
+  const headers: Record<string, string> = {}
+  if (_authToken) {
+    headers['Authorization'] = `Bearer ${_authToken}`
+  }
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal: AbortSignal.timeout(TIMEOUT),
+  })
+  const duration = performance.now() - start
+  const blob = await response.blob()
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const match = disposition.match(/filename="(.+)"/)
+  const filename = match?.[1] ?? 'export.zip'
+  return { blob, filename, status: response.status, duration }
+}
+
 export async function getOcrConfig(
   projectId: string,
 ): Promise<{ data: OcrConfigResponse; status: number; duration: number }> {

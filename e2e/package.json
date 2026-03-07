@@ -25,6 +25,7 @@
     "test:reading-order": "bunx vitest run reading-order",
     "test:re-extract": "bunx vitest run re-extract",
     "test:relations": "bunx vitest run relations",
+    "test:export-zip": "bunx vitest run export-zip",
     "test:gpu": "bunx vitest run --config vitest.gpu.config.ts",
     "docker:up": "docker compose -f docker-compose.e2e.yml up -d --build",
     "docker:down": "docker compose -f docker-compose.e2e.yml down -v",
