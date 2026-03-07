@@ -500,7 +500,7 @@ class TestUpdateMyCredentialsEndpoint:
                 return_value=updated_record,
             ) as mock_update,
             patch(
-                'saegim.repositories.refresh_token_repo.revoke_all_for_user',
+                'saegim.repositories.refresh_token_repo.delete_all_for_user',
                 new_callable=AsyncMock,
             ) as mock_revoke_all,
             patch(

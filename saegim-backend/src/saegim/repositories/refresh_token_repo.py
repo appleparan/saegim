@@ -87,15 +87,18 @@ async def revoke_family(pool: asyncpg.Pool, family_id: uuid.UUID) -> None:
     )
 
 
-async def revoke_all_for_user(pool: asyncpg.Pool, user_id: uuid.UUID) -> None:
-    """Revoke all refresh tokens for a user.
+async def delete_all_for_user(pool: asyncpg.Pool, user_id: uuid.UUID) -> None:
+    """Delete all refresh tokens for a user (hard invalidation).
+
+    Unlike soft-revoke, this bypasses the grace period so that
+    password changes immediately invalidate every session.
 
     Args:
         pool: Database connection pool.
-        user_id: User UUID whose tokens should be revoked.
+        user_id: User UUID whose tokens should be deleted.
     """
     await pool.execute(
-        'UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL',
+        'DELETE FROM refresh_tokens WHERE user_id = $1',
         user_id,
     )
 

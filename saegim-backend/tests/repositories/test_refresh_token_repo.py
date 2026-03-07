@@ -90,15 +90,15 @@ class TestRefreshTokenRepoRevokeFamily:
         assert call_args[1] == family_id
 
 
-class TestRefreshTokenRepoRevokeAllForUser:
+class TestRefreshTokenRepoDeleteAllForUser:
     @pytest.mark.asyncio
-    async def test_revoke_all_for_user(self, mock_pool):
+    async def test_delete_all_for_user(self, mock_pool):
         user_id = uuid.uuid4()
-        await refresh_token_repo.revoke_all_for_user(mock_pool, user_id)
+        await refresh_token_repo.delete_all_for_user(mock_pool, user_id)
         mock_pool.execute.assert_called_once()
         call_args = mock_pool.execute.call_args[0]
+        assert 'DELETE FROM refresh_tokens' in call_args[0]
         assert 'user_id' in call_args[0]
-        assert 'revoked_at IS NULL' in call_args[0]
         assert call_args[1] == user_id
 
 

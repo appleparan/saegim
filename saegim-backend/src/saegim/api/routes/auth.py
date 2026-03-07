@@ -275,7 +275,7 @@ async def update_my_credentials(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
 
     # Revoke all existing refresh tokens and issue new one
-    await refresh_token_repo.revoke_all_for_user(pool, current_user.id)
+    await refresh_token_repo.delete_all_for_user(pool, current_user.id)
     raw_refresh, _ref_record = await create_refresh_token(current_user.id, settings, pool)
     set_refresh_cookie(response, raw_refresh, settings)
 
