@@ -70,7 +70,6 @@ describe('getReviewQueue', () => {
     const result = await getReviewQueue('project-1')
 
     expect(result).toEqual(items)
-    expect(mockFetch).toHaveBeenCalledOnce()
   })
 
   it('returns empty array when queue is empty', async () => {

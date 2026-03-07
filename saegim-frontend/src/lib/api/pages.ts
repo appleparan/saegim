@@ -50,10 +50,7 @@ export async function submitPage(pageId: string): Promise<PageResponse> {
 }
 
 /** Review a submitted page (approve or reject). */
-export async function reviewPage(
-  pageId: string,
-  data: ReviewRequest,
-): Promise<PageResponse> {
+export async function reviewPage(pageId: string, data: ReviewRequest): Promise<PageResponse> {
   return api.post<PageResponse>(`/api/v1/pages/${pageId}/review`, data)
 }
 
