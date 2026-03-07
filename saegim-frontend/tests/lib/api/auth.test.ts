@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { checkLoginId, login, register } from '$lib/api/auth'
+import { checkLoginId, login, register, updateMyCredentials } from '$lib/api/auth'
 import { ApiError } from '$lib/api/client'
 
 const mockFetch = vi.fn()
@@ -78,5 +78,33 @@ describe('checkLoginId', () => {
 
     const result = await checkLoginId('newuser')
     expect(result).toEqual(payload)
+  })
+})
+
+describe('updateMyCredentials', () => {
+  it('returns TokenResponse on success', async () => {
+    const tokenData = {
+      access_token: 'jwt-token-updated',
+      token_type: 'bearer',
+      must_change_password: false,
+    }
+    mockFetch.mockResolvedValueOnce(jsonResponse(200, tokenData))
+
+    const result = await updateMyCredentials({
+      current_password: 'oldpass123',
+      login_id: 'newid',
+      email: 'new@example.com',
+      new_password: 'newpass123',
+    })
+
+    expect(result).toEqual(tokenData)
+  })
+
+  it('throws ApiError on 401', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(401, { detail: 'Invalid current password' }))
+
+    await expect(
+      updateMyCredentials({ current_password: 'wrongpass', login_id: 'newid' }),
+    ).rejects.toThrow(ApiError)
   })
 })
