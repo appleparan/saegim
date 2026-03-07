@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255),
     role VARCHAR(20) NOT NULL DEFAULT 'annotator'
         CHECK (role IN ('admin', 'annotator', 'reviewer')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -75,3 +76,16 @@ CREATE TABLE IF NOT EXISTS task_history (
 
 CREATE INDEX IF NOT EXISTS idx_task_history_page_id ON task_history(page_id);
 CREATE INDEX IF NOT EXISTS idx_task_history_user_id ON task_history(user_id);
+
+-- Project-user mapping (N:M)
+CREATE TABLE IF NOT EXISTS project_members (
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+    role       VARCHAR(20) NOT NULL DEFAULT 'annotator'
+        CHECK (role IN ('owner', 'annotator', 'reviewer')),
+    joined_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (project_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_members_user_id
+    ON project_members(user_id);
