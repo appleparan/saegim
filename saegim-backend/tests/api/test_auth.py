@@ -10,6 +10,19 @@ from fastapi.testclient import TestClient
 from saegim.api.deps import create_access_token, hash_password
 
 
+def _fake_refresh_record(user_id: uuid.UUID) -> dict:
+    """Create a fake refresh token record for testing."""
+    return {
+        'id': uuid.uuid4(),
+        'user_id': user_id,
+        'token_hash': 'fake_hash_' + uuid.uuid4().hex,
+        'family_id': uuid.uuid4(),
+        'expires_at': datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=7),
+        'revoked_at': None,
+        'created_at': datetime.datetime.now(tz=datetime.UTC),
+    }
+
+
 class TestRegisterEndpoint:
     """Test cases for POST /auth/register."""
 
@@ -35,6 +48,11 @@ class TestRegisterEndpoint:
                 new_callable=AsyncMock,
                 return_value=record,
             ) as mock_create,
+            patch(
+                'saegim.repositories.refresh_token_repo.create',
+                new_callable=AsyncMock,
+                return_value=_fake_refresh_record(user_id),
+            ),
         ):
             response = client.post(
                 '/api/v1/auth/register',
@@ -49,8 +67,8 @@ class TestRegisterEndpoint:
         data = response.json()
         assert 'access_token' in data
         assert data['token_type'] == 'bearer'
-        # Verify admin role was passed
         assert mock_create.call_args.kwargs['role'] == 'admin'
+        assert 'saegim_refresh_token' in response.cookies
 
     def test_subsequent_user_becomes_annotator(self, client: TestClient):
         user_id = uuid.uuid4()
@@ -74,6 +92,11 @@ class TestRegisterEndpoint:
                 new_callable=AsyncMock,
                 return_value=record,
             ) as mock_create,
+            patch(
+                'saegim.repositories.refresh_token_repo.create',
+                new_callable=AsyncMock,
+                return_value=_fake_refresh_record(user_id),
+            ),
         ):
             response = client.post(
                 '/api/v1/auth/register',
@@ -128,8 +151,9 @@ class TestLoginEndpoint:
 
     def test_valid_login(self, client: TestClient):
         hashed = hash_password('password123')
+        user_id = uuid.uuid4()
         user_record = {
-            'id': uuid.uuid4(),
+            'id': user_id,
             'name': 'Test',
             'login_id': 'testuser',
             'email': 'test@example.com',
@@ -138,10 +162,17 @@ class TestLoginEndpoint:
             'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
-        with patch(
-            'saegim.repositories.user_repo.get_by_login_id',
-            new_callable=AsyncMock,
-            return_value=user_record,
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_by_login_id',
+                new_callable=AsyncMock,
+                return_value=user_record,
+            ),
+            patch(
+                'saegim.repositories.refresh_token_repo.create',
+                new_callable=AsyncMock,
+                return_value=_fake_refresh_record(user_id),
+            ),
         ):
             response = client.post(
                 '/api/v1/auth/login',
@@ -152,6 +183,7 @@ class TestLoginEndpoint:
         data = response.json()
         assert 'access_token' in data
         assert data['token_type'] == 'bearer'
+        assert 'saegim_refresh_token' in response.cookies
 
     def test_wrong_password_returns_401(self, client: TestClient):
         hashed = hash_password('correctpassword')
@@ -249,8 +281,9 @@ class TestLoginEndpoint:
 
     def test_login_returns_must_change_password_flag(self, client: TestClient):
         hashed = hash_password('password123')
+        user_id = uuid.uuid4()
         user_record = {
-            'id': uuid.uuid4(),
+            'id': user_id,
             'name': 'Admin',
             'login_id': 'admin',
             'email': 'admin',
@@ -259,10 +292,17 @@ class TestLoginEndpoint:
             'must_change_password': True,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
-        with patch(
-            'saegim.repositories.user_repo.get_by_login_id',
-            new_callable=AsyncMock,
-            return_value=user_record,
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_by_login_id',
+                new_callable=AsyncMock,
+                return_value=user_record,
+            ),
+            patch(
+                'saegim.repositories.refresh_token_repo.create',
+                new_callable=AsyncMock,
+                return_value=_fake_refresh_record(user_id),
+            ),
         ):
             response = client.post(
                 '/api/v1/auth/login',
@@ -297,6 +337,121 @@ class TestLoginIdCheckEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {'login_id': 'taken', 'available': False}
+
+
+class TestRefreshEndpoint:
+    """Test cases for POST /auth/refresh."""
+
+    def test_refresh_with_valid_token(self, client: TestClient):
+        user_id = uuid.uuid4()
+        family_id = uuid.uuid4()
+        user_record = {
+            'id': user_id,
+            'name': 'Test',
+            'login_id': 'testuser',
+            'email': 'test@example.com',
+            'role': 'annotator',
+            'must_change_password': False,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with (
+            patch(
+                'saegim.api.routes.auth.validate_refresh_token',
+                new_callable=AsyncMock,
+                return_value=(user_id, family_id),
+            ),
+            patch(
+                'saegim.api.routes.auth.rotate_refresh_token',
+                new_callable=AsyncMock,
+                return_value=('new-refresh-token', _fake_refresh_record(user_id)),
+            ),
+            patch(
+                'saegim.repositories.user_repo.get_by_id',
+                new_callable=AsyncMock,
+                return_value=user_record,
+            ),
+        ):
+            response = client.post(
+                '/api/v1/auth/refresh',
+                cookies={'saegim_refresh_token': 'valid-refresh-token'},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert 'access_token' in data
+        assert data['token_type'] == 'bearer'
+
+    def test_refresh_without_cookie(self, client: TestClient):
+        response = client.post('/api/v1/auth/refresh')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert 'Missing refresh token' in response.json()['detail']
+
+    def test_refresh_with_invalid_token(self, client: TestClient):
+        from fastapi import HTTPException
+
+        with patch(
+            'saegim.api.routes.auth.validate_refresh_token',
+            new_callable=AsyncMock,
+            side_effect=HTTPException(status_code=401, detail='Invalid refresh token'),
+        ):
+            response = client.post(
+                '/api/v1/auth/refresh',
+                cookies={'saegim_refresh_token': 'bad-token'},
+            )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestLogoutEndpoint:
+    """Test cases for POST /auth/logout."""
+
+    def test_logout_with_valid_token(self, client: TestClient):
+        family_id = uuid.uuid4()
+        token_record = {
+            'id': uuid.uuid4(),
+            'user_id': uuid.uuid4(),
+            'token_hash': 'hash123',
+            'family_id': family_id,
+            'expires_at': datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=7),
+            'revoked_at': None,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with (
+            patch(
+                'saegim.repositories.refresh_token_repo.get_by_token_hash',
+                new_callable=AsyncMock,
+                return_value=token_record,
+            ),
+            patch(
+                'saegim.repositories.refresh_token_repo.revoke_family',
+                new_callable=AsyncMock,
+            ) as mock_revoke,
+        ):
+            response = client.post(
+                '/api/v1/auth/logout',
+                cookies={'saegim_refresh_token': 'some-token'},
+            )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_revoke.assert_called_once()
+        assert mock_revoke.call_args[0][1] == family_id
+
+    def test_logout_without_cookie(self, client: TestClient):
+        response = client.post('/api/v1/auth/logout')
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    def test_logout_with_unknown_token(self, client: TestClient):
+        with patch(
+            'saegim.repositories.refresh_token_repo.get_by_token_hash',
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            response = client.post(
+                '/api/v1/auth/logout',
+                cookies={'saegim_refresh_token': 'unknown-token'},
+            )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
 class TestUpdateMyCredentialsEndpoint:
@@ -344,6 +499,15 @@ class TestUpdateMyCredentialsEndpoint:
                 new_callable=AsyncMock,
                 return_value=updated_record,
             ) as mock_update,
+            patch(
+                'saegim.repositories.refresh_token_repo.delete_all_for_user',
+                new_callable=AsyncMock,
+            ) as mock_revoke_all,
+            patch(
+                'saegim.repositories.refresh_token_repo.create',
+                new_callable=AsyncMock,
+                return_value=_fake_refresh_record(user_id),
+            ),
         ):
             response = client.patch(
                 '/api/v1/auth/me/credentials',
@@ -363,6 +527,8 @@ class TestUpdateMyCredentialsEndpoint:
         assert mock_update.call_args.kwargs['login_id'] == 'newid'
         assert mock_update.call_args.kwargs['email'] == 'new@example.com'
         assert mock_update.call_args.kwargs['password_hash'] != current_hash
+        mock_revoke_all.assert_called_once()
+        assert 'saegim_refresh_token' in response.cookies
 
     def test_invalid_current_password_returns_401(self, client: TestClient, test_settings):
         user_id = uuid.uuid4()

@@ -2,6 +2,7 @@
 
 import secrets
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,7 +51,22 @@ class Settings(BaseSettings):
     )
     jwt_algorithm: str = Field(default='HS256', description='JWT signing algorithm')
     access_token_expire_minutes: int = Field(
-        default=1440, description='Access token expiry in minutes (default 24h)'
+        default=15, description='Access token expiry in minutes'
+    )
+
+    # Refresh Token Settings
+    refresh_token_expire_days: int = Field(default=7, description='Refresh token expiry in days')
+    refresh_cookie_name: str = Field(
+        default='saegim_refresh_token', description='Refresh token cookie name'
+    )
+    refresh_cookie_secure: bool = Field(
+        default=True, description='Set Secure flag on refresh cookie (disable for HTTP dev)'
+    )
+    refresh_cookie_samesite: Literal['lax', 'strict', 'none'] = Field(
+        default='lax', description='SameSite attribute for refresh cookie'
+    )
+    refresh_grace_period_seconds: int = Field(
+        default=30, description='Grace period for revoked refresh tokens (multi-tab support)'
     )
 
     # OCR API Keys (optional, pre-filled in UI when available)

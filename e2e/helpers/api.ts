@@ -536,6 +536,11 @@ export async function login(
   })
 }
 
+export async function logout(): Promise<{ status: number; duration: number }> {
+  const { status, duration } = await request<void>('POST', '/auth/logout')
+  return { status, duration }
+}
+
 // --- Project Members ---
 
 interface ProjectMemberResponse {

@@ -2,7 +2,7 @@
  * Authentication API calls.
  */
 
-import { api } from './client'
+import { api, API_BASE } from './client'
 
 export interface LoginRequest {
   readonly login_id: string
@@ -48,4 +48,38 @@ export async function checkLoginId(loginId: string): Promise<LoginIdCheckRespons
 
 export async function updateMyCredentials(data: CredentialUpdateRequest): Promise<TokenResponse> {
   return api.patch<TokenResponse>('/api/v1/auth/me/credentials', data)
+}
+
+/**
+ * Refresh the access token using the HttpOnly refresh cookie.
+ * Uses raw fetch to bypass the api client's auto-refresh logic.
+ */
+export async function refreshAccessToken(): Promise<TokenResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) return null
+    return (await res.json()) as TokenResponse
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Logout by revoking the refresh token on the server.
+ * Uses raw fetch to bypass the api client.
+ */
+export async function logoutFromServer(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/api/v1/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch {
+    // Ignore errors — we're logging out anyway
+  }
 }

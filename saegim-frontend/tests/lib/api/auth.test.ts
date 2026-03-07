@@ -1,11 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { checkLoginId, login, register, updateMyCredentials } from '$lib/api/auth'
+import {
+  checkLoginId,
+  login,
+  register,
+  updateMyCredentials,
+  refreshAccessToken,
+  logoutFromServer,
+} from '$lib/api/auth'
 import { ApiError } from '$lib/api/client'
+import { authStore } from '$lib/stores/auth.svelte'
 
 const mockFetch = vi.fn()
 
 beforeEach(() => {
   vi.stubGlobal('fetch', mockFetch)
+  // Reset token directly to avoid triggering logoutFromServer fetch
+  authStore.token = null
+  mockFetch.mockReset()
 })
 
 afterEach(() => {
@@ -36,7 +47,10 @@ describe('login', () => {
   })
 
   it('throws ApiError on 401', async () => {
+    // 1st call: login → 401
     mockFetch.mockResolvedValueOnce(jsonResponse(401, { detail: 'Invalid ID or password' }))
+    // 2nd call: refresh attempt (triggered by 401 handler) → fails
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
 
     await expect(login({ login_id: 'user01', password: 'wrong' })).rejects.toThrow(ApiError)
   })
@@ -101,10 +115,68 @@ describe('updateMyCredentials', () => {
   })
 
   it('throws ApiError on 401', async () => {
+    // 1st call: credentials update → 401
     mockFetch.mockResolvedValueOnce(jsonResponse(401, { detail: 'Invalid current password' }))
+    // 2nd call: refresh attempt → fails
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
 
     await expect(
       updateMyCredentials({ current_password: 'wrongpass', login_id: 'newid' }),
     ).rejects.toThrow(ApiError)
+  })
+})
+
+describe('refreshAccessToken', () => {
+  it('returns TokenResponse on success', async () => {
+    const tokenData = {
+      access_token: 'new-jwt-token',
+      token_type: 'bearer',
+      must_change_password: false,
+    }
+    mockFetch.mockResolvedValueOnce(jsonResponse(200, tokenData))
+
+    const result = await refreshAccessToken()
+
+    expect(result).toEqual(tokenData)
+    const [url, init] = mockFetch.mock.calls[0]
+    expect(url).toContain('/api/v1/auth/refresh')
+    expect(init.method).toBe('POST')
+    expect(init.credentials).toBe('include')
+  })
+
+  it('returns null on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+    const result = await refreshAccessToken()
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null on network error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+
+    const result = await refreshAccessToken()
+
+    expect(result).toBeNull()
+  })
+})
+
+describe('logoutFromServer', () => {
+  it('sends POST to /auth/logout with credentials', async () => {
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await logoutFromServer()
+
+    expect(mockFetch).toHaveBeenCalledOnce()
+    const [url, init] = mockFetch.mock.calls[0]
+    expect(url).toContain('/api/v1/auth/logout')
+    expect(init.method).toBe('POST')
+    expect(init.credentials).toBe('include')
+  })
+
+  it('does not throw on network error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+
+    await expect(logoutFromServer()).resolves.toBeUndefined()
   })
 })

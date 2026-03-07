@@ -1,7 +1,8 @@
 /**
  * Base HTTP client for communicating with the FastAPI backend.
- * Automatically injects Bearer token when authenticated and
- * handles 401 responses with auto-logout.
+ * Automatically injects Bearer token when authenticated.
+ * On 401, attempts silent refresh before failing.
+ * All requests include credentials for HttpOnly cookie support.
  */
 
 import { authStore } from '$lib/stores/auth.svelte'
@@ -30,28 +31,47 @@ export class NetworkError extends Error {
 }
 
 function authHeaders(): Record<string, string> {
-  authStore.checkExpiration()
   if (authStore.token) {
     return { Authorization: `Bearer ${authStore.token}` }
   }
   return {}
 }
 
+async function doFetch(path: string, options?: RequestInit): Promise<Response> {
+  // Proactive refresh: if token expires within 2 min, refresh first
+  if (authStore.shouldRefresh()) {
+    await authStore.refreshToken()
+  }
+
+  return fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...options?.headers,
+    },
+  })
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders(),
-        ...options?.headers,
-      },
-    })
+    let res = await doFetch(path, options)
 
-    if (!res.ok) {
+    // On 401, try silent refresh and retry once
+    if (res.status === 401) {
+      const refreshed = await authStore.refreshToken()
+      if (refreshed) {
+        res = await doFetch(path, options)
+      }
       if (res.status === 401) {
         authStore.logout()
+        const body = await res.json().catch(() => undefined)
+        throw new ApiError(res.status, res.statusText, body)
       }
+    }
+
+    if (!res.ok) {
       const body = await res.json().catch(() => undefined)
       throw new ApiError(res.status, res.statusText, body)
     }
@@ -72,18 +92,36 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 async function requestRaw(path: string, options?: RequestInit): Promise<Response> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    let res = await fetch(`${API_BASE}${path}`, {
       ...options,
+      credentials: 'include',
       headers: {
         ...authHeaders(),
         ...options?.headers,
       },
     })
 
-    if (!res.ok) {
+    // On 401, try silent refresh and retry once
+    if (res.status === 401) {
+      const refreshed = await authStore.refreshToken()
+      if (refreshed) {
+        res = await fetch(`${API_BASE}${path}`, {
+          ...options,
+          credentials: 'include',
+          headers: {
+            ...authHeaders(),
+            ...options?.headers,
+          },
+        })
+      }
       if (res.status === 401) {
         authStore.logout()
+        const body = await res.json().catch(() => undefined)
+        throw new ApiError(res.status, res.statusText, body)
       }
+    }
+
+    if (!res.ok) {
       const body = await res.json().catch(() => undefined)
       throw new ApiError(res.status, res.statusText, body)
     }

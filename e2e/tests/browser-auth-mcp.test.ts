@@ -130,4 +130,26 @@ describe('Browser Auth E2E (chrome-devtools MCP)', () => {
     await fillByPattern(/textbox "새 ID \(선택\)"/, uniqueLoginId)
     await waitForText('사용 가능한 ID입니다.', 20000)
   }, 60000)
+
+  test('access token is stored in memory, not localStorage', async () => {
+    await loginAsAdmin()
+
+    const result = await callTool('evaluate_script', {
+      function: '() => localStorage.getItem("saegim_auth_token")',
+    })
+    const value = parseJsonCodeFence(snapshotText(result))
+    expect(value).toBeNull()
+  }, 60000)
+
+  test('page reload restores auth via silent refresh', async () => {
+    await loginAsAdmin()
+    await expect(getCurrentPath()).resolves.toBe('/account/security')
+
+    // Reload the page — auth should be restored via HttpOnly cookie refresh
+    await callTool('navigate_page', { type: 'reload', timeout: 20000 })
+    await waitForText('계정 보안 설정', 20000)
+
+    // Should still be on the security page, not redirected to /login
+    await expect(getCurrentPath()).resolves.toBe('/account/security')
+  }, 60000)
 })

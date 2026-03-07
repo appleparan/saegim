@@ -111,7 +111,7 @@ DATABASE_URL=postgresql://test:test@localhost:5432/test
         settings = Settings()
 
         assert settings.jwt_algorithm == 'HS256'
-        assert settings.access_token_expire_minutes == 1440
+        assert settings.access_token_expire_minutes == 15
         assert len(settings.secret_key) == 64  # hex of 32 bytes
 
     def test_jwt_settings_from_env_vars(self, monkeypatch):
