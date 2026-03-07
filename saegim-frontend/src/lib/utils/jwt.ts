@@ -7,6 +7,7 @@ export interface JwtPayload {
   readonly sub: string
   readonly role: 'admin' | 'annotator' | 'reviewer'
   readonly exp: number
+  readonly must_change_password?: boolean
 }
 
 /**
@@ -21,7 +22,9 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
     if (
       typeof payload.sub !== 'string' ||
       typeof payload.role !== 'string' ||
-      typeof payload.exp !== 'number'
+      typeof payload.exp !== 'number' ||
+      (payload.must_change_password !== undefined &&
+        typeof payload.must_change_password !== 'boolean')
     ) {
       return null
     }

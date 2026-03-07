@@ -12,6 +12,7 @@ export type UserRole = 'admin' | 'annotator' | 'reviewer'
 export interface AuthUser {
   readonly id: string
   readonly role: UserRole
+  readonly mustChangePassword: boolean
 }
 
 class AuthStore {
@@ -21,13 +22,19 @@ class AuthStore {
 
   user = $derived<AuthUser | null>(
     this.payload && !isTokenExpired(this.payload)
-      ? { id: this.payload.sub, role: this.payload.role }
+      ? {
+          id: this.payload.sub,
+          role: this.payload.role,
+          mustChangePassword: this.payload.must_change_password === true,
+        }
       : null,
   )
 
   isAuthenticated = $derived(this.user !== null)
 
   isAdmin = $derived(this.user?.role === 'admin')
+
+  mustChangePassword = $derived(this.user?.mustChangePassword === true)
 
   constructor() {
     if (typeof window !== 'undefined') {

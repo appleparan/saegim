@@ -8,10 +8,11 @@ function fakeJwt(payload: Record<string, unknown>): string {
   return `${header}.${body}.fake-signature`
 }
 
-function validToken(role: string = 'annotator'): string {
+function validToken(role: string = 'annotator', mustChangePassword: boolean = false): string {
   return fakeJwt({
     sub: 'user-abc',
     role,
+    must_change_password: mustChangePassword,
     exp: Math.floor(Date.now() / 1000) + 3600,
   })
 }
@@ -41,7 +42,11 @@ describe('AuthStore', () => {
 
       expect(authStore.token).toBe(token)
       expect(authStore.isAuthenticated).toBe(true)
-      expect(authStore.user).toEqual({ id: 'user-abc', role: 'annotator' })
+      expect(authStore.user).toEqual({
+        id: 'user-abc',
+        role: 'annotator',
+        mustChangePassword: false,
+      })
     })
 
     it('persists token to localStorage', () => {
@@ -104,6 +109,18 @@ describe('AuthStore', () => {
 
     it('returns false when not authenticated', () => {
       expect(authStore.isAdmin).toBe(false)
+    })
+  })
+
+  describe('mustChangePassword', () => {
+    it('returns true when payload requires password change', () => {
+      authStore.setToken(validToken('admin', true))
+      expect(authStore.mustChangePassword).toBe(true)
+    })
+
+    it('returns false when payload does not require password change', () => {
+      authStore.setToken(validToken('annotator', false))
+      expect(authStore.mustChangePassword).toBe(false)
     })
   })
 })

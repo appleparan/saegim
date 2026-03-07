@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { authStore } from '$lib/stores/auth.svelte'
-  import { register } from '$lib/api/auth'
+  import { checkLoginId, register } from '$lib/api/auth'
   import { ApiError } from '$lib/api/client'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
@@ -9,11 +9,19 @@
   import * as Card from '$lib/components/ui/card'
 
   let name = $state('')
-  let email = $state('')
+  let loginId = $state('')
   let password = $state('')
   let passwordConfirm = $state('')
   let error = $state<string | null>(null)
   let isSubmitting = $state(false)
+  let loginIdStatus = $state<'idle' | 'invalid' | 'checking' | 'available' | 'taken'>('idle')
+  let loginIdHint = $derived.by(() => {
+    if (loginIdStatus === 'invalid') return 'ID는 3자 이상이어야 합니다.'
+    if (loginIdStatus === 'checking') return 'ID 중복 확인 중입니다...'
+    if (loginIdStatus === 'available') return '사용 가능한 ID입니다.'
+    if (loginIdStatus === 'taken') return '이미 사용 중인 ID입니다.'
+    return null
+  })
 
   $effect(() => {
     if (authStore.isAuthenticated) {
@@ -21,12 +29,39 @@
     }
   })
 
+  $effect(() => {
+    const trimmedLoginId = loginId.trim()
+    if (!trimmedLoginId) {
+      loginIdStatus = 'idle'
+      return
+    }
+    if (trimmedLoginId.length < 3) {
+      loginIdStatus = 'invalid'
+      return
+    }
+
+    loginIdStatus = 'checking'
+    const timer = setTimeout(async () => {
+      try {
+        const result = await checkLoginId(trimmedLoginId)
+        if (loginId.trim() !== trimmedLoginId) return
+        loginIdStatus = result.available ? 'available' : 'taken'
+      } catch {
+        if (loginId.trim() === trimmedLoginId) {
+          loginIdStatus = 'idle'
+        }
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  })
+
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault()
     const trimmedName = name.trim()
-    const trimmedEmail = email.trim()
+    const trimmedLoginId = loginId.trim()
 
-    if (!trimmedName || !trimmedEmail || !password) return
+    if (!trimmedName || !trimmedLoginId || !password) return
 
     if (password !== passwordConfirm) {
       error = '비밀번호가 일치하지 않습니다.'
@@ -38,19 +73,35 @@
       return
     }
 
+    if (trimmedLoginId.length < 3) {
+      error = 'ID는 3자 이상이어야 합니다.'
+      return
+    }
+
     error = null
     isSubmitting = true
     try {
+      let isAvailable = loginIdStatus === 'available'
+      if (!isAvailable) {
+        const result = await checkLoginId(trimmedLoginId)
+        isAvailable = result.available
+        loginIdStatus = isAvailable ? 'available' : 'taken'
+      }
+      if (!isAvailable) {
+        error = '이미 사용 중인 ID입니다.'
+        return
+      }
+
       const response = await register({
         name: trimmedName,
-        email: trimmedEmail,
+        login_id: trimmedLoginId,
         password,
       })
       authStore.setToken(response.access_token)
       await goto('/')
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        error = '이미 사용 중인 이메일입니다.'
+        error = '이미 사용 중인 ID입니다.'
       } else {
         error = '회원가입 중 오류가 발생했습니다. 다시 시도해 주세요.'
       }
@@ -89,15 +140,26 @@
         </div>
 
         <div class="space-y-2">
-          <Label for="email">이메일</Label>
+          <Label for="login-id">ID</Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            bind:value={email}
+            id="login-id"
+            type="text"
+            placeholder="사용할 ID"
+            bind:value={loginId}
             required
-            autocomplete="email"
+            autocomplete="username"
           />
+          {#if loginIdHint}
+            <p
+              class="text-xs {loginIdStatus === 'taken' || loginIdStatus === 'invalid'
+                ? 'text-red-600'
+                : loginIdStatus === 'available'
+                  ? 'text-emerald-600'
+                  : 'text-muted-foreground'}"
+            >
+              {loginIdHint}
+            </p>
+          {/if}
         </div>
 
         <div class="space-y-2">

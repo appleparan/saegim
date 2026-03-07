@@ -519,20 +519,20 @@ interface TokenResponse {
 
 export async function register(
   name: string,
-  email: string,
+  loginId: string,
   password: string,
 ): Promise<{ data: TokenResponse; status: number; duration: number }> {
   return request<TokenResponse>('POST', '/auth/register', {
-    body: { name, email, password },
+    body: { name, login_id: loginId, password },
   })
 }
 
 export async function login(
-  email: string,
+  loginId: string,
   password: string,
 ): Promise<{ data: TokenResponse; status: number; duration: number }> {
   return request<TokenResponse>('POST', '/auth/login', {
-    body: { email, password },
+    body: { login_id: loginId, password },
   })
 }
 

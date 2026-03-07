@@ -8,7 +8,7 @@
   import { Label } from '$lib/components/ui/label'
   import * as Card from '$lib/components/ui/card'
 
-  let email = $state('')
+  let loginId = $state('')
   let password = $state('')
   let error = $state<string | null>(null)
   let isSubmitting = $state(false)
@@ -21,18 +21,18 @@
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault()
-    const trimmedEmail = email.trim()
-    if (!trimmedEmail || !password) return
+    const trimmedLoginId = loginId.trim()
+    if (!trimmedLoginId || !password) return
 
     error = null
     isSubmitting = true
     try {
-      const response = await login({ email: trimmedEmail, password })
+      const response = await login({ login_id: trimmedLoginId, password })
       authStore.setToken(response.access_token)
       await goto('/')
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        error = '이메일 또는 비밀번호가 올바르지 않습니다.'
+        error = 'ID 또는 비밀번호가 올바르지 않습니다.'
       } else {
         error = '로그인 중 오류가 발생했습니다. 다시 시도해 주세요.'
       }
@@ -59,14 +59,14 @@
         {/if}
 
         <div class="space-y-2">
-          <Label for="email">이메일</Label>
+          <Label for="login-id">ID</Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            bind:value={email}
+            id="login-id"
+            type="text"
+            placeholder="admin"
+            bind:value={loginId}
             required
-            autocomplete="email"
+            autocomplete="username"
           />
         </div>
 

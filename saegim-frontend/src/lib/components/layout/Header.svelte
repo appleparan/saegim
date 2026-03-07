@@ -6,6 +6,7 @@
   import ClipboardList from '@lucide/svelte/icons/clipboard-list'
   import LogOut from '@lucide/svelte/icons/log-out'
   import Shield from '@lucide/svelte/icons/shield'
+  import User from '@lucide/svelte/icons/user'
   import ShortcutHelp from './ShortcutHelp.svelte'
   import ThemeToggle from './ThemeToggle.svelte'
 
@@ -66,6 +67,16 @@
 
     {#if showShortcutHelp}
       <ShortcutHelp bind:open={shortcutHelpOpen} />
+    {/if}
+
+    {#if authStore.isAuthenticated}
+      <a
+        href="/account/security"
+        class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <User class="size-4" />
+        <span>계정</span>
+      </a>
     {/if}
 
     {#if authStore.isAuthenticated}

@@ -113,3 +113,64 @@ class TestUserRepoUpdateRole:
         mock_pool.fetchrow.return_value = None
         result = await user_repo.update_role(mock_pool, uuid.uuid4(), 'admin')
         assert result is None
+
+
+class TestUserRepoAvailabilityChecks:
+    @pytest.mark.asyncio
+    async def test_login_id_taken(self, mock_pool):
+        mock_pool.fetchrow.return_value = {'?column?': 1}
+        taken = await user_repo.is_login_id_taken(mock_pool, 'taken-id')
+        assert taken is True
+
+    @pytest.mark.asyncio
+    async def test_login_id_available(self, mock_pool):
+        mock_pool.fetchrow.return_value = None
+        taken = await user_repo.is_login_id_taken(mock_pool, 'new-id')
+        assert taken is False
+
+    @pytest.mark.asyncio
+    async def test_email_taken(self, mock_pool):
+        mock_pool.fetchrow.return_value = {'?column?': 1}
+        taken = await user_repo.is_email_taken(mock_pool, 'taken@example.com')
+        assert taken is True
+
+    @pytest.mark.asyncio
+    async def test_email_available(self, mock_pool):
+        mock_pool.fetchrow.return_value = None
+        taken = await user_repo.is_email_taken(mock_pool, 'new@example.com')
+        assert taken is False
+
+
+class TestUserRepoUpdateCredentials:
+    @pytest.mark.asyncio
+    async def test_update_credentials_success(self, mock_pool, sample_user_record):
+        updated = {**sample_user_record, 'login_id': 'newid', 'email': 'new@example.com'}
+        mock_pool.fetchrow.return_value = updated
+
+        result = await user_repo.update_credentials(
+            mock_pool,
+            sample_user_record['id'],
+            login_id='newid',
+            email='new@example.com',
+            password_hash='$2b$12$newhash',
+            must_change_password=False,
+        )
+
+        assert result is not None
+        assert result['login_id'] == 'newid'
+        assert result['email'] == 'new@example.com'
+
+    @pytest.mark.asyncio
+    async def test_update_credentials_not_found(self, mock_pool):
+        mock_pool.fetchrow.return_value = None
+
+        result = await user_repo.update_credentials(
+            mock_pool,
+            uuid.uuid4(),
+            login_id='newid',
+            email='new@example.com',
+            password_hash='$2b$12$newhash',
+            must_change_password=False,
+        )
+
+        assert result is None

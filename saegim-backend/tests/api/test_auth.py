@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from saegim.api.deps import hash_password
+from saegim.api.deps import create_access_token, hash_password
 
 
 class TestRegisterEndpoint:
@@ -246,3 +246,217 @@ class TestLoginEndpoint:
             )
 
         assert r1.json()['detail'] == r2.json()['detail']
+
+    def test_login_returns_must_change_password_flag(self, client: TestClient):
+        hashed = hash_password('password123')
+        user_record = {
+            'id': uuid.uuid4(),
+            'name': 'Admin',
+            'login_id': 'admin',
+            'email': 'admin',
+            'role': 'admin',
+            'password_hash': hashed,
+            'must_change_password': True,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with patch(
+            'saegim.repositories.user_repo.get_by_login_id',
+            new_callable=AsyncMock,
+            return_value=user_record,
+        ):
+            response = client.post(
+                '/api/v1/auth/login',
+                json={'login_id': 'admin', 'password': 'password123'},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['must_change_password'] is True
+
+
+class TestLoginIdCheckEndpoint:
+    """Test cases for GET /auth/check-login-id."""
+
+    def test_available(self, client: TestClient):
+        with patch(
+            'saegim.repositories.user_repo.is_login_id_taken',
+            new_callable=AsyncMock,
+            return_value=False,
+        ):
+            response = client.get('/api/v1/auth/check-login-id?login_id=newuser')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'login_id': 'newuser', 'available': True}
+
+    def test_unavailable(self, client: TestClient):
+        with patch(
+            'saegim.repositories.user_repo.is_login_id_taken',
+            new_callable=AsyncMock,
+            return_value=True,
+        ):
+            response = client.get('/api/v1/auth/check-login-id?login_id=taken')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'login_id': 'taken', 'available': False}
+
+
+class TestUpdateMyCredentialsEndpoint:
+    """Test cases for PATCH /auth/me/credentials."""
+
+    def test_update_login_id_email_and_password(self, client: TestClient, test_settings):
+        user_id = uuid.uuid4()
+        token = create_access_token(str(user_id), 'annotator', test_settings)
+        current_hash = hash_password('current-password')
+        current_record = {
+            'id': user_id,
+            'name': 'User',
+            'login_id': 'oldid',
+            'email': 'old@example.com',
+            'role': 'annotator',
+            'password_hash': current_hash,
+            'must_change_password': True,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        updated_record = {
+            **current_record,
+            'login_id': 'newid',
+            'email': 'new@example.com',
+            'must_change_password': False,
+        }
+
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_with_password_by_id',
+                new_callable=AsyncMock,
+                return_value=current_record,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_login_id_taken',
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_email_taken',
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                'saegim.repositories.user_repo.update_credentials',
+                new_callable=AsyncMock,
+                return_value=updated_record,
+            ) as mock_update,
+        ):
+            response = client.patch(
+                '/api/v1/auth/me/credentials',
+                headers={'Authorization': f'Bearer {token}'},
+                json={
+                    'current_password': 'current-password',
+                    'login_id': 'newid',
+                    'email': 'new@example.com',
+                    'new_password': 'new-password123',
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['must_change_password'] is False
+        assert 'access_token' in data
+        assert mock_update.call_args.kwargs['login_id'] == 'newid'
+        assert mock_update.call_args.kwargs['email'] == 'new@example.com'
+        assert mock_update.call_args.kwargs['password_hash'] != current_hash
+
+    def test_invalid_current_password_returns_401(self, client: TestClient, test_settings):
+        user_id = uuid.uuid4()
+        token = create_access_token(str(user_id), 'annotator', test_settings)
+        current_record = {
+            'id': user_id,
+            'name': 'User',
+            'login_id': 'userid',
+            'email': 'user@example.com',
+            'role': 'annotator',
+            'password_hash': hash_password('correct-password'),
+            'must_change_password': False,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with patch(
+            'saegim.repositories.user_repo.get_with_password_by_id',
+            new_callable=AsyncMock,
+            return_value=current_record,
+        ):
+            response = client.patch(
+                '/api/v1/auth/me/credentials',
+                headers={'Authorization': f'Bearer {token}'},
+                json={'current_password': 'wrong-password', 'login_id': 'newid'},
+            )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_duplicate_login_id_returns_409(self, client: TestClient, test_settings):
+        user_id = uuid.uuid4()
+        token = create_access_token(str(user_id), 'annotator', test_settings)
+        current_record = {
+            'id': user_id,
+            'name': 'User',
+            'login_id': 'userid',
+            'email': 'user@example.com',
+            'role': 'annotator',
+            'password_hash': hash_password('current-password'),
+            'must_change_password': False,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_with_password_by_id',
+                new_callable=AsyncMock,
+                return_value=current_record,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_login_id_taken',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.patch(
+                '/api/v1/auth/me/credentials',
+                headers={'Authorization': f'Bearer {token}'},
+                json={'current_password': 'current-password', 'login_id': 'taken'},
+            )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_duplicate_email_returns_409(self, client: TestClient, test_settings):
+        user_id = uuid.uuid4()
+        token = create_access_token(str(user_id), 'annotator', test_settings)
+        current_record = {
+            'id': user_id,
+            'name': 'User',
+            'login_id': 'userid',
+            'email': 'user@example.com',
+            'role': 'annotator',
+            'password_hash': hash_password('current-password'),
+            'must_change_password': False,
+            'created_at': datetime.datetime.now(tz=datetime.UTC),
+        }
+        with (
+            patch(
+                'saegim.repositories.user_repo.get_with_password_by_id',
+                new_callable=AsyncMock,
+                return_value=current_record,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_login_id_taken',
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_email_taken',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.patch(
+                '/api/v1/auth/me/credentials',
+                headers={'Authorization': f'Bearer {token}'},
+                json={'current_password': 'current-password', 'email': 'taken@example.com'},
+            )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
