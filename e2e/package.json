@@ -16,6 +16,7 @@
     "test:browser:admin": "bunx vitest run --config vitest.browser.config.ts tests/browser/07-admin-dashboard.test.ts",
     "test:browser:account": "bunx vitest run --config vitest.browser.config.ts tests/browser/08-account-settings.test.ts",
     "test:browser:progress": "bunx vitest run --config vitest.browser.config.ts tests/browser/09-project-progress.test.ts",
+    "test:browser:autosave": "bunx vitest run --config vitest.browser.config.ts tests/browser/11-labeling-autosave.test.ts",
     "test:health": "bunx vitest run health",
     "test:benchmark": "bunx vitest run benchmark",
     "test:extraction": "bunx vitest run extraction",
