@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     dir: "./tests",
     include: ["**/*.test.ts"],
-    exclude: ["gpu/**"],
+    exclude: ["gpu/**", "browser/**"],
     testTimeout: 120_000,
     hookTimeout: 120_000,
     teardownTimeout: 30_000,

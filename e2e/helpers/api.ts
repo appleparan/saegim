@@ -513,6 +513,19 @@ export async function waitForVllmReady(
 
 // --- Auth ---
 
+export function getUserIdFromToken(token: string): string {
+  const parts = token.split('.')
+  if (parts.length !== 3) {
+    throw new Error('Invalid JWT token format')
+  }
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+  const payload = JSON.parse(atob(base64))
+  if (!payload.sub || typeof payload.sub !== 'string') {
+    throw new Error('JWT payload missing "sub" claim')
+  }
+  return payload.sub
+}
+
 interface TokenResponse {
   access_token: string
 }
@@ -582,4 +595,110 @@ export async function removeProjectMember(
   userId: string,
 ): Promise<{ data: void; status: number; duration: number }> {
   return request<void>('DELETE', `/projects/${projectId}/members/${userId}`)
+}
+
+// --- Page workflow ---
+
+export async function assignPage(
+  pageId: string,
+  userId: string,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('POST', `/pages/${pageId}/assign`, {
+    body: { user_id: userId },
+  })
+}
+
+export async function submitPage(
+  pageId: string,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('POST', `/pages/${pageId}/submit`)
+}
+
+export async function reviewPage(
+  pageId: string,
+  action: 'approved' | 'rejected',
+  comment?: string,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  const body: Record<string, unknown> = { action }
+  if (comment) {
+    body.comment = comment
+  }
+  return request<PageResponse>('POST', `/pages/${pageId}/review`, { body })
+}
+
+// --- Tasks ---
+
+interface TaskResponse {
+  page_id: string
+  document_id: string
+  document_filename: string
+  page_no: number
+  project_id: string
+  project_name: string
+  status: string
+  assigned_at: string
+}
+
+export async function getMyTasks(): Promise<{
+  data: TaskResponse[]
+  status: number
+  duration: number
+}> {
+  return request<TaskResponse[]>('GET', '/users/me/tasks')
+}
+
+// --- Review queue ---
+
+interface ReviewQueueItem {
+  page_id: string
+  document_id: string
+  document_filename: string
+  page_no: number
+  assigned_to: string
+  assigned_to_name: string
+  submitted_at: string
+}
+
+export async function getReviewQueue(
+  projectId: string,
+): Promise<{ data: ReviewQueueItem[]; status: number; duration: number }> {
+  return request<ReviewQueueItem[]>('GET', `/projects/${projectId}/review-queue`)
+}
+
+// --- Admin ---
+
+interface AdminUserResponse {
+  id: string
+  name: string
+  login_id: string
+  email: string
+  role: string
+  is_active: boolean
+  created_at: string
+}
+
+export async function listAdminUsers(): Promise<{
+  data: AdminUserResponse[]
+  status: number
+  duration: number
+}> {
+  return request<AdminUserResponse[]>('GET', '/admin/users')
+}
+
+export async function updateAdminUser(
+  userId: string,
+  body: { role?: string; is_active?: boolean },
+): Promise<{ data: AdminUserResponse; status: number; duration: number }> {
+  return request<AdminUserResponse>('PATCH', `/admin/users/${userId}`, { body })
+}
+
+// --- Credentials ---
+
+export async function updateMyCredentials(
+  currentPassword: string,
+  updates: { login_id?: string; email?: string; new_password?: string },
+): Promise<{ data: TokenResponse; status: number; duration: number }> {
+  return request<TokenResponse>('PATCH', '/auth/me/credentials', {
+    body: { current_password: currentPassword, ...updates },
+  })
 }
