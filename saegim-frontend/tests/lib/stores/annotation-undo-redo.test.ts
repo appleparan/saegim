@@ -253,6 +253,38 @@ describe('AnnotationStore Undo/Redo', () => {
     })
   })
 
+  describe('revert to last saved', () => {
+    it('restores the last saved snapshot and clears dirty flag', () => {
+      annotationStore.updateElement(0, { text: 'changed' })
+      expect(annotationStore.elements[0].text).toBe('changed')
+      expect(annotationStore.isDirty).toBe(true)
+
+      annotationStore.revertToLastSaved()
+      expect(annotationStore.elements[0].text).toBe('hello')
+      expect(annotationStore.isDirty).toBe(false)
+    })
+
+    it('uses the most recent snapshot from markSaved', () => {
+      annotationStore.updateElement(0, { text: 'v1' })
+      annotationStore.markSaved()
+      annotationStore.updateElement(0, { text: 'v2' })
+
+      annotationStore.revertToLastSaved()
+      expect(annotationStore.elements[0].text).toBe('v1')
+      expect(annotationStore.isDirty).toBe(false)
+    })
+
+    it('can undo revert to recover unsaved edits', () => {
+      annotationStore.updateElement(0, { text: 'changed' })
+      annotationStore.revertToLastSaved()
+      expect(annotationStore.elements[0].text).toBe('hello')
+
+      annotationStore.undo()
+      expect(annotationStore.elements[0].text).toBe('changed')
+      expect(annotationStore.isDirty).toBe(true)
+    })
+  })
+
   describe('load clears history', () => {
     it('clears undo and redo stacks on load', () => {
       annotationStore.updateElement(0, { text: 'changed' })

@@ -47,6 +47,7 @@
   let reExtractVersion = $state(0)
   let imageUrl = $state('')
   let saving = $state(false)
+  let reverting = $state(false)
   let submitting = $state(false)
   let shortcutHelpOpen = $state(false)
   let statusPollTimer = $state<ReturnType<typeof setInterval> | null>(null)
@@ -223,6 +224,18 @@
       }
     } finally {
       submitting = false
+    }
+  }
+
+  function handleRevertToLastSaved(): void {
+    if (!annotationStore.isDirty) return
+    if (!confirm('저장되지 않은 변경사항을 버리고 마지막 저장 상태로 되돌리시겠습니까?')) return
+    reverting = true
+    try {
+      annotationStore.revertToLastSaved()
+      uiStore.showNotification('마지막 저장 상태로 되돌렸습니다', 'success')
+    } finally {
+      reverting = false
     }
   }
 
@@ -406,9 +419,12 @@
   <Header
     title={pageData?.project_name ?? '레이블링'}
     showSave
+    showRevert
     showAutoSave
     onsave={handleSave}
+    onrevert={handleRevertToLastSaved}
     {saving}
+    {reverting}
     showShortcutHelp
     bind:shortcutHelpOpen
   />

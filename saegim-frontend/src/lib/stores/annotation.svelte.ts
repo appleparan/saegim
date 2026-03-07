@@ -16,6 +16,7 @@ class AnnotationStore {
   isLoading = $state(false)
   error = $state<string | null>(null)
   private selectionAnchorId = $state<number | null>(null)
+  private lastSavedAnnotationData = $state.raw<AnnotationData | null>(null)
 
   elements = $derived(this.annotationData?.layout_dets ?? [])
 
@@ -83,6 +84,7 @@ class AnnotationStore {
   load(pageId: string, data: AnnotationData): void {
     this.pageId = pageId
     this.annotationData = data
+    this.lastSavedAnnotationData = structuredClone(data)
     this.selectedElementId = null
     this.selectedElementIds = []
     this.selectionAnchorId = null
@@ -94,6 +96,7 @@ class AnnotationStore {
   clear(): void {
     this.pageId = null
     this.annotationData = null
+    this.lastSavedAnnotationData = null
     this.selectedElementId = null
     this.selectedElementIds = []
     this.selectionAnchorId = null
@@ -403,6 +406,19 @@ class AnnotationStore {
   }
 
   markSaved(): void {
+    if (this.annotationData) {
+      this.lastSavedAnnotationData = structuredClone(
+        $state.snapshot(this.annotationData) as AnnotationData,
+      )
+    }
+    this.isDirty = false
+  }
+
+  revertToLastSaved(): void {
+    if (!this.annotationData || !this.lastSavedAnnotationData) return
+    this.recordHistory()
+    this.annotationData = structuredClone(this.lastSavedAnnotationData)
+    this.syncSelectionWithCurrentElements()
     this.isDirty = false
   }
 

@@ -53,6 +53,17 @@ function findFirstDeleteButtonUid(snapshot: string): string | null {
   return null
 }
 
+/** Find the revert-to-last-saved button uid from header in snapshot. */
+function findRevertButtonUid(snapshot: string): string | null {
+  for (const line of snapshot.split('\n')) {
+    if (/button "마지막 저장으로 되돌리기"/.test(line) && /uid=/.test(line)) {
+      const match = line.match(/uid=([^\s]+)/)
+      if (match) return match[1]
+    }
+  }
+  return null
+}
+
 /** Navigate to labeling page and wait for elements to load. */
 async function openLabelPage(): Promise<void> {
   await loginAsUser(TEST_USER.loginId, TEST_USER.password)
@@ -204,5 +215,31 @@ describe('Browser Labeling Undo/Redo', () => {
 
     // Undo again to restore for next tests
     await pressKey('Control+z')
+  }, 90000)
+
+  test('revert button restores last saved state after local delete', async () => {
+    await openLabelPage()
+
+    let snapshot = await takeSnapshot()
+    const initialCount = getElementCountFromSnapshot(snapshot)
+    if (initialCount <= 0) return
+
+    const deleteUid = findFirstDeleteButtonUid(snapshot)
+    if (!deleteUid) return
+    await callTool('click', { uid: deleteUid })
+    await new Promise((r) => setTimeout(r, 500))
+
+    snapshot = await takeSnapshot()
+    const afterDeleteCount = getElementCountFromSnapshot(snapshot)
+    expect(afterDeleteCount).toBe(initialCount - 1)
+
+    const revertUid = findRevertButtonUid(snapshot)
+    if (!revertUid) return
+    await callTool('click', { uid: revertUid })
+    await new Promise((r) => setTimeout(r, 500))
+
+    snapshot = await takeSnapshot()
+    const afterRevertCount = getElementCountFromSnapshot(snapshot)
+    expect(afterRevertCount).toBe(initialCount)
   }, 90000)
 })
