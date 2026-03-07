@@ -10,6 +10,7 @@
   let sortedElements = $derived(
     [...annotationStore.elements].sort((a, b) => a.order - b.order),
   )
+  let selectedCount = $derived(annotationStore.selectedCount)
 
   let draggedAnnoId = $state<number | null>(null)
   let dragOverAnnoId = $state<number | null>(null)
@@ -21,6 +22,53 @@
 
   function getLabel(category: BlockCategoryType): string {
     return CATEGORY_LABELS[category] ?? category
+  }
+
+  function getOrderMapFromStore(): Record<number, number> {
+    const sorted = [...annotationStore.elements].sort((a, b) => a.order - b.order)
+    const orderMap: Record<number, number> = {}
+    for (let i = 0; i < sorted.length; i++) {
+      orderMap[sorted[i].anno_id] = i
+    }
+    return orderMap
+  }
+
+  async function persistReadingOrder(orderMap: Record<number, number>): Promise<void> {
+    const pageId = annotationStore.pageId
+    if (!pageId) return
+
+    try {
+      const apiOrderMap: Record<string, number> = {}
+      for (const [k, v] of Object.entries(orderMap)) {
+        apiOrderMap[String(k)] = v
+      }
+      await updateReadingOrder(pageId, apiOrderMap)
+      annotationStore.markSaved()
+    } catch {
+      uiStore.showNotification('순서 저장에 실패했습니다', 'error')
+    }
+  }
+
+  function handleSelect(e: MouseEvent, annoId: number): void {
+    const isAdditive = e.metaKey || e.ctrlKey
+    if (e.shiftKey) {
+      annotationStore.selectRangeToElement(annoId, isAdditive)
+      return
+    }
+    if (isAdditive) {
+      annotationStore.toggleElementSelection(annoId)
+      return
+    }
+    annotationStore.selectElement(annoId)
+  }
+
+  async function handleMoveSelected(delta: -1 | 1): Promise<void> {
+    annotationStore.moveSelectedElements(delta)
+    await persistReadingOrder(getOrderMapFromStore())
+  }
+
+  function handleDeleteSelected(): void {
+    annotationStore.removeSelectedElements()
   }
 
   function handleDragStart(e: DragEvent, annoId: number): void {
@@ -77,20 +125,7 @@
 
     annotationStore.reorderElements(orderMap)
     draggedAnnoId = null
-
-    const pageId = annotationStore.pageId
-    if (pageId) {
-      try {
-        const apiOrderMap: Record<string, number> = {}
-        for (const [k, v] of Object.entries(orderMap)) {
-          apiOrderMap[String(k)] = v
-        }
-        await updateReadingOrder(pageId, apiOrderMap)
-        annotationStore.markSaved()
-      } catch {
-        uiStore.showNotification('순서 저장에 실패했습니다', 'error')
-      }
-    }
+    await persistReadingOrder(orderMap)
   }
 </script>
 
@@ -112,14 +147,60 @@
   </label>
 </div>
 
+{#if selectedCount > 0}
+  <div class="border-border bg-card flex items-center gap-1.5 border-b px-2 py-2">
+    <span class="text-foreground mr-1 text-xs font-medium">{selectedCount}개 선택</span>
+    <button
+      type="button"
+      class="text-muted-foreground hover:bg-accent hover:text-foreground rounded px-1.5 py-1 text-xs"
+      onclick={() => handleMoveSelected(-1)}
+      title="선택 요소 위로 이동"
+      aria-label="선택 요소 위로 이동"
+    >
+      ↑
+    </button>
+    <button
+      type="button"
+      class="text-muted-foreground hover:bg-accent hover:text-foreground rounded px-1.5 py-1 text-xs"
+      onclick={() => handleMoveSelected(1)}
+      title="선택 요소 아래로 이동"
+      aria-label="선택 요소 아래로 이동"
+    >
+      ↓
+    </button>
+    <button
+      type="button"
+      class="text-destructive/80 hover:bg-destructive/10 rounded px-1.5 py-1 text-xs"
+      onclick={handleDeleteSelected}
+      title="선택 요소 삭제"
+      aria-label="선택 요소 삭제"
+    >
+      삭제
+    </button>
+    <button
+      type="button"
+      class="text-muted-foreground hover:bg-accent hover:text-foreground ml-auto rounded px-1.5 py-1 text-xs"
+      onclick={() => annotationStore.clearSelection()}
+      title="선택 해제"
+      aria-label="선택 해제"
+    >
+      해제
+    </button>
+  </div>
+{/if}
+
 <div class="flex-1 overflow-y-auto p-1.5">
   {#each sortedElements as element (element.anno_id)}
+    {@const isSelected = annotationStore.isElementSelected(element.anno_id)}
+    {@const isPrimary = annotationStore.selectedElementId === element.anno_id}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="group mb-0.5 flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-sm transition-all
-        {annotationStore.selectedElementId === element.anno_id
+        {isPrimary
         ? 'bg-primary/10 text-primary border-primary/30 border shadow-sm'
+        : isSelected
+          ? 'bg-primary/5 text-foreground border-primary/20 border'
         : 'hover:bg-accent text-foreground border border-transparent'}
         {draggedAnnoId === element.anno_id ? 'opacity-50' : ''}
         {dragOverAnnoId === element.anno_id && draggedAnnoId !== element.anno_id
@@ -130,7 +211,7 @@
       ondragleave={handleDragLeave}
       ondragend={handleDragEnd}
       ondrop={(e) => handleDrop(e, element.anno_id)}
-      onclick={() => annotationStore.selectElement(element.anno_id)}
+      onclick={(e) => handleSelect(e, element.anno_id)}
     >
       <!-- Drag handle -->
       <span class="text-muted-foreground flex shrink-0 cursor-grab opacity-0 group-hover:opacity-60">

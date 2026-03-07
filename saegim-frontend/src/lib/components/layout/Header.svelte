@@ -21,9 +21,12 @@
   interface Props {
     title?: string
     showSave?: boolean
+    showRevert?: boolean
     showAutoSave?: boolean
     onsave?: () => void
+    onrevert?: () => void
     saving?: boolean
+    reverting?: boolean
     showShortcutHelp?: boolean
     shortcutHelpOpen?: boolean
   }
@@ -31,9 +34,12 @@
   let {
     title = 'saegim',
     showSave = false,
+    showRevert = false,
     showAutoSave = false,
     onsave,
+    onrevert,
     saving = false,
+    reverting = false,
     showShortcutHelp = false,
     shortcutHelpOpen = $bindable(false),
   }: Props = $props()
@@ -81,6 +87,19 @@
     {/if}
 
     {#if showSave}
+      {#if showRevert}
+        <button
+          class="rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-white/85 transition-all
+            {reverting || !annotationStore.isDirty
+            ? 'cursor-not-allowed bg-white/5 text-white/30'
+            : 'hover:bg-white/10 active:bg-white/15'}"
+          disabled={reverting || !annotationStore.isDirty}
+          onclick={onrevert}
+        >
+          {reverting ? '되돌리는 중...' : '마지막 저장으로 되돌리기'}
+        </button>
+      {/if}
+
       <button
         class="rounded-lg px-3 py-1.5 text-sm font-medium transition-all
           {saving || !annotationStore.isDirty

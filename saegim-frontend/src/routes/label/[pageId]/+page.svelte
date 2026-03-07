@@ -47,6 +47,7 @@
   let reExtractVersion = $state(0)
   let imageUrl = $state('')
   let saving = $state(false)
+  let reverting = $state(false)
   let submitting = $state(false)
   let shortcutHelpOpen = $state(false)
   let statusPollTimer = $state<ReturnType<typeof setInterval> | null>(null)
@@ -226,6 +227,18 @@
     }
   }
 
+  function handleRevertToLastSaved(): void {
+    if (!annotationStore.isDirty) return
+    if (!confirm('저장되지 않은 변경사항을 버리고 마지막 저장 상태로 되돌리시겠습니까?')) return
+    reverting = true
+    try {
+      annotationStore.revertToLastSaved()
+      uiStore.showNotification('마지막 저장 상태로 되돌렸습니다', 'success')
+    } finally {
+      reverting = false
+    }
+  }
+
   function navigateToAdjacentPage(direction: -1 | 1): void {
     const pageId = page.params.pageId
     if (documentPages.length <= 1 || !pageId) return
@@ -260,13 +273,11 @@
     } else if (e.key === '3') {
       canvasStore.setTool('pan')
     } else if (e.key === 'x' || e.key === 'X') {
-      if (annotationStore.selectedElementId !== null) {
-        annotationStore.removeElement(annotationStore.selectedElementId)
-      }
+      annotationStore.removeSelectedElements()
     } else if (e.key === 'r' || e.key === 'R') {
       canvasStore.toggleReadingOrder()
     } else if (e.key === 'Escape') {
-      annotationStore.selectElement(null)
+      annotationStore.clearSelection()
     } else if (e.key === 'q' || e.key === 'Q') {
       navigateToAdjacentPage(-1)
     } else if (e.key === 'e' || e.key === 'E') {
@@ -408,9 +419,12 @@
   <Header
     title={pageData?.project_name ?? '레이블링'}
     showSave
+    showRevert
     showAutoSave
     onsave={handleSave}
+    onrevert={handleRevertToLastSaved}
     {saving}
+    {reverting}
     showShortcutHelp
     bind:shortcutHelpOpen
   />

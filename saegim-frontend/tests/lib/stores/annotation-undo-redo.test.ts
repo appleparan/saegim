@@ -19,6 +19,47 @@ function baseAnnotation(): AnnotationData {
   }
 }
 
+function multiAnnotation(): AnnotationData {
+  return {
+    layout_dets: [
+      {
+        category_type: 'text_block' as const,
+        poly: [0, 0, 100, 0, 100, 100, 0, 100] as const,
+        ignore: false,
+        order: 0,
+        anno_id: 0,
+        text: '0',
+      },
+      {
+        category_type: 'title' as const,
+        poly: [110, 0, 210, 0, 210, 100, 110, 100] as const,
+        ignore: false,
+        order: 1,
+        anno_id: 1,
+        text: '1',
+      },
+      {
+        category_type: 'figure' as const,
+        poly: [220, 0, 320, 0, 320, 100, 220, 100] as const,
+        ignore: false,
+        order: 2,
+        anno_id: 2,
+        text: '2',
+      },
+      {
+        category_type: 'table_caption' as const,
+        poly: [330, 0, 430, 0, 430, 100, 330, 100] as const,
+        ignore: false,
+        order: 3,
+        anno_id: 3,
+        text: '3',
+      },
+    ],
+    page_attribute: { language: 'ko' },
+    extra: { relation: [] },
+  }
+}
+
 describe('AnnotationStore Undo/Redo', () => {
   beforeEach(() => {
     annotationStore.load('page-1', baseAnnotation())
@@ -142,6 +183,61 @@ describe('AnnotationStore Undo/Redo', () => {
     })
   })
 
+  describe('multi-select behavior', () => {
+    beforeEach(() => {
+      annotationStore.load('page-1', multiAnnotation())
+    })
+
+    it('supports additive toggle selection', () => {
+      annotationStore.selectElement(1)
+      annotationStore.toggleElementSelection(3)
+
+      expect(annotationStore.selectedElementIds).toEqual([1, 3])
+      expect(annotationStore.selectedElementId).toBe(3)
+      expect(annotationStore.selectedCount).toBe(2)
+    })
+
+    it('supports shift range selection from anchor', () => {
+      annotationStore.selectElement(1)
+      annotationStore.selectRangeToElement(3)
+
+      expect(annotationStore.selectedElementIds).toEqual([1, 2, 3])
+      expect(annotationStore.selectedElementId).toBe(3)
+    })
+
+    it('removes all selected elements in one action', () => {
+      annotationStore.selectElement(1)
+      annotationStore.toggleElementSelection(2)
+      annotationStore.removeSelectedElements()
+
+      expect(annotationStore.elements.map((el) => el.anno_id)).toEqual([0, 3])
+      expect(annotationStore.selectedElementIds).toEqual([])
+      expect(annotationStore.selectedElementId).toBeNull()
+    })
+
+    it('moves selected elements up together', () => {
+      annotationStore.selectElement(2)
+      annotationStore.toggleElementSelection(3)
+      annotationStore.moveSelectedElements(-1)
+
+      const order = [...annotationStore.elements]
+        .sort((a, b) => a.order - b.order)
+        .map((el) => el.anno_id)
+      expect(order).toEqual([0, 2, 3, 1])
+    })
+
+    it('moves selected elements down together', () => {
+      annotationStore.selectElement(0)
+      annotationStore.toggleElementSelection(1)
+      annotationStore.moveSelectedElements(1)
+
+      const order = [...annotationStore.elements]
+        .sort((a, b) => a.order - b.order)
+        .map((el) => el.anno_id)
+      expect(order).toEqual([2, 0, 1, 3])
+    })
+  })
+
   describe('isDirty after undo/redo', () => {
     it('remains dirty after undo', () => {
       annotationStore.updateElement(0, { text: 'changed' })
@@ -153,6 +249,38 @@ describe('AnnotationStore Undo/Redo', () => {
       annotationStore.updateElement(0, { text: 'changed' })
       annotationStore.undo()
       annotationStore.redo()
+      expect(annotationStore.isDirty).toBe(true)
+    })
+  })
+
+  describe('revert to last saved', () => {
+    it('restores the last saved snapshot and clears dirty flag', () => {
+      annotationStore.updateElement(0, { text: 'changed' })
+      expect(annotationStore.elements[0].text).toBe('changed')
+      expect(annotationStore.isDirty).toBe(true)
+
+      annotationStore.revertToLastSaved()
+      expect(annotationStore.elements[0].text).toBe('hello')
+      expect(annotationStore.isDirty).toBe(false)
+    })
+
+    it('uses the most recent snapshot from markSaved', () => {
+      annotationStore.updateElement(0, { text: 'v1' })
+      annotationStore.markSaved()
+      annotationStore.updateElement(0, { text: 'v2' })
+
+      annotationStore.revertToLastSaved()
+      expect(annotationStore.elements[0].text).toBe('v1')
+      expect(annotationStore.isDirty).toBe(false)
+    })
+
+    it('can undo revert to recover unsaved edits', () => {
+      annotationStore.updateElement(0, { text: 'changed' })
+      annotationStore.revertToLastSaved()
+      expect(annotationStore.elements[0].text).toBe('hello')
+
+      annotationStore.undo()
+      expect(annotationStore.elements[0].text).toBe('changed')
       expect(annotationStore.isDirty).toBe(true)
     })
   })
