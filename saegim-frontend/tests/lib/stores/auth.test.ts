@@ -214,7 +214,7 @@ describe('AuthStore', () => {
     })
 
     it('does not clear token set while initialize is awaiting refresh', async () => {
-      let resolveFetch: ((value: Response) => void) | null = null
+      let resolveFetch!: (value: Response) => void
       mockFetch.mockImplementationOnce(
         () =>
           new Promise<Response>((resolve) => {
@@ -226,7 +226,7 @@ describe('AuthStore', () => {
       const tokenFromLogin = validToken('admin')
       authStore.setToken(tokenFromLogin)
 
-      resolveFetch?.(new Response(null, { status: 401 }))
+      resolveFetch(new Response(null, { status: 401 }))
       await initPromise
 
       expect(authStore.token).toBe(tokenFromLogin)
