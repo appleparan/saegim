@@ -499,3 +499,29 @@ async def get_all_by_project(
         """,
         project_id,
     )
+
+
+async def get_all_by_project_with_document(
+    pool: asyncpg.Pool,
+    project_id: uuid.UUID,
+) -> list[asyncpg.Record]:
+    """Get all pages for a project with document filename (for ZIP export).
+
+    Args:
+        pool: Database connection pool.
+        project_id: Project UUID.
+
+    Returns:
+        list[asyncpg.Record]: Pages with annotation data and document filename.
+    """
+    return await pool.fetch(
+        """
+        SELECT p.id, p.page_no, p.width, p.height, p.image_path,
+               p.annotation_data, d.filename AS document_filename
+        FROM pages p
+        JOIN documents d ON p.document_id = d.id
+        WHERE d.project_id = $1
+        ORDER BY d.created_at, p.page_no
+        """,
+        project_id,
+    )
