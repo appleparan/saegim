@@ -10,37 +10,37 @@ class TestRegisterRequest:
     """Test cases for RegisterRequest schema."""
 
     def test_valid_register(self):
-        req = RegisterRequest(name='Test', email='test@example.com', password='password123')
+        req = RegisterRequest(name='Test', login_id='testuser', password='password123')
         assert req.name == 'Test'
-        assert str(req.email) == 'test@example.com'
+        assert req.login_id == 'testuser'
 
     def test_password_too_short(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='Test', email='test@example.com', password='short')
+            RegisterRequest(name='Test', login_id='testuser', password='short')
 
     def test_password_too_long(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='Test', email='test@example.com', password='x' * 129)
+            RegisterRequest(name='Test', login_id='testuser', password='x' * 129)
 
-    def test_invalid_email(self):
+    def test_short_login_id(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='Test', email='not-email', password='password123')
+            RegisterRequest(name='Test', login_id='ab', password='password123')
 
     def test_empty_name(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='', email='test@example.com', password='password123')
+            RegisterRequest(name='', login_id='testuser', password='password123')
 
 
 class TestLoginRequest:
     """Test cases for LoginRequest schema."""
 
     def test_valid_login(self):
-        req = LoginRequest(email='test@example.com', password='password123')
-        assert str(req.email) == 'test@example.com'
+        req = LoginRequest(login_id='testuser', password='password123')
+        assert req.login_id == 'testuser'
 
     def test_empty_password(self):
         with pytest.raises(ValidationError):
-            LoginRequest(email='test@example.com', password='')
+            LoginRequest(login_id='testuser', password='')
 
 
 class TestTokenResponse:

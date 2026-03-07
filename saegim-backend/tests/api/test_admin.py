@@ -34,8 +34,10 @@ def _admin_record(user_id: uuid.UUID | None = None) -> dict:
     return {
         'id': user_id or uuid.uuid4(),
         'name': 'Admin',
+        'login_id': 'admin',
         'email': 'admin@example.com',
         'role': 'admin',
+        'must_change_password': False,
         'created_at': datetime.datetime.now(tz=datetime.UTC),
     }
 
@@ -50,8 +52,10 @@ class TestAdminListUsers:
         annotator_record = {
             'id': uuid.uuid4(),
             'name': 'User',
+            'login_id': 'user',
             'email': 'user@example.com',
             'role': 'annotator',
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(
@@ -98,8 +102,10 @@ class TestAdminUpdateUser:
         updated_record = {
             'id': target_id,
             'name': 'Target',
+            'login_id': 'target',
             'email': 'target@example.com',
             'role': 'reviewer',
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         token = create_access_token(str(admin_rec['id']), 'admin', test_settings)
@@ -200,8 +206,10 @@ class TestAdminListProjects:
         annotator_record = {
             'id': uuid.uuid4(),
             'name': 'User',
+            'login_id': 'user',
             'email': 'user@example.com',
             'role': 'annotator',
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(

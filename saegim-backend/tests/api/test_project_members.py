@@ -36,8 +36,10 @@ def _user_record(
     return {
         'id': user_id or uuid.uuid4(),
         'name': name,
+        'login_id': email,
         'email': email,
         'role': role,
+        'must_change_password': False,
         'created_at': datetime.datetime.now(tz=datetime.UTC),
     }
 

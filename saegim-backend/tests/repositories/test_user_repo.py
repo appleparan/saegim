@@ -23,18 +23,20 @@ def sample_user_record():
     return {
         'id': uuid.uuid4(),
         'name': 'Test User',
+        'login_id': 'testuser',
         'email': 'test@example.com',
         'role': 'annotator',
         'password_hash': '$2b$12$fakehashvalue',
+        'must_change_password': False,
         'created_at': datetime.datetime.now(tz=datetime.UTC),
     }
 
 
-class TestUserRepoGetByEmail:
+class TestUserRepoGetByLoginId:
     @pytest.mark.asyncio
     async def test_found(self, mock_pool, sample_user_record):
         mock_pool.fetchrow.return_value = sample_user_record
-        result = await user_repo.get_by_email(mock_pool, 'test@example.com')
+        result = await user_repo.get_by_login_id(mock_pool, 'testuser')
         assert result == sample_user_record
         mock_pool.fetchrow.assert_called_once()
         call_sql = mock_pool.fetchrow.call_args[0][0]
@@ -43,7 +45,7 @@ class TestUserRepoGetByEmail:
     @pytest.mark.asyncio
     async def test_not_found(self, mock_pool):
         mock_pool.fetchrow.return_value = None
-        result = await user_repo.get_by_email(mock_pool, 'nobody@example.com')
+        result = await user_repo.get_by_login_id(mock_pool, 'nobody')
         assert result is None
 
 
@@ -52,21 +54,33 @@ class TestUserRepoCreateWithPassword:
     async def test_create(self, mock_pool, sample_user_record):
         mock_pool.fetchrow.return_value = sample_user_record
         result = await user_repo.create_with_password(
-            mock_pool, 'Test User', 'test@example.com', '$2b$12$fakehash', 'annotator'
+            mock_pool,
+            'Test User',
+            'testuser',
+            '$2b$12$fakehash',
+            'annotator',
+            email='test@example.com',
         )
         assert result == sample_user_record
         call_args = mock_pool.fetchrow.call_args[0]
         assert call_args[1] == 'Test User'
-        assert call_args[2] == 'test@example.com'
-        assert call_args[3] == '$2b$12$fakehash'
-        assert call_args[4] == 'annotator'
+        assert call_args[2] == 'testuser'
+        assert call_args[3] == 'test@example.com'
+        assert call_args[4] == '$2b$12$fakehash'
+        assert call_args[5] is False
+        assert call_args[6] == 'annotator'
 
     @pytest.mark.asyncio
     async def test_create_admin(self, mock_pool, sample_user_record):
         admin_record = {**sample_user_record, 'role': 'admin'}
         mock_pool.fetchrow.return_value = admin_record
         result = await user_repo.create_with_password(
-            mock_pool, 'Admin', 'admin@example.com', '$2b$12$hash', 'admin'
+            mock_pool,
+            'Admin',
+            'admin',
+            '$2b$12$hash',
+            'admin',
+            email='admin@example.com',
         )
         assert result['role'] == 'admin'
 
@@ -91,6 +105,7 @@ class TestUserRepoUpdateRole:
         updated = {**sample_user_record, 'role': 'reviewer'}
         mock_pool.fetchrow.return_value = updated
         result = await user_repo.update_role(mock_pool, sample_user_record['id'], 'reviewer')
+        assert result is not None
         assert result['role'] == 'reviewer'
 
     @pytest.mark.asyncio

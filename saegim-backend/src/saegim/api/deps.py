@@ -50,6 +50,7 @@ def create_access_token(
     user_id: str,
     role: str,
     settings: Settings,
+    must_change_password: bool = False,
 ) -> str:
     """Create a JWT access token.
 
@@ -57,6 +58,7 @@ def create_access_token(
         user_id: User UUID string.
         role: User role string.
         settings: Application settings.
+        must_change_password: Whether password change is required.
 
     Returns:
         str: Encoded JWT token.
@@ -67,6 +69,7 @@ def create_access_token(
     payload = {
         'sub': user_id,
         'role': role,
+        'must_change_password': must_change_password,
         'exp': expire,
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
