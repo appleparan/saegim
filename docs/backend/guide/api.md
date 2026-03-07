@@ -144,7 +144,7 @@ Set-Cookie: 새로운 `refresh_token`
 
 **요청:** Cookie에 포함된 `refresh_token` 사용
 
-**응답:** `200 OK`
+**응답:** `204 No Content`
 
 ### `PATCH /api/v1/auth/me/credentials`
 
@@ -165,6 +165,15 @@ Set-Cookie: 새로운 `refresh_token`
 변경 시 모든 세션이 무효화됩니다 (refresh token hard delete).
 
 **응답:** `200 OK`
+
+```json
+{
+  "access_token": "eyJhbG...",
+  "token_type": "bearer"
+}
+```
+
+Set-Cookie: 새로운 `refresh_token` (기존 세션 전체 무효화)
 
 ---
 
@@ -711,7 +720,7 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 ### `POST /api/v1/pages/{page_id}/extract-text`
 
 지정 영역의 텍스트를 OCR 엔진으로 추출합니다.
-`engine_type`을 지정하면 해당 엔진으로 추출하고, 생략하면 프로젝트 기본 엔진을 사용합니다.
+`engine_id`를 지정하면 해당 엔진 인스턴스로 추출하고, 생략하면 프로젝트 기본 엔진을 사용합니다.
 
 **요청 Body:**
 
@@ -719,7 +728,7 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 {
   "poly": [100, 200, 500, 200, 500, 400, 100, 400],
   "category_type": "text_block",
-  "engine_type": "vllm"
+  "engine_id": "vllm-chandra"
 }
 ```
 
@@ -727,7 +736,7 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 | ------ | ------ | ------ | ------ |
 | `poly` | `list[float]` | O | 8개 좌표 (4 꼭짓점) |
 | `category_type` | string | X | 카테고리 타입 (기본값: `text_block`) |
-| `engine_type` | string | X | 엔진 타입 오버라이드 (생략 시 프로젝트 기본 엔진) |
+| `engine_id` | string | X | 엔진 인스턴스 ID 오버라이드 (생략 시 프로젝트 기본 엔진) |
 
 **응답:** `200 OK`
 
@@ -896,6 +905,46 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 | 코드 | 설명 |
 | ------ | ------ |
 | `404` | 프로젝트를 찾을 수 없음 |
+
+### `GET /api/v1/projects/{project_id}/export/zip`
+
+프로젝트의 모든 페이지를 OmniDocBench 호환 ZIP 아카이브로 내보내기.
+
+ZIP 구조:
+
+```text
+{project_name}_{datetime}.zip
+├── annos.json
+└── images/
+    └── {document_name}/
+        ├── page_001.png
+        ├── page_002.png
+        └── ...
+```
+
+**응답:** `200 OK` (application/zip)
+
+- `Content-Disposition: attachment; filename="{project_name}_{YYYYMMdd_HHmmss}.zip"`
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 프로젝트를 찾을 수 없음 |
+
+### `GET /api/v1/projects/{project_id}/documents/{document_id}/export/zip`
+
+단일 문서를 OmniDocBench 호환 ZIP 아카이브로 내보내기.
+
+**응답:** `200 OK` (application/zip)
+
+- `Content-Disposition: attachment; filename="{document_name}_{YYYYMMdd_HHmmss}.zip"`
+
+**오류:**
+
+| 코드 | 설명 |
+| ------ | ------ |
+| `404` | 문서를 찾을 수 없거나 프로젝트에 속하지 않음 |
 
 ---
 
