@@ -9,8 +9,7 @@ import uuid
 import asyncpg
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi import Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from saegim.api.settings import Settings, get_settings
@@ -315,7 +314,7 @@ async def rotate_refresh_token(
     return await create_refresh_token(user_id, settings, pool, family_id=family_id)
 
 
-def set_refresh_cookie(response: JSONResponse, raw_token: str, settings: Settings) -> None:
+def set_refresh_cookie(response: Response, raw_token: str, settings: Settings) -> None:
     """Set refresh token as HttpOnly cookie on the response.
 
     Args:
@@ -335,7 +334,7 @@ def set_refresh_cookie(response: JSONResponse, raw_token: str, settings: Setting
     )
 
 
-def clear_refresh_cookie(response: JSONResponse, settings: Settings) -> None:
+def clear_refresh_cookie(response: Response, settings: Settings) -> None:
     """Remove refresh token cookie from the response.
 
     Args:
