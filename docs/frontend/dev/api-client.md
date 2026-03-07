@@ -57,6 +57,12 @@ try {
 | `setDefaultEngine(projectId, data)` | PUT | `/api/v1/projects/:id/ocr-config/default-engine` | 기본 엔진 설정 |
 | `testEngineConnection(projectId, data)` | POST | `/api/v1/projects/:id/ocr-config/test` | 엔진 연결 테스트 (engine_id 지정) |
 | `getAvailableEngines(projectId)` | GET | `/api/v1/projects/:id/available-engines` | 요소별 OCR 사용 가능 엔진 목록 |
+| `getProjectProgress(projectId)` | GET | `/api/v1/projects/:id/progress` | 프로젝트 진행 현황 |
+| `listProjectMembers(projectId)` | GET | `/api/v1/projects/:id/members` | 멤버 목록 |
+| `addProjectMember(projectId, data)` | POST | `/api/v1/projects/:id/members` | 멤버 초대 |
+| `updateProjectMemberRole(projectId, userId, data)` | PATCH | `/api/v1/projects/:id/members/:uid` | 멤버 역할 변경 |
+| `removeProjectMember(projectId, userId)` | DELETE | `/api/v1/projects/:id/members/:uid` | 멤버 제거 |
+| `exportProjectZip(projectId)` | GET | `/api/v1/projects/:id/export/zip` | 프로젝트 ZIP 내보내기 (blob 다운로드) |
 
 ### Documents (`src/lib/api/documents.ts`)
 
@@ -68,6 +74,7 @@ try {
 | `reExtractDocument(docId)` | POST | `/api/v1/documents/:id/re-extract` | 현재 OCR 엔진으로 전체 재추출 |
 | `deleteDocument(docId)` | DELETE | `/api/v1/documents/:id` | 문서 삭제 |
 | `listPages(docId)` | GET | `/api/v1/documents/:id/pages` | 페이지 목록 |
+| `exportDocumentZip(projectId, docId)` | GET | `/api/v1/projects/:pid/documents/:did/export/zip` | 문서 ZIP 내보내기 (blob 다운로드) |
 
 ### Pages (`src/lib/api/pages.ts`)
 
@@ -86,8 +93,11 @@ try {
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
 | `createElement(pageId, data)` | POST | `/api/v1/pages/:id/elements` | 요소 생성 |
-| `updateElement(elementId, data)` | PUT | `/api/v1/elements/:id` | 요소 수정 (현재 백엔드 미구현) |
-| `deleteElement(elementId)` | DELETE | `/api/v1/elements/:id` | 요소 삭제 (현재 백엔드 미구현) |
+| ~~`updateElement(elementId, data)`~~ | PUT | `/api/v1/elements/:id` | 데드 코드 (백엔드 경로 없음, 전체 저장으로 대체) |
+| ~~`deleteElement(elementId)`~~ | DELETE | `/api/v1/elements/:id` | 데드 코드 (백엔드: `DELETE /pages/:pid/elements/:anno_id`) |
+
+> **참고**: 요소 삭제는 백엔드에서 `DELETE /api/v1/pages/{page_id}/elements/{anno_id}`로
+> 구현되어 있으나, 프론트엔드는 `savePage()`로 전체 저장하는 방식을 사용합니다.
 
 ### Relations (`src/lib/api/relations.ts`)
 
@@ -95,6 +105,39 @@ try {
 | ------ | ------ | ------ | ------ |
 | `createRelation(pageId, data)` | POST | `/api/v1/pages/:id/relations` | 관계 생성 |
 | `deleteRelation(pageId, sourceAnnoId, targetAnnoId)` | DELETE | `/api/v1/pages/:id/relations` | 관계 삭제 (body에 source/target 포함) |
+
+### Auth (`src/lib/api/auth.ts`)
+
+| 함수 | HTTP | 경로 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `checkLoginId(loginId)` | GET | `/api/v1/auth/check-login-id` | 로그인 ID 중복 확인 |
+| `register(data)` | POST | `/api/v1/auth/register` | 회원가입 |
+| `login(data)` | POST | `/api/v1/auth/login` | 로그인 |
+| `refreshToken()` | POST | `/api/v1/auth/refresh` | 토큰 갱신 |
+| `logout()` | POST | `/api/v1/auth/logout` | 로그아웃 |
+| `updateCredentials(data)` | PATCH | `/api/v1/auth/me/credentials` | 자격 증명 변경 |
+
+### Admin (`src/lib/api/admin.ts`)
+
+| 함수 | HTTP | 경로 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `listUsers()` | GET | `/api/v1/admin/users` | 전체 유저 목록 |
+| `updateUser(userId, data)` | PATCH | `/api/v1/admin/users/:id` | 유저 역할/활성 상태 변경 |
+| `listAdminProjects()` | GET | `/api/v1/admin/projects` | 전체 프로젝트 (통계 포함) |
+| `getAdminStats()` | GET | `/api/v1/admin/stats` | 시스템 전체 통계 |
+
+### Tasks (`src/lib/api/tasks.ts`)
+
+| 함수 | HTTP | 경로 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `getMyTasks()` | GET | `/api/v1/users/me/tasks` | 내 할당 작업 목록 |
+| `getReviewQueue(projectId)` | GET | `/api/v1/projects/:id/review-queue` | 검수 대기 큐 |
+
+### Users (`src/lib/api/users.ts`)
+
+| 함수 | HTTP | 경로 | 설명 |
+| ------ | ------ | ------ | ------ |
+| `listUsers()` | GET | `/api/v1/users` | 사용자 목록 (레거시) |
 
 ## 주요 타입 (`src/lib/api/types.ts`)
 
