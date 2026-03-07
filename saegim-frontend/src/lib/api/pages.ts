@@ -3,7 +3,12 @@
  */
 
 import { api } from './client'
-import type { PageResponse, SavePageRequest, SavePageAttributesRequest } from './types'
+import type {
+  PageResponse,
+  ReviewRequest,
+  SavePageAttributesRequest,
+  SavePageRequest,
+} from './types'
 
 export async function getPage(pageId: string): Promise<PageResponse> {
   return api.get<PageResponse>(`/api/v1/pages/${pageId}`)
@@ -37,6 +42,19 @@ export async function updateReadingOrder(
   return api.put<PageResponse>(`/api/v1/pages/${pageId}/reading-order`, {
     order_map: orderMap,
   })
+}
+
+/** Submit a page for review. Only the assigned user can submit. */
+export async function submitPage(pageId: string): Promise<PageResponse> {
+  return api.post<PageResponse>(`/api/v1/pages/${pageId}/submit`)
+}
+
+/** Review a submitted page (approve or reject). */
+export async function reviewPage(
+  pageId: string,
+  data: ReviewRequest,
+): Promise<PageResponse> {
+  return api.post<PageResponse>(`/api/v1/pages/${pageId}/review`, data)
 }
 
 /** Request OCR text extraction for a specific region on the page. */
