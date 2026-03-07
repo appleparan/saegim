@@ -3,8 +3,14 @@
   import Header from '$lib/components/layout/Header.svelte'
   import { Button } from '$lib/components/ui/button'
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte'
-  import { getProject, getOcrConfig } from '$lib/api/projects'
-  import { listDocuments, uploadDocument, deleteDocument, listPages } from '$lib/api/documents'
+  import { getProject, getOcrConfig, exportProjectZip } from '$lib/api/projects'
+  import {
+    listDocuments,
+    uploadDocument,
+    deleteDocument,
+    listPages,
+    exportDocumentZip,
+  } from '$lib/api/documents'
   import type {
     ProjectResponse,
     DocumentResponse,
@@ -30,6 +36,9 @@
   let isUploading = $state(false)
   let expandedDoc = $state<string | null>(null)
   let pollTimer = $state<ReturnType<typeof setInterval> | null>(null)
+
+  let isExporting = $state(false)
+  let exportingDocId = $state<string | null>(null)
 
   let fileInput: HTMLInputElement
   let isDragOver = $state(false)
@@ -198,6 +207,35 @@
     }
   }
 
+  async function handleExportProject() {
+    const id = page.params.id
+    if (!id || isExporting) return
+    isExporting = true
+    error = null
+    try {
+      await exportProjectZip(id)
+    } catch {
+      error = '프로젝트 내보내기에 실패했습니다.'
+    } finally {
+      isExporting = false
+    }
+  }
+
+  async function handleExportDoc(e: Event, docId: string) {
+    e.stopPropagation()
+    const id = page.params.id
+    if (!id || exportingDocId) return
+    exportingDocId = docId
+    error = null
+    try {
+      await exportDocumentZip(id, docId)
+    } catch {
+      error = '문서 내보내기에 실패했습니다.'
+    } finally {
+      exportingDocId = null
+    }
+  }
+
   $effect(() => {
     void page.params.id
     untrack(() => loadData())
@@ -362,6 +400,26 @@
               />
             </svg>
           </a>
+          <Button
+            variant="outline"
+            disabled={isExporting || documents.length === 0}
+            onclick={handleExportProject}
+          >
+            <svg
+              class="mr-1 h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+              />
+            </svg>
+            {isExporting ? '내보내는 중...' : '전체 내보내기'}
+          </Button>
           <input
             type="file"
             accept=".pdf"
@@ -468,6 +526,15 @@
                     </div>
                   </div>
                   <div class="flex items-center gap-3">
+                    {#if doc.status === 'ready'}
+                      <button
+                        class="text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg px-2 py-1 text-xs transition-all"
+                        disabled={exportingDocId === doc.id}
+                        onclick={(e) => handleExportDoc(e, doc.id)}
+                      >
+                        {exportingDocId === doc.id ? '내보내는 중...' : '내보내기'}
+                      </button>
+                    {/if}
                     <button
                       class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg px-2 py-1 text-xs transition-all"
                       onclick={(e) => handleDeleteDoc(e, doc.id)}

@@ -118,6 +118,29 @@ async def list_by_document(pool: asyncpg.Pool, document_id: uuid.UUID) -> list[a
     )
 
 
+async def list_by_document_for_export(
+    pool: asyncpg.Pool,
+    document_id: uuid.UUID,
+) -> list[asyncpg.Record]:
+    """List all pages for a document with annotation data (for export).
+
+    Args:
+        pool: Database connection pool.
+        document_id: Parent document UUID.
+
+    Returns:
+        list[asyncpg.Record]: Pages with full annotation and image data.
+    """
+    return await pool.fetch(
+        """
+        SELECT id, page_no, width, height, image_path, annotation_data
+        FROM pages WHERE document_id = $1
+        ORDER BY page_no
+        """,
+        document_id,
+    )
+
+
 async def list_for_extraction(
     pool: asyncpg.Pool,
     document_id: uuid.UUID,
@@ -492,6 +515,32 @@ async def get_all_by_project(
         """
         SELECT p.id, p.page_no, p.width, p.height, p.image_path,
                p.annotation_data
+        FROM pages p
+        JOIN documents d ON p.document_id = d.id
+        WHERE d.project_id = $1
+        ORDER BY d.created_at, p.page_no
+        """,
+        project_id,
+    )
+
+
+async def get_all_by_project_with_document(
+    pool: asyncpg.Pool,
+    project_id: uuid.UUID,
+) -> list[asyncpg.Record]:
+    """Get all pages for a project with document filename (for ZIP export).
+
+    Args:
+        pool: Database connection pool.
+        project_id: Project UUID.
+
+    Returns:
+        list[asyncpg.Record]: Pages with annotation data and document filename.
+    """
+    return await pool.fetch(
+        """
+        SELECT p.id, p.page_no, p.width, p.height, p.image_path,
+               p.annotation_data, d.filename AS document_filename
         FROM pages p
         JOIN documents d ON p.document_id = d.id
         WHERE d.project_id = $1
