@@ -4,6 +4,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
+from saegim.api.deps import get_current_user
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, page_repo, project_repo
@@ -14,6 +15,7 @@ from saegim.schemas.document import (
     DocumentUploadResponse,
 )
 from saegim.schemas.page import PageListResponse
+from saegim.schemas.user import UserResponse
 
 router = APIRouter()
 
@@ -22,7 +24,10 @@ router = APIRouter()
     '/projects/{project_id}/documents',
     response_model=list[DocumentListResponse],
 )
-async def list_project_documents(project_id: uuid.UUID) -> list[DocumentListResponse]:
+async def list_project_documents(
+    project_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> list[DocumentListResponse]:
     """List all documents for a project.
 
     Args:
@@ -51,6 +56,7 @@ async def upload_document(
     project_id: uuid.UUID,
     file: UploadFile,
     settings: Settings = Depends(get_settings),  # noqa: B008
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> DocumentUploadResponse:
     """Upload a PDF document and convert to page images.
 
@@ -97,7 +103,10 @@ async def upload_document(
 
 
 @router.post('/documents/{document_id}/re-extract', response_model=DocumentStatusResponse)
-async def re_extract_document(document_id: uuid.UUID) -> DocumentStatusResponse:
+async def re_extract_document(
+    document_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> DocumentStatusResponse:
     """Re-run extraction on all pages using the current OCR engine.
 
     Useful after changing the project's OCR engine to re-scan
@@ -141,7 +150,10 @@ async def re_extract_document(document_id: uuid.UUID) -> DocumentStatusResponse:
 
 
 @router.delete('/documents/{document_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_document(document_id: uuid.UUID) -> None:
+async def delete_document(
+    document_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> None:
     """Delete a document and its storage files.
 
     Args:
@@ -159,7 +171,10 @@ async def delete_document(document_id: uuid.UUID) -> None:
 
 
 @router.get('/documents/{document_id}', response_model=DocumentResponse)
-async def get_document(document_id: uuid.UUID) -> DocumentResponse:
+async def get_document(
+    document_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> DocumentResponse:
     """Get a document by ID.
 
     Args:
@@ -179,7 +194,10 @@ async def get_document(document_id: uuid.UUID) -> DocumentResponse:
 
 
 @router.get('/documents/{document_id}/status', response_model=DocumentStatusResponse)
-async def get_document_status(document_id: uuid.UUID) -> DocumentStatusResponse:
+async def get_document_status(
+    document_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> DocumentStatusResponse:
     """Get document processing/extraction progress.
 
     Args:
@@ -216,7 +234,10 @@ async def get_document_status(document_id: uuid.UUID) -> DocumentStatusResponse:
     '/documents/{document_id}/pages',
     response_model=list[PageListResponse],
 )
-async def list_document_pages(document_id: uuid.UUID) -> list[PageListResponse]:
+async def list_document_pages(
+    document_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> list[PageListResponse]:
     """List all pages for a document.
 
     Args:

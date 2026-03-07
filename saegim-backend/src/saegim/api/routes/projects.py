@@ -4,8 +4,9 @@ import uuid
 from typing import Any
 
 import asyncpg
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from saegim.api.deps import get_current_user
 from saegim.core.database import get_pool
 from saegim.repositories import document_repo, project_repo
 from saegim.schemas.project import (
@@ -22,6 +23,7 @@ from saegim.schemas.project import (
     ProjectResponse,
     generate_engine_id,
 )
+from saegim.schemas.user import UserResponse
 
 router = APIRouter()
 
@@ -30,7 +32,10 @@ router = APIRouter()
 
 
 @router.post('/projects', response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
-async def create_project(body: ProjectCreate) -> ProjectResponse:
+async def create_project(
+    body: ProjectCreate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> ProjectResponse:
     """Create a new project.
 
     Args:
@@ -45,7 +50,9 @@ async def create_project(body: ProjectCreate) -> ProjectResponse:
 
 
 @router.get('/projects', response_model=list[ProjectResponse])
-async def list_projects() -> list[ProjectResponse]:
+async def list_projects(
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> list[ProjectResponse]:
     """List all projects.
 
     Returns:
@@ -57,7 +64,10 @@ async def list_projects() -> list[ProjectResponse]:
 
 
 @router.get('/projects/{project_id}', response_model=ProjectResponse)
-async def get_project(project_id: uuid.UUID) -> ProjectResponse:
+async def get_project(
+    project_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> ProjectResponse:
     """Get a project by ID.
 
     Args:
@@ -77,7 +87,10 @@ async def get_project(project_id: uuid.UUID) -> ProjectResponse:
 
 
 @router.delete('/projects/{project_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: uuid.UUID) -> None:
+async def delete_project(
+    project_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> None:
     """Delete a project and all associated data.
 
     Args:
@@ -123,7 +136,10 @@ async def _get_config_or_404(pool: asyncpg.Pool, project_id: uuid.UUID) -> dict[
 
 
 @router.get('/projects/{project_id}/ocr-config', response_model=OcrConfigResponse)
-async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
+async def get_ocr_config(
+    project_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> OcrConfigResponse:
     """Get a project's OCR configuration.
 
     Args:
@@ -160,6 +176,7 @@ async def get_ocr_config(project_id: uuid.UUID) -> OcrConfigResponse:
 async def add_engine(
     project_id: uuid.UUID,
     body: EngineInstanceCreate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> OcrConfigResponse:
     """Register a new engine instance.
 
@@ -217,6 +234,7 @@ async def update_engine(
     project_id: uuid.UUID,
     engine_id: str,
     body: EngineInstanceUpdate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> OcrConfigResponse:
     """Update an existing engine instance.
 
@@ -273,6 +291,7 @@ async def update_engine(
 async def delete_engine(
     project_id: uuid.UUID,
     engine_id: str,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> OcrConfigResponse:
     """Delete an engine instance.
 
@@ -327,6 +346,7 @@ async def delete_engine(
 async def set_default_engine(
     project_id: uuid.UUID,
     body: DefaultEngineUpdate,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> OcrConfigResponse:
     """Set the default OCR engine for full-page extraction.
 
@@ -372,6 +392,7 @@ async def set_default_engine(
 async def test_engine_connection(
     project_id: uuid.UUID,
     body: OcrConnectionTestRequest,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008, PT019, PT028
 ) -> OcrConnectionTestResponse:
     """Test a specific engine's connection.
 
@@ -414,7 +435,10 @@ async def test_engine_connection(
     '/projects/{project_id}/available-engines',
     response_model=AvailableEnginesResponse,
 )
-async def get_available_engines(project_id: uuid.UUID) -> AvailableEnginesResponse:
+async def get_available_engines(
+    project_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> AvailableEnginesResponse:
     """Get list of engines available for per-element text extraction.
 
     Returns all registered engines (excluding pdfminer since it doesn't

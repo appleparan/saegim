@@ -7,7 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from saegim.api.deps import get_current_user
 from saegim.api.settings import Settings, get_settings
+from saegim.schemas.user import UserResponse
 
 
 @pytest.fixture
@@ -72,6 +74,15 @@ def app(test_settings: Settings, mock_pool):
 
         app = create_app(settings=test_settings)
         app.dependency_overrides[get_settings] = get_test_settings
+
+        mock_user = UserResponse(
+            id=uuid.uuid4(),
+            name='Test User',
+            email='test@example.com',
+            role='annotator',
+            created_at=datetime.datetime.now(tz=datetime.UTC),
+        )
+        app.dependency_overrides[get_current_user] = lambda: mock_user
 
         yield app
 
