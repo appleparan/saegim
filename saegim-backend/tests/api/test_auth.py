@@ -18,8 +18,10 @@ class TestRegisterEndpoint:
         record = {
             'id': user_id,
             'name': 'Admin',
+            'login_id': 'admin',
             'email': 'admin@example.com',
             'role': 'admin',
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with (
@@ -38,7 +40,7 @@ class TestRegisterEndpoint:
                 '/api/v1/auth/register',
                 json={
                     'name': 'Admin',
-                    'email': 'admin@example.com',
+                    'login_id': 'admin',
                     'password': 'password123',
                 },
             )
@@ -55,8 +57,10 @@ class TestRegisterEndpoint:
         record = {
             'id': user_id,
             'name': 'User',
+            'login_id': 'user01',
             'email': 'user@example.com',
             'role': 'annotator',
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with (
@@ -75,7 +79,7 @@ class TestRegisterEndpoint:
                 '/api/v1/auth/register',
                 json={
                     'name': 'User',
-                    'email': 'user@example.com',
+                    'login_id': 'user01',
                     'password': 'password123',
                 },
             )
@@ -100,7 +104,7 @@ class TestRegisterEndpoint:
                 '/api/v1/auth/register',
                 json={
                     'name': 'Test',
-                    'email': 'dup@example.com',
+                    'login_id': 'dup-user',
                     'password': 'password123',
                 },
             )
@@ -112,7 +116,7 @@ class TestRegisterEndpoint:
             '/api/v1/auth/register',
             json={
                 'name': 'Test',
-                'email': 'test@example.com',
+                'login_id': 'testuser',
                 'password': 'short',
             },
         )
@@ -127,19 +131,21 @@ class TestLoginEndpoint:
         user_record = {
             'id': uuid.uuid4(),
             'name': 'Test',
+            'login_id': 'testuser',
             'email': 'test@example.com',
             'role': 'annotator',
             'password_hash': hashed,
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(
-            'saegim.repositories.user_repo.get_by_email',
+            'saegim.repositories.user_repo.get_by_login_id',
             new_callable=AsyncMock,
             return_value=user_record,
         ):
             response = client.post(
                 '/api/v1/auth/login',
-                json={'email': 'test@example.com', 'password': 'password123'},
+                json={'login_id': 'testuser', 'password': 'password123'},
             )
 
         assert response.status_code == status.HTTP_200_OK
@@ -152,32 +158,34 @@ class TestLoginEndpoint:
         user_record = {
             'id': uuid.uuid4(),
             'name': 'Test',
+            'login_id': 'testuser',
             'email': 'test@example.com',
             'role': 'annotator',
             'password_hash': hashed,
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(
-            'saegim.repositories.user_repo.get_by_email',
+            'saegim.repositories.user_repo.get_by_login_id',
             new_callable=AsyncMock,
             return_value=user_record,
         ):
             response = client.post(
                 '/api/v1/auth/login',
-                json={'email': 'test@example.com', 'password': 'wrongpassword'},
+                json={'login_id': 'testuser', 'password': 'wrongpassword'},
             )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_nonexistent_user_returns_401(self, client: TestClient):
         with patch(
-            'saegim.repositories.user_repo.get_by_email',
+            'saegim.repositories.user_repo.get_by_login_id',
             new_callable=AsyncMock,
             return_value=None,
         ):
             response = client.post(
                 '/api/v1/auth/login',
-                json={'email': 'nobody@example.com', 'password': 'password123'},
+                json={'login_id': 'nobody', 'password': 'password123'},
             )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -186,19 +194,21 @@ class TestLoginEndpoint:
         user_record = {
             'id': uuid.uuid4(),
             'name': 'Legacy',
+            'login_id': 'legacy',
             'email': 'legacy@example.com',
             'role': 'annotator',
             'password_hash': None,
+            'must_change_password': False,
             'created_at': datetime.datetime.now(tz=datetime.UTC),
         }
         with patch(
-            'saegim.repositories.user_repo.get_by_email',
+            'saegim.repositories.user_repo.get_by_login_id',
             new_callable=AsyncMock,
             return_value=user_record,
         ):
             response = client.post(
                 '/api/v1/auth/login',
-                json={'email': 'legacy@example.com', 'password': 'password123'},
+                json={'login_id': 'legacy', 'password': 'password123'},
             )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -206,31 +216,33 @@ class TestLoginEndpoint:
     def test_same_error_message_for_all_failures(self, client: TestClient):
         """Ensure we don't leak email existence info."""
         with patch(
-            'saegim.repositories.user_repo.get_by_email',
+            'saegim.repositories.user_repo.get_by_login_id',
             new_callable=AsyncMock,
             return_value=None,
         ):
             r1 = client.post(
                 '/api/v1/auth/login',
-                json={'email': 'nobody@example.com', 'password': 'pass12345'},
+                json={'login_id': 'nobody', 'password': 'pass12345'},
             )
 
         hashed = hash_password('correct')
         with patch(
-            'saegim.repositories.user_repo.get_by_email',
+            'saegim.repositories.user_repo.get_by_login_id',
             new_callable=AsyncMock,
             return_value={
                 'id': uuid.uuid4(),
                 'name': 'X',
+                'login_id': 'xuser',
                 'email': 'x@example.com',
                 'role': 'annotator',
                 'password_hash': hashed,
+                'must_change_password': False,
                 'created_at': datetime.datetime.now(tz=datetime.UTC),
             },
         ):
             r2 = client.post(
                 '/api/v1/auth/login',
-                json={'email': 'x@example.com', 'password': 'wrongpass'},
+                json={'login_id': 'xuser', 'password': 'wrongpass'},
             )
 
         assert r1.json()['detail'] == r2.json()['detail']

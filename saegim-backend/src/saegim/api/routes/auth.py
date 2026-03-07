@@ -20,13 +20,13 @@ async def register(body: RegisterRequest) -> TokenResponse:
     """Register a new user. First user automatically becomes admin.
 
     Args:
-        body: Registration data (name, email, password).
+        body: Registration data (name, login_id, password).
 
     Returns:
         TokenResponse: JWT access token.
 
     Raises:
-        HTTPException: 409 if email already taken.
+        HTTPException: 409 if login_id already taken.
     """
     pool = get_pool()
     settings = get_settings()
@@ -40,7 +40,7 @@ async def register(body: RegisterRequest) -> TokenResponse:
         record = await user_repo.create_with_password(
             pool,
             name=body.name,
-            email=str(body.email),
+            login_id=body.login_id,
             password_hash=password_hashed,
             role=role,
         )
@@ -48,17 +48,25 @@ async def register(body: RegisterRequest) -> TokenResponse:
         if 'unique' in str(e).lower():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail='User with this email already exists',
+                detail='User with this login ID already exists',
             ) from e
         raise
 
-    token = create_access_token(str(record['id']), role, settings)
-    return TokenResponse(access_token=token)
+    token = create_access_token(
+        str(record['id']),
+        role,
+        settings,
+        must_change_password=bool(record['must_change_password']),
+    )
+    return TokenResponse(
+        access_token=token,
+        must_change_password=bool(record['must_change_password']),
+    )
 
 
 @router.post('/auth/login', response_model=TokenResponse)
 async def login(body: LoginRequest) -> TokenResponse:
-    """Login with email and password.
+    """Login with login ID and password.
 
     Args:
         body: Login credentials.
@@ -72,9 +80,9 @@ async def login(body: LoginRequest) -> TokenResponse:
     pool = get_pool()
     settings = get_settings()
 
-    record = await user_repo.get_by_email(pool, str(body.email))
+    record = await user_repo.get_by_login_id(pool, body.login_id)
 
-    invalid_msg = 'Invalid email or password'
+    invalid_msg = 'Invalid ID or password'
     if record is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=invalid_msg)
 
@@ -84,5 +92,13 @@ async def login(body: LoginRequest) -> TokenResponse:
     if not verify_password(body.password, record['password_hash']):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=invalid_msg)
 
-    token = create_access_token(str(record['id']), record['role'], settings)
-    return TokenResponse(access_token=token)
+    token = create_access_token(
+        str(record['id']),
+        record['role'],
+        settings,
+        must_change_password=bool(record['must_change_password']),
+    )
+    return TokenResponse(
+        access_token=token,
+        must_change_password=bool(record['must_change_password']),
+    )

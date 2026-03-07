@@ -34,6 +34,8 @@ class UserResponse(BaseModel):
 
     id: uuid.UUID
     name: str
+    login_id: str
     email: str
     role: UserRole
+    must_change_password: bool = False
     created_at: datetime.datetime

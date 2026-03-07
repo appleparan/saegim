@@ -18,8 +18,10 @@ COMMENT ON COLUMN projects.ocr_config IS 'Per-project OCR pipeline configuration
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
+    login_id VARCHAR(64) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255),
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     role VARCHAR(20) NOT NULL DEFAULT 'annotator'
         CHECK (role IN ('admin', 'annotator', 'reviewer')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

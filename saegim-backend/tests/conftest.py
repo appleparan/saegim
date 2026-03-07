@@ -78,8 +78,10 @@ def app(test_settings: Settings, mock_pool):
         mock_user = UserResponse(
             id=uuid.uuid4(),
             name='Test User',
+            login_id='testuser',
             email='test@example.com',
             role='annotator',
+            must_change_password=False,
             created_at=datetime.datetime.now(tz=datetime.UTC),
         )
         app.dependency_overrides[get_current_user] = lambda: mock_user
@@ -204,7 +206,9 @@ def sample_user_record():
     return {
         'id': uuid.uuid4(),
         'name': 'Test User',
+        'login_id': 'testuser',
         'email': 'test@example.com',
         'role': 'annotator',
+        'must_change_password': False,
         'created_at': datetime.datetime.now(tz=datetime.UTC),
     }

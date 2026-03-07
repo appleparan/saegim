@@ -23,11 +23,14 @@ def _clear_auth_override(app):
 
 
 def _user_record(role='annotator', user_id=None):
+    email = f'{role}@example.com'
     return {
         'id': user_id or uuid.uuid4(),
         'name': f'Test {role.capitalize()}',
-        'email': f'{role}@example.com',
+        'login_id': email,
+        'email': email,
         'role': role,
+        'must_change_password': False,
         'created_at': datetime.datetime.now(tz=datetime.UTC),
     }
 

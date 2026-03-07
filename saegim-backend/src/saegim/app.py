@@ -5,15 +5,36 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import asyncpg
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from saegim.api.deps import hash_password
 from saegim.api.routes import admin, auth, documents, export, health, pages, projects, tasks, users
 from saegim.api.settings import Settings, get_settings
 from saegim.core.database import close_pool, create_pool
+from saegim.repositories import user_repo
 
 logger = logging.getLogger(__name__)
+
+
+async def _bootstrap_default_admin(pool: asyncpg.Pool) -> None:
+    """Create default admin/admin account when users table is empty."""
+    count = await user_repo.count_all(pool)
+    if count > 0:
+        return
+
+    await user_repo.create_with_password(
+        pool,
+        name='admin',
+        login_id='admin',
+        email='admin',
+        password_hash=hash_password('admin'),
+        role='admin',
+        must_change_password=True,
+    )
+    logger.warning('Bootstrapped default admin account (login_id=admin)')
 
 
 @asynccontextmanager
@@ -24,11 +45,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app: FastAPI application instance.
     """
     settings: Settings = app.state.settings
-    await create_pool(
+    pool = await create_pool(
         settings.database_url,
         min_size=settings.db_pool_min_size,
         max_size=settings.db_pool_max_size,
     )
+    await _bootstrap_default_admin(pool)
     logger.info('Application started')
     yield
     await close_pool()
