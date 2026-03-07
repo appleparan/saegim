@@ -201,7 +201,7 @@ flowchart TD
 - `services/docling_layout_service.py`: `DoclingLayoutDetector` (ibm-granite/granite-docling-258M)
 - `services/pp_doclayout_service.py`: `PPDocLayoutV3Detector` (PaddlePaddle/PP-DocLayoutV3_safetensors)
 - `services/ocr_pipeline.py`: 2단계 파이프라인 오케스트레이터 (`OcrPipeline`, `TextOcrProvider` Protocol)
-- `services/ocr_provider.py`: 프롬프트 상수, `bbox_to_poly()`, `build_omnidocbench_page()`
+- `services/ocr_provider.py`: 프롬프트 상수 (`STRUCTURED_OCR_PROMPT`, `get_text_prompt()`)
 - `services/gemini_ocr_service.py`: `GeminiOcrProvider`, `GeminiTextOcrProvider`
 - `services/vllm_ocr_service.py`: `VllmOcrProvider`, `VllmTextOcrProvider`
 - `services/ocr_connection_test.py`: 개별 연결 테스트 (`check_gemini_connection`, `check_vllm_connection`, `check_docling_connection`)
