@@ -665,6 +665,47 @@ export async function getReviewQueue(
   return request<ReviewQueueItem[]>('GET', `/projects/${projectId}/review-queue`)
 }
 
+// --- Project Progress ---
+
+interface StatusBreakdown {
+  pending: number
+  in_progress: number
+  submitted: number
+  reviewed: number
+}
+
+interface DocumentProgress {
+  document_id: string
+  filename: string
+  total_pages: number
+  status_counts: StatusBreakdown
+  completion_rate: number
+}
+
+interface MemberActivity {
+  user_id: string
+  user_name: string
+  role: string
+  assigned_pages: number
+  in_progress_pages: number
+  submitted_pages: number
+  reviewed_pages: number
+}
+
+interface ProjectProgressResponse {
+  total_pages: number
+  completion_rate: number
+  status_breakdown: StatusBreakdown
+  documents: DocumentProgress[]
+  members: MemberActivity[]
+}
+
+export async function getProjectProgress(
+  projectId: string,
+): Promise<{ data: ProjectProgressResponse; status: number; duration: number }> {
+  return request<ProjectProgressResponse>('GET', `/projects/${projectId}/progress`)
+}
+
 // --- Admin ---
 
 interface AdminUserResponse {

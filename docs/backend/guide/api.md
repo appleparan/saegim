@@ -899,6 +899,63 @@ pdfminer 엔진은 동기 처리되며, 그 외 엔진은 비동기 백그라운
 
 ---
 
+## 프로젝트 진행 현황 API
+
+### `GET /api/v1/projects/{project_id}/progress`
+
+프로젝트의 전체 진행 현황 조회. 상태별 페이지 수, 문서별 진행률, 멤버별 활동을 포함합니다.
+
+**인증**: 프로젝트 멤버 (member / admin)
+
+**응답:** `200 OK`
+
+```json
+{
+  "total_pages": 120,
+  "completion_rate": 37.5,
+  "status_breakdown": {
+    "pending": 30,
+    "in_progress": 20,
+    "submitted": 25,
+    "reviewed": 45
+  },
+  "documents": [
+    {
+      "document_id": "660e8400-...",
+      "filename": "paper.pdf",
+      "total_pages": 12,
+      "status_counts": {
+        "pending": 3,
+        "in_progress": 2,
+        "submitted": 3,
+        "reviewed": 4
+      },
+      "completion_rate": 33.33
+    }
+  ],
+  "members": [
+    {
+      "user_id": "880e8400-...",
+      "user_name": "김철수",
+      "role": "annotator",
+      "assigned_pages": 10,
+      "in_progress_pages": 3,
+      "submitted_pages": 4,
+      "reviewed_pages": 3
+    }
+  ]
+}
+```
+
+**오류:**
+
+| 코드 | 설명 |
+| ---- | ---- |
+| `401` | 인증되지 않음 |
+| `403` | 프로젝트 멤버가 아님 |
+
+---
+
 ## 프로젝트 멤버 관리 API
 
 | Method | Path | 인증 | 설명 |

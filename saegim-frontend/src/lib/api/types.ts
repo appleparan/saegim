@@ -222,6 +222,41 @@ export interface UpdateProjectMemberRequest {
   readonly role: ProjectMemberRole
 }
 
+// --- Progress Board ---
+
+export interface StatusBreakdown {
+  readonly pending: number
+  readonly in_progress: number
+  readonly submitted: number
+  readonly reviewed: number
+}
+
+export interface DocumentProgress {
+  readonly document_id: string
+  readonly filename: string
+  readonly total_pages: number
+  readonly status_counts: StatusBreakdown
+  readonly completion_rate: number
+}
+
+export interface MemberActivity {
+  readonly user_id: string
+  readonly user_name: string
+  readonly role: ProjectMemberRole
+  readonly assigned_pages: number
+  readonly in_progress_pages: number
+  readonly submitted_pages: number
+  readonly reviewed_pages: number
+}
+
+export interface ProjectProgressResponse {
+  readonly total_pages: number
+  readonly completion_rate: number
+  readonly status_breakdown: StatusBreakdown
+  readonly documents: readonly DocumentProgress[]
+  readonly members: readonly MemberActivity[]
+}
+
 // --- Tasks ---
 
 export type TaskAction = 'assigned' | 'started' | 'saved' | 'submitted' | 'approved' | 'rejected'
