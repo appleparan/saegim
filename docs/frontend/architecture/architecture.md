@@ -25,9 +25,14 @@ src/
 ├── app.html                # SvelteKit HTML 템플릿
 ├── app.css                 # Tailwind + shadcn 테마 CSS 변수 (violet OKLCH) + 카테고리 색상
 ├── routes/                 # SvelteKit 파일 기반 라우트
-│   ├── +layout.svelte          # 전역 레이아웃 + ModeWatcher
+│   ├── +layout.svelte          # 전역 레이아웃 + Auth Guard + ModeWatcher
 │   ├── +layout.ts              # ssr=false, prerender=false
 │   ├── +page.svelte            # / (프로젝트 목록)
+│   ├── login/+page.svelte      # /login (로그인)
+│   ├── register/+page.svelte   # /register (회원가입)
+│   ├── admin/+page.svelte      # /admin (관리자 대시보드, admin 전용)
+│   ├── account/
+│   │   └── security/+page.svelte  # /account/security (비밀번호 변경)
 │   ├── projects/[id]/
 │   │   ├── +page.svelte        # /projects/:id (문서 목록)
 │   │   └── settings/+page.svelte  # /projects/:id/settings (OCR 설정)
@@ -43,18 +48,22 @@ src/
 │   │   ├── bbox.ts             # 좌표 변환 (poly <-> rect, screen <-> image)
 │   │   ├── color.ts            # 카테고리별 색상
 │   │   ├── interaction.ts     # 인터랙션 모드 해석, 포인터 이벤트 계산
+│   │   ├── jwt.ts             # JWT 디코딩 (클라이언트), 만료 체크
 │   │   ├── text-layout.ts     # 텍스트 블록 레이아웃 계산
 │   │   ├── text-selection.ts  # 텍스트 선택/복사 유틸
 │   │   └── validation.ts      # 어노테이션 유효성 검증
 │   ├── api/                # HTTP 클라이언트
-│   │   ├── client.ts           # fetch 래퍼 + ApiError/NetworkError
+│   │   ├── client.ts           # fetch 래퍼 + Bearer 자동 주입 + 401 silent refresh
 │   │   ├── types.ts            # API request/response 타입
+│   │   ├── auth.ts             # 로그인/회원가입/토큰갱신/로그아웃 API
+│   │   ├── admin.ts            # 관리자 API (유저/프로젝트/통계)
 │   │   ├── projects.ts
 │   │   ├── documents.ts
 │   │   ├── pages.ts
 │   │   ├── elements.ts
 │   │   └── relations.ts
 │   ├── stores/             # Svelte 5 runes 상태 관리
+│   │   ├── auth.svelte.ts        # 인증 상태 (token, user, role, mustChangePassword)
 │   │   ├── annotation.svelte.ts  # 어노테이션 데이터 + CRUD
 │   │   ├── canvas.svelte.ts      # 뷰포트 (zoom/pan/tool)
 │   │   ├── pdf.svelte.ts         # PDF.js 문서 로딩/캐싱
@@ -65,7 +74,8 @@ src/
 │       ├── layout/         # Header, Sidebar (4탭: 요소/속성/텍스트/관계), ThemeToggle
 │       ├── canvas/         # 3-layer 뷰어 + 오버레이 (HybridViewer, BboxLayer, ReadingOrderOverlay, RelationOverlay 등)
 │       ├── panels/         # 사이드바 패널 (ElementList, AttributePanel, ExtractionPreview, PageNavigator, RelationPanel 등)
-│       └── settings/       # 프로젝트 설정 (OcrSettingsPanel)
+│       ├── settings/       # 프로젝트 설정 (OcrSettingsPanel)
+│       └── admin/          # 관리자 대시보드 패널 (AdminUsersPanel, AdminProjectsPanel, AdminStatsPanel)
 └── tests/
     ├── lib/utils/bbox.test.ts
     ├── lib/utils/interaction.test.ts
@@ -85,14 +95,36 @@ src/
 
 SvelteKit 파일 기반 라우팅 (`adapter-static` SPA 모드):
 
-| 경로 | 라우트 파일 | 설명 |
-| ------ | -------- | ------ |
-| `/` | `routes/+page.svelte` | 프로젝트 목록 + 생성 |
-| `/projects/[id]` | `routes/projects/[id]/+page.svelte` | 문서 목록 + PDF 업로드 |
-| `/projects/[id]/settings` | `routes/projects/[id]/settings/+page.svelte` | OCR 엔진 설정 (4종 engine_type 선택) |
-| `/label/[pageId]` | `routes/label/[pageId]/+page.svelte` | 3패널 레이블링 화면 |
+| 경로 | 라우트 파일 | 인증 | 설명 |
+| ---- | ---------- | ---- | ---- |
+| `/login` | `routes/login/+page.svelte` | 공개 | 로그인 |
+| `/register` | `routes/register/+page.svelte` | 공개 | 회원가입 |
+| `/` | `routes/+page.svelte` | 필요 | 프로젝트 목록 + 생성 |
+| `/projects/[id]` | `routes/projects/[id]/+page.svelte` | 필요 | 문서 목록 + PDF 업로드 |
+| `/projects/[id]/settings` | `routes/projects/[id]/settings/+page.svelte` | 필요 | OCR 엔진 설정 |
+| `/label/[pageId]` | `routes/label/[pageId]/+page.svelte` | 필요 | 3패널 레이블링 화면 |
+| `/admin` | `routes/admin/+page.svelte` | admin | 관리자 대시보드 |
+| `/account/security` | `routes/account/security/+page.svelte` | 필요 | 비밀번호 변경 |
 
 ## Data Flow
+
+### 인증 흐름
+
+```text
+앱 시작 → authStore.initialize() → POST /auth/refresh (silent)
+       → 성공: token 저장, 보호된 페이지 접근 허용
+       → 실패: /login 리다이렉트
+
+API 요청 → client.ts → Bearer 헤더 주입 → 서버
+         → 401: refreshToken() → 재시도 (1회)
+         → 성공: 응답 반환
+         → 실패: logout() → /login
+
+1분 주기 → shouldRefresh() (만료 2분 전) → refreshToken()
+         → checkExpiration() → 만료 시 logout()
+```
+
+### 레이블링 흐름
 
 ```text
 Backend API  →  api/client.ts  →  stores/annotation.svelte.ts  →  components
@@ -135,6 +167,22 @@ class AnnotationStore {
   elements = $derived(this.annotationData?.layout_dets ?? [])
 }
 export const annotationStore = new AnnotationStore()
+```
+
+### AuthStore (인증 상태 관리)
+
+인증 상태는 `AuthStore` 클래스에서 관리. Access token은 메모리에만 저장 (XSS 방지):
+
+```typescript
+class AuthStore {
+  token = $state<string | null>(null)          // in-memory only
+  isInitialized = $state(false)
+  payload = $derived(/* JWT decode */)         // user_id, role, exp
+  user = $derived<AuthUser | null>(/* ... */)  // id, name, role
+  isAuthenticated = $derived(/* ... */)
+  isAdmin = $derived(/* role === 'admin' */)
+  mustChangePassword = $derived(/* ... */)
+}
 ```
 
 ### Canvas + Store Sync
