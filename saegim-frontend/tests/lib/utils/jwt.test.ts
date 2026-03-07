@@ -10,9 +10,19 @@ function fakeJwt(payload: Record<string, unknown>): string {
 
 describe('decodeJwtPayload', () => {
   it('decodes a valid JWT payload', () => {
-    const token = fakeJwt({ sub: 'user-123', role: 'admin', exp: 9999999999 })
+    const token = fakeJwt({
+      sub: 'user-123',
+      role: 'admin',
+      exp: 9999999999,
+      must_change_password: true,
+    })
     const result = decodeJwtPayload(token)
-    expect(result).toEqual({ sub: 'user-123', role: 'admin', exp: 9999999999 })
+    expect(result).toEqual({
+      sub: 'user-123',
+      role: 'admin',
+      exp: 9999999999,
+      must_change_password: true,
+    })
   })
 
   it('returns null for a token with wrong number of parts', () => {
@@ -34,6 +44,11 @@ describe('decodeJwtPayload', () => {
   it('returns null when field types are wrong', () => {
     expect(decodeJwtPayload(fakeJwt({ sub: 123, role: 'admin', exp: 999 }))).toBeNull()
     expect(decodeJwtPayload(fakeJwt({ sub: 'u', role: 'admin', exp: '999' }))).toBeNull()
+    expect(
+      decodeJwtPayload(
+        fakeJwt({ sub: 'u', role: 'admin', exp: 999, must_change_password: 'true' }),
+      ),
+    ).toBeNull()
   })
 })
 

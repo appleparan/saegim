@@ -1,17 +1,17 @@
-## Stage 1: Login ID Availability API
-**Goal**: 회원가입/계정변경에서 재사용 가능한 ID 중복확인 API를 제공한다.
-**Success Criteria**: `GET /api/v1/auth/check-login-id`가 사용 가능 여부를 안정적으로 반환한다.
-**Tests**: auth API 테스트(available/unavailable).
+## Stage 1: Frontend Auth Flow Update
+**Goal**: 로그인/회원가입을 `login_id` 기반으로 전환하고, 회원가입 ID 중복확인을 버튼 없이 실시간으로 처리한다.
+**Success Criteria**: 로그인/회원가입 API 호출 스펙이 backend와 일치하고, 회원가입 화면에서 ID 입력 시 자동 중복확인이 동작한다.
+**Tests**: frontend auth api/store/jwt 관련 단위 테스트.
 **Status**: Complete
 
-## Stage 2: Credential Update API (ID/Password/Email)
-**Goal**: 로그인 유저가 본인 `login_id`, `password`, `email`을 변경할 수 있게 한다.
-**Success Criteria**: `PATCH /api/v1/auth/me/credentials`에서 현재 비밀번호 검증, 중복 검사, 토큰 재발급, must_change_password 갱신이 동작한다.
-**Tests**: auth API 테스트(성공/현재비밀번호오류/중복 ID/중복 이메일), schema/repository 테스트.
-**Status**: Complete
+## Stage 2: Account Security UX
+**Goal**: 계정 설정 화면에서 ID/비밀번호/이메일 변경을 지원하고 ID 중복을 실시간 검사한다.
+**Success Criteria**: `/account/security`에서 현재 비밀번호 검증 기반 변경이 가능하고, must_change_password 유저가 이 화면으로 유도된다.
+**Tests**: route 로직 테스트 및 auth store 연계 테스트.
+**Status**: In Progress
 
 ## Stage 3: Quality Check & Commit
-**Goal**: 백엔드 품질 검증 후 PR B 커밋을 완료한다.
-**Success Criteria**: format/lint/type/test 통과.
-**Tests**: `ruff format`, `ruff check`, `ty check(변경 범위)`, `pytest(변경 범위)`.
-**Status**: Complete
+**Goal**: 프론트 품질 검증(format/lint/check/test) 후 스테이지별 커밋을 완료한다.
+**Success Criteria**: 모든 품질 명령 통과, Stage 상태 갱신, 커밋 기록 완료.
+**Tests**: `bun run format:check`, `bun run lint`, `bun run check`, `bun run test`.
+**Status**: Not Started

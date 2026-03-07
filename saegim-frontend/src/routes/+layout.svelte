@@ -8,6 +8,7 @@
   let { children } = $props()
 
   const PUBLIC_PATHS = ['/login', '/register']
+  const FORCE_CHANGE_PATH = '/account/security'
 
   function isPublicRoute(pathname: string): boolean {
     return PUBLIC_PATHS.some((p) => pathname.startsWith(p))
@@ -17,6 +18,14 @@
   $effect(() => {
     if (!authStore.isAuthenticated && !isPublicRoute(page.url.pathname)) {
       goto('/login')
+    }
+
+    if (
+      authStore.isAuthenticated &&
+      authStore.mustChangePassword &&
+      !page.url.pathname.startsWith(FORCE_CHANGE_PATH)
+    ) {
+      goto(FORCE_CHANGE_PATH)
     }
   })
 
