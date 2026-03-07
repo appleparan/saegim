@@ -260,13 +260,11 @@
     } else if (e.key === '3') {
       canvasStore.setTool('pan')
     } else if (e.key === 'x' || e.key === 'X') {
-      if (annotationStore.selectedElementId !== null) {
-        annotationStore.removeElement(annotationStore.selectedElementId)
-      }
+      annotationStore.removeSelectedElements()
     } else if (e.key === 'r' || e.key === 'R') {
       canvasStore.toggleReadingOrder()
     } else if (e.key === 'Escape') {
-      annotationStore.selectElement(null)
+      annotationStore.clearSelection()
     } else if (e.key === 'q' || e.key === 'Q') {
       navigateToAdjacentPage(-1)
     } else if (e.key === 'e' || e.key === 'E') {
