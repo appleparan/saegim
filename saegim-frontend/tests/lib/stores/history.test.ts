@@ -61,7 +61,7 @@ describe('HistoryStore', () => {
       const data = makeAnnotation(1)
       historyStore.push(data)
       // Mutate original after push
-      ;(data as { layout_dets: unknown[] }).layout_dets = []
+      ;(data as unknown as { layout_dets: unknown[] }).layout_dets = []
       const restored = historyStore.undo(makeAnnotation(0))
       expect(restored!.layout_dets).toHaveLength(1)
     })
