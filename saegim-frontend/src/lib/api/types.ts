@@ -261,3 +261,44 @@ export interface ExportResponse {
   readonly total_pages: number
   readonly data: readonly Record<string, unknown>[]
 }
+
+// --- Admin ---
+
+export type UserRole = 'admin' | 'annotator' | 'reviewer'
+
+export interface AdminUserResponse {
+  readonly id: string
+  readonly name: string
+  readonly login_id: string
+  readonly email: string
+  readonly role: UserRole
+  readonly must_change_password: boolean
+  readonly is_active: boolean
+  readonly created_at: string
+}
+
+export interface AdminUserUpdateRequest {
+  readonly role?: UserRole
+  readonly is_active?: boolean
+}
+
+export interface AdminProjectResponse {
+  readonly id: string
+  readonly name: string
+  readonly description: string
+  readonly member_count: number
+  readonly total_pages: number
+  readonly completed_pages: number
+  readonly submitted_pages: number
+  readonly created_at: string
+}
+
+export interface AdminStatsResponse {
+  readonly total_users: number
+  readonly active_users: number
+  readonly total_projects: number
+  readonly total_pages: number
+  readonly completed_pages: number
+  readonly submitted_pages: number
+  readonly completion_rate: number
+}
