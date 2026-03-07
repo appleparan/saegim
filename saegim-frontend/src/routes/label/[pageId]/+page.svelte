@@ -14,7 +14,10 @@
   import { pdfStore } from '$lib/stores/pdf.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
-  import { getPage, savePage, extractElementText } from '$lib/api/pages'
+  import { getPage, savePage, submitPage, extractElementText } from '$lib/api/pages'
+  import { authStore } from '$lib/stores/auth.svelte'
+  import Lock from '@lucide/svelte/icons/lock'
+  import type { PageStatus } from '$lib/api/types'
   import { listPages, getDocumentStatus, reExtractDocument } from '$lib/api/documents'
   import { getOcrConfig, getAvailableEngines } from '$lib/api/projects'
   import { ApiError, NetworkError } from '$lib/api/client'
@@ -43,8 +46,37 @@
   let reExtractVersion = $state(0)
   let imageUrl = $state('')
   let saving = $state(false)
+  let submitting = $state(false)
   let shortcutHelpOpen = $state(false)
   let statusPollTimer = $state<ReturnType<typeof setInterval> | null>(null)
+
+  const statusColors: Record<PageStatus, string> = {
+    pending:
+      'border border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-300',
+    in_progress:
+      'border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300',
+    submitted:
+      'border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
+    reviewed:
+      'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
+  }
+
+  const statusLabels: Record<PageStatus, string> = {
+    pending: '대기',
+    in_progress: '진행중',
+    submitted: '제출됨',
+    reviewed: '검토완료',
+  }
+
+  let isLockedByOther = $derived(
+    pageData?.assigned_to != null &&
+      pageData.assigned_to !== authStore.user?.id,
+  )
+
+  let canSubmit = $derived(
+    pageData?.status === 'in_progress' &&
+      pageData?.assigned_to === authStore.user?.id,
+  )
 
   let renderMode = $derived<'pdfjs' | 'image' | 'none'>(
     currentPageProxy ? 'pdfjs' : pageData ? 'image' : 'none',
@@ -139,6 +171,26 @@
       uiStore.showNotification('저장 실패', 'error')
     } finally {
       saving = false
+    }
+  }
+
+  async function handleSubmit() {
+    const pageId = page.params.pageId
+    if (!pageId) return
+    if (!confirm('이 페이지를 검수 제출하시겠습니까?')) return
+    submitting = true
+    try {
+      const updated = await submitPage(pageId)
+      pageData = updated
+      uiStore.showNotification('검수 제출 완료', 'success')
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        uiStore.showNotification('제출할 수 없는 상태입니다', 'error')
+      } else {
+        uiStore.showNotification('제출에 실패했습니다', 'error')
+      }
+    } finally {
+      submitting = false
     }
   }
 
@@ -327,6 +379,26 @@
       <span class="text-muted-foreground">{pageData.document_filename ?? '문서'}</span>
       <span class="text-muted-foreground mx-2">/</span>
       <span class="text-foreground font-medium">페이지 {pageData.page_no}</span>
+      <span class="badge ml-2 rounded-full px-2 py-0.5 text-xs font-medium {statusColors[pageData.status]}">
+        {statusLabels[pageData.status]}
+      </span>
+      {#if isLockedByOther}
+        <span
+          class="ml-2 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+        >
+          <Lock class="size-3" />
+          다른 사용자 편집 중
+        </span>
+      {/if}
+      {#if canSubmit}
+        <button
+          class="bg-primary text-primary-foreground hover:bg-primary/90 ml-2 rounded-lg px-3 py-0.5 text-xs font-medium shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          onclick={handleSubmit}
+          disabled={submitting}
+        >
+          {submitting ? '제출 중...' : '검수 제출'}
+        </button>
+      {/if}
       {#if ocrConfig}
         <a
           href="/projects/{pageData.project_id}/settings"
