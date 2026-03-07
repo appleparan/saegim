@@ -10,10 +10,16 @@ class TestProjectEndpoints:
     """Test cases for project API endpoints."""
 
     def test_create_project(self, client: TestClient, sample_project_record):
-        with patch(
-            'saegim.repositories.project_repo.create',
-            new_callable=AsyncMock,
-            return_value=sample_project_record,
+        with (
+            patch(
+                'saegim.repositories.project_repo.create',
+                new_callable=AsyncMock,
+                return_value=sample_project_record,
+            ),
+            patch(
+                'saegim.repositories.project_member_repo.add',
+                new_callable=AsyncMock,
+            ) as mock_add_member,
         ):
             response = client.post(
                 '/api/v1/projects',
@@ -26,6 +32,11 @@ class TestProjectEndpoints:
         assert data['description'] == 'A test project'
         assert 'id' in data
         assert 'created_at' in data
+        # Verify creator was registered as owner
+        mock_add_member.assert_called_once()
+        call_args = mock_add_member.call_args
+        assert call_args[0][2] is not None  # user_id
+        assert call_args[0][3] == 'owner'  # role
 
     def test_create_project_missing_name(self, client: TestClient):
         response = client.post('/api/v1/projects', json={'description': 'no name'})

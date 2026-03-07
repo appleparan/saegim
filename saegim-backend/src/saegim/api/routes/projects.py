@@ -39,19 +39,22 @@ router = APIRouter()
 @router.post('/projects', response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     body: ProjectCreate,
-    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+    current_user: UserResponse = Depends(get_current_user),  # noqa: B008
 ) -> ProjectResponse:
-    """Create a new project.
+    """Create a new project and register creator as owner.
 
     Args:
         body: Project creation data.
+        current_user: Authenticated user (injected).
 
     Returns:
         ProjectResponse: Created project.
     """
     pool = get_pool()
     record = await project_repo.create(pool, name=body.name, description=body.description)
-    return ProjectResponse.model_validate(dict(record))
+    project = ProjectResponse.model_validate(dict(record))
+    await project_member_repo.add(pool, project.id, current_user.id, 'owner')
+    return project
 
 
 @router.get('/projects', response_model=list[ProjectResponse])
