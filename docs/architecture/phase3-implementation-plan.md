@@ -43,27 +43,34 @@ PR 1 (Backend Auth)
 - [x] `get_current_user` dependency 동작 확인
 - [x] admin API 권한 검증 (non-admin → 403)
 
-## PR 2: Frontend 로그인 + Auth Guard (3-A 프론트엔드)
+## PR 2: Frontend 로그인 + Auth Guard (3-A 프론트엔드) ✅
 
 **브랜치**: `feat/auth-frontend`
 **의존**: PR 1
+**상태**: 구현 완료 (PR 대기)
 
 ### 범위
 
-- `src/lib/stores/auth.svelte.ts`: 토큰, 현재 유저 상태 (role 포함)
+- `src/lib/utils/jwt.ts`: JWT 디코딩, 만료 체크 유틸리티
+- `src/lib/stores/auth.svelte.ts`: 토큰, 현재 유저 상태 (role 포함), localStorage 연동
 - `src/lib/api/auth.ts`: login/register API 호출
-- `src/lib/api/client.ts`: `Authorization: Bearer` 헤더 자동 주입
-- `/login` 페이지
-- `+layout.ts`에 route guard (미인증 → `/login` 리다이렉트)
-- admin 유저일 때 네비게이션에 `/admin` 링크 표시
-- **이 PR 머지 후 기존 백엔드 라우트에 auth middleware 적용**
+- `src/lib/api/client.ts`: `Authorization: Bearer` 헤더 자동 주입, 401 시 자동 로그아웃
+- `/login`, `/register` 페이지 (한국어 UI, shadcn-svelte 컴포넌트)
+- `+layout.svelte`에 route guard (미인증 → `/login` 리다이렉트, 1분 주기 만료 체크)
+- admin 유저일 때 Header에 `/admin` "관리" 링크 표시
+- 기존 백엔드 라우트(projects, documents, pages, export)에 `get_current_user` auth middleware 적용
 
 ### 테스트
 
-- [ ] 미인증 상태에서 보호된 페이지 접근 → `/login` 리다이렉트
-- [ ] 로그인 → 토큰 저장 → API 호출 시 헤더 포함
-- [ ] 토큰 만료 → 자동 로그아웃
-- [ ] admin 유저: `/admin` 링크 표시, non-admin: 미표시
+- [x] 미인증 상태에서 보호된 페이지 접근 → `/login` 리다이렉트
+- [x] 로그인 → 토큰 저장 → API 호출 시 헤더 포함
+- [x] 토큰 만료 → 자동 로그아웃
+- [x] admin 유저: `/admin` 링크 표시, non-admin: 미표시
+- [x] 회원가입 → 자동 로그인 → 메인 페이지
+- [x] 잘못된 비밀번호 에러 메시지
+- [x] 중복 이메일 회원가입 에러 메시지
+- [x] 백엔드 687 tests, 프론트엔드 202 tests 전부 통과
+- [x] E2E 10개 시나리오 통과 (Chrome DevTools MCP)
 
 ## PR 3: 프로젝트 멤버 관리 (3-A 멤버)
 
