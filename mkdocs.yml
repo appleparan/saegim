@@ -7,7 +7,7 @@ copyright: |
   &copy; Jongsu Kim
 
 site_dir: site/
-docs_dir: ../docs/
+docs_dir: docs/
 
 theme:
   name: 'material'
@@ -224,7 +224,7 @@ nav:
     - 빠른 시작: ko/deployment/quickstart.md
     - Docker: ko/deployment/docker.md
     - Kubernetes: ko/deployment/kubernetes.md
-  - API Reference: reference/
+  #- API Reference: reference/
 
 plugins:
   - search
@@ -247,17 +247,17 @@ plugins:
             Deployment: Deployment
             Guide: Guide
             Dev: Dev
-            API Reference: API Reference
-  - gen-files:
-      scripts:
-        - scripts/gen_ref_pages.py
-  - literate-nav:
-      nav_file: SUMMARY.md
+            #API Reference: API Reference
+  #- gen-files:
+  #    scripts:
+  #      - scripts/gen_ref_pages.py
+  #- literate-nav:
+  #    nav_file: SUMMARY.md
   - section-index
   - mkdocstrings:
       handlers:
         python:
-          paths: [src]  # search packages in the src folder
+          paths: [saegim-backend/src]  # search packages in the src folder
           options:
             show_source: true
             show_symbol_type_toc: true
