@@ -195,7 +195,6 @@ markdown_extensions:
   ## Add support for tilde strikethrough <del></del>
   - pymdownx.tilde
 
-# Assume REF_DOCS_DIR_NAME = 'reference' in scripts/gen_ref_pages.py
 nav:
   - Home: ko/README.md
   - Architecture:
@@ -224,8 +223,6 @@ nav:
     - 빠른 시작: ko/deployment/quickstart.md
     - Docker: ko/deployment/docker.md
     - Kubernetes: ko/deployment/kubernetes.md
-  #- API Reference: reference/
-
 plugins:
   - search
   - i18n:
@@ -247,28 +244,5 @@ plugins:
             Deployment: Deployment
             Guide: Guide
             Dev: Dev
-            #API Reference: API Reference
-  #- gen-files:
-  #    scripts:
-  #      - scripts/gen_ref_pages.py
-  #- literate-nav:
-  #    nav_file: SUMMARY.md
   - section-index
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [saegim-backend/src]  # search packages in the src folder
-          options:
-            show_source: true
-            show_symbol_type_toc: true
-            docstring_options:
-              ignore_init_summary: true
-            docstring_section_style: list
-            filters: ["!^_", "!^test_"]
-            extra:
-              autodoc_type_aliases: true
-          inventories:
-            - https://docs.python.org/3/objects.inv  # Python standard library
-            - https://numpy.org/doc/stable/objects.inv # numpy
-            - https://docs.pydantic.dev/latest/objects.inv
 
