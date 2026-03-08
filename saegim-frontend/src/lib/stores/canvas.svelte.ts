@@ -16,6 +16,7 @@ class CanvasStore {
   imageHeight = $state(0)
   imageLoaded = $state(false)
   showReadingOrder = $state(false)
+  showElementIndex = $state(false)
 
   viewport = $derived<ViewportState>({
     scale: this.scale,
@@ -65,6 +66,10 @@ class CanvasStore {
 
   toggleReadingOrder(): void {
     this.showReadingOrder = !this.showReadingOrder
+  }
+
+  toggleElementIndex(): void {
+    this.showElementIndex = !this.showElementIndex
   }
 
   fitToContainer(containerWidth: number, containerHeight: number): void {

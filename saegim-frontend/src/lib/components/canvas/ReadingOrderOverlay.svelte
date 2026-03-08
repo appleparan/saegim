@@ -5,7 +5,7 @@
   import { getCategoryColor } from '$lib/utils/color'
 </script>
 
-{#if canvasStore.showReadingOrder}
+{#if canvasStore.showReadingOrder || canvasStore.showElementIndex}
   <div
     class="absolute inset-0 overflow-hidden"
     style="z-index: 25; pointer-events: none;"
@@ -22,6 +22,24 @@
       {#each annotationStore.elements as el (el.anno_id)}
         {@const rect = polyToRect(el.poly)}
         {@const color = getCategoryColor(el.category_type)}
+
+        <!-- Bbox outline (element index mode) -->
+        {#if canvasStore.showElementIndex}
+          <div
+            style="
+              position: absolute;
+              left: {rect.x}px;
+              top: {rect.y}px;
+              width: {rect.width}px;
+              height: {rect.height}px;
+              border: 2px solid {color};
+              background-color: {color}10;
+              pointer-events: none;
+            "
+          ></div>
+        {/if}
+
+        <!-- Number badge -->
         <div
           style="
             position: absolute;
@@ -43,7 +61,7 @@
             user-select: none;
           "
         >
-          {el.order}
+          {canvasStore.showReadingOrder ? el.order : el.anno_id}
         </div>
       {/each}
     </div>
