@@ -53,6 +53,11 @@ spec:
                 secretKeyRef:
                   name: saegim-secret
                   key: DATABASE_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: saegim-secret
+                  key: SECRET_KEY
           volumeMounts:
             - name: backend-storage
               mountPath: /workspace/storage
