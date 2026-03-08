@@ -81,7 +81,12 @@ describe('register', () => {
     )
 
     await expect(
-      register({ login_id: 'exists', password: 'password123', name: 'User', email: 'u@example.com' }),
+      register({
+        login_id: 'exists',
+        password: 'password123',
+        name: 'User',
+        email: 'u@example.com',
+      }),
     ).rejects.toThrow(ApiError)
   })
 })
