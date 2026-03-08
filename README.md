@@ -8,17 +8,23 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 
 ## Key Features
 
-### 문서 업로드 & OCR
+### 프로젝트 설정 & PDF 업로드
 
-PDF, 이미지 등 다양한 문서를 업로드하고 AI 기반 OCR로 텍스트를 자동 추출합니다.
+프로젝트를 생성하고, OCR 엔진을 설정한 뒤, PDF를 업로드하면 페이지별 이미지로 자동 변환합니다.
 
-### 체계적 레이블링
+<video src="demo/output/Project-setup.webm" width="100%" autoplay loop muted></video>
 
-팀원과 함께 문서 요소를 분류하고 레이블을 부여하여 데이터를 체계적으로 관리합니다.
+### 레이블 에디터
 
-### 팀 협업
+AI OCR로 자동 추출된 레이아웃 요소를 검토하고, 바운딩 박스 그리기·요소 인덱스 오버레이·읽기 순서 편집 등 다양한 도구로 레이블링합니다.
 
-팀원과 역할을 관리하고, 작업을 할당하여 효율적으로 협업합니다.
+<video src="demo/output/Label-editor-extraction-annotation-overlays.webm" width="100%" autoplay loop muted></video>
+
+### 프로젝트 개요 & 내보내기
+
+작업 현황 대시보드에서 진행률을 확인하고, OmniDocBench 표준 JSON으로 내보냅니다.
+
+<video src="demo/output/Project-overview-dashboard-and-export.webm" width="100%" autoplay loop muted></video>
 
 ## 상세 기능
 
