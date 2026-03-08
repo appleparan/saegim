@@ -15,7 +15,7 @@
   import { pdfStore } from '$lib/stores/pdf.svelte'
   import { uiStore } from '$lib/stores/ui.svelte'
   import { untrack } from 'svelte'
-  import { getPage, savePage, submitPage, extractElementText } from '$lib/api/pages'
+  import { getPage, savePage, submitPage, extractElementText, extractPage } from '$lib/api/pages'
   import { authStore } from '$lib/stores/auth.svelte'
   import Lock from '@lucide/svelte/icons/lock'
   import type { PageStatus } from '$lib/api/types'
@@ -49,6 +49,7 @@
   let saving = $state(false)
   let reverting = $state(false)
   let submitting = $state(false)
+  let pageExtracting = $state(false)
   let shortcutHelpOpen = $state(false)
   let statusPollTimer = $state<ReturnType<typeof setInterval> | null>(null)
 
@@ -134,6 +135,11 @@
         .catch(() => {
           documentStatus = undefined
         })
+
+      // On-demand extraction: if page has no auto_extracted_data, trigger extraction
+      if (data.auto_extracted_data === null) {
+        triggerOnDemandExtraction(pageId)
+      }
 
       // Load PDF for vector rendering if available
       const pdfDocUrl = resolvePdfUrl(data.pdf_url, data.pdf_path)
@@ -355,6 +361,28 @@
     }, 3000)
   }
 
+  async function triggerOnDemandExtraction(pageId: string) {
+    if (pageExtracting) return
+    pageExtracting = true
+    try {
+      const updated = await extractPage(pageId)
+      // Only update if we're still on the same page
+      if (page.params.pageId === pageId) {
+        pageData = updated
+        reExtractVersion++
+      }
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 503) {
+        // No OCR engine configured — show hint without error notification
+        documentStatus = 'ready'
+      } else {
+        uiStore.showNotification('자동 추출에 실패했습니다', 'error')
+      }
+    } finally {
+      pageExtracting = false
+    }
+  }
+
   async function handleReExtract() {
     if (!pageData?.document_id) return
     if (!confirm('현재 OCR 엔진으로 전체 페이지를 재추출하시겠습니까?')) return
@@ -522,6 +550,7 @@
             documentId={pageData.document_id}
             autoExtractedData={pageData.auto_extracted_data}
             {documentStatus}
+            {pageExtracting}
             {reExtractVersion}
             onAccepted={handleExtractionAccepted}
             onReExtract={handleReExtract}
