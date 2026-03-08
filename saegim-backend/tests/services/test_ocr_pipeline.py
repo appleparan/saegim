@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 
 from PIL import Image
 
-from saegim.services.layout_types import LayoutRegion
 from saegim.services.image_utils import crop_region
+from saegim.services.layout_types import LayoutRegion
 from saegim.services.ocr_pipeline import (
     OcrPipeline,
     _build_layout_det,
