@@ -66,9 +66,10 @@ describe('register', () => {
     mockFetch.mockResolvedValueOnce(jsonResponse(201, tokenData))
 
     const result = await register({
-      name: 'Test User',
       login_id: 'newuser',
       password: 'password123',
+      name: 'Test User',
+      email: 'test@example.com',
     })
 
     expect(result).toEqual(tokenData)
@@ -80,7 +81,7 @@ describe('register', () => {
     )
 
     await expect(
-      register({ name: 'User', login_id: 'exists', password: 'password123' }),
+      register({ login_id: 'exists', password: 'password123', name: 'User', email: 'u@example.com' }),
     ).rejects.toThrow(ApiError)
   })
 })

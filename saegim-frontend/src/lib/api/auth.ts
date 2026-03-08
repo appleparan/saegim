@@ -10,9 +10,10 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  readonly name: string
   readonly login_id: string
   readonly password: string
+  readonly name: string
+  readonly email: string
 }
 
 export interface TokenResponse {

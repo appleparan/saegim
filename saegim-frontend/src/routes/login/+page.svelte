@@ -7,6 +7,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import * as Card from '$lib/components/ui/card'
+  import AuthHero from '$lib/components/layout/AuthHero.svelte'
 
   let loginId = $state('')
   let password = $state('')
@@ -42,55 +43,59 @@
   }
 </script>
 
-<div class="flex min-h-screen items-center justify-center px-4">
-  <Card.Root class="w-full max-w-sm">
-    <Card.Header class="text-center">
-      <Card.Title class="text-2xl font-bold">saegim</Card.Title>
-      <Card.Description>계정에 로그인하세요</Card.Description>
-    </Card.Header>
-    <Card.Content>
-      <form onsubmit={handleSubmit} class="space-y-4">
-        {#if error}
-          <div
-            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200"
-          >
-            {error}
+<div class="flex min-h-screen">
+  <AuthHero />
+
+  <div class="flex w-full items-center justify-center px-4 lg:w-1/2">
+    <Card.Root class="w-full max-w-sm">
+      <Card.Header class="text-center">
+        <Card.Title class="text-2xl font-bold">saegim</Card.Title>
+        <Card.Description>계정에 로그인하세요</Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <form onsubmit={handleSubmit} class="space-y-4">
+          {#if error}
+            <div
+              class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200"
+            >
+              {error}
+            </div>
+          {/if}
+
+          <div class="space-y-2">
+            <Label for="login-id">ID</Label>
+            <Input
+              id="login-id"
+              type="text"
+              placeholder="admin"
+              bind:value={loginId}
+              required
+              autocomplete="username"
+            />
           </div>
-        {/if}
 
-        <div class="space-y-2">
-          <Label for="login-id">ID</Label>
-          <Input
-            id="login-id"
-            type="text"
-            placeholder="admin"
-            bind:value={loginId}
-            required
-            autocomplete="username"
-          />
-        </div>
+          <div class="space-y-2">
+            <Label for="password">비밀번호</Label>
+            <Input
+              id="password"
+              type="password"
+              bind:value={password}
+              required
+              autocomplete="current-password"
+            />
+          </div>
 
-        <div class="space-y-2">
-          <Label for="password">비밀번호</Label>
-          <Input
-            id="password"
-            type="password"
-            bind:value={password}
-            required
-            autocomplete="current-password"
-          />
-        </div>
-
-        <Button type="submit" class="w-full" disabled={isSubmitting}>
-          {isSubmitting ? '로그인 중...' : '로그인'}
-        </Button>
-      </form>
-    </Card.Content>
-    <Card.Footer class="justify-center">
-      <p class="text-muted-foreground text-sm">
-        계정이 없으신가요?
-        <a href="/register" class="text-primary font-medium hover:underline">회원가입</a>
-      </p>
-    </Card.Footer>
-  </Card.Root>
+          <Button type="submit" class="w-full" disabled={isSubmitting}>
+            {isSubmitting ? '로그인 중...' : '로그인'}
+          </Button>
+        </form>
+      </Card.Content>
+      <Card.Footer class="justify-center">
+        <p class="text-muted-foreground text-sm">
+          계정이 없으신가요?
+          <a href="/register" class="text-primary font-medium hover:underline">회원가입</a>
+        </p>
+      </Card.Footer>
+    </Card.Root>
+  </div>
 </div>
