@@ -136,15 +136,26 @@
       {annotationStore.elements.length}개 요소
     </p>
   </div>
-  <label class="flex cursor-pointer items-center gap-1.5" title="순서 표시 (O)">
-    <input
-      type="checkbox"
-      class="accent-primary h-3.5 w-3.5 rounded"
-      checked={canvasStore.showReadingOrder}
-      onchange={() => canvasStore.toggleReadingOrder()}
-    />
-    <span class="text-muted-foreground text-xs">순서</span>
-  </label>
+  <div class="flex items-center gap-3">
+    <label class="flex cursor-pointer items-center gap-1.5" title="요소 표시 (I)">
+      <input
+        type="checkbox"
+        class="accent-primary h-3.5 w-3.5 rounded"
+        checked={canvasStore.showElementIndex}
+        onchange={() => canvasStore.toggleElementIndex()}
+      />
+      <span class="text-muted-foreground text-xs">요소</span>
+    </label>
+    <label class="flex cursor-pointer items-center gap-1.5" title="순서 표시 (R)">
+      <input
+        type="checkbox"
+        class="accent-primary h-3.5 w-3.5 rounded"
+        checked={canvasStore.showReadingOrder}
+        onchange={() => canvasStore.toggleReadingOrder()}
+      />
+      <span class="text-muted-foreground text-xs">순서</span>
+    </label>
+  </div>
 </div>
 
 {#if selectedCount > 0}
