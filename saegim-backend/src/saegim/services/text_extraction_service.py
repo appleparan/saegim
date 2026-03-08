@@ -244,7 +244,7 @@ def _build_from_split_pipeline(
         for k, v in config.items()
         if k.startswith('ocr_') and k != 'ocr_provider'
     }
-    return _create_text_provider(ocr_provider, ocr_config)
+    return create_text_provider(ocr_provider, ocr_config)
 
 
 def _build_from_commercial_api(
@@ -259,7 +259,7 @@ def _build_from_commercial_api(
         Text OCR provider, or None if config is invalid.
     """
     provider = config.get('provider', '')
-    return _create_text_provider(provider, config)
+    return create_text_provider(provider, config)
 
 
 def _build_from_vllm(
@@ -280,7 +280,7 @@ def _build_from_vllm(
     )
 
 
-def _create_text_provider(
+def create_text_provider(
     provider: str,
     config: dict[str, Any],
 ) -> GeminiTextOcrProvider | VllmTextOcrProvider | None:
@@ -291,7 +291,7 @@ def _create_text_provider(
         config: Provider configuration dict.
 
     Returns:
-        Text OCR provider, or None if provider is unknown.
+        Text OCR provider, or None if provider is unknown or misconfigured.
     """
     if provider == 'gemini':
         api_key = config.get('api_key', '')

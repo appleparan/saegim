@@ -14,14 +14,13 @@ from typing import Any, Literal
 
 from saegim.services.docling_layout_service import DoclingLayoutDetector
 from saegim.services.engines.base import BaseOCREngine
-from saegim.services.gemini_ocr_service import GeminiTextOcrProvider
 from saegim.services.layout_types import LayoutDetector
 from saegim.services.ocr_connection_test import (
     check_gemini_connection,
     check_vllm_connection,
 )
 from saegim.services.ocr_pipeline import OcrPipeline
-from saegim.services.vllm_ocr_service import VllmTextOcrProvider
+from saegim.services.text_extraction_service import create_text_provider
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +66,10 @@ class SplitPipelineEngine(BaseOCREngine):
         self._layout_provider_name = layout_provider
 
         layout_detector = _create_layout_detector(layout_provider, docling_model_name)
-        text_provider = _create_text_provider(ocr_provider, ocr_config)
+        text_provider = create_text_provider(ocr_provider, ocr_config)
+        if text_provider is None:
+            msg = f"Unknown split pipeline OCR provider: '{ocr_provider}'. Use 'gemini' or 'vllm'."
+            raise ValueError(msg)
         self._layout_detector = layout_detector
         self._pipeline = OcrPipeline(layout_detector, text_provider)
 
@@ -131,39 +133,6 @@ def _create_layout_detector(
         return PPDocLayoutV3Detector()
 
     msg = f"Unknown layout provider: '{provider}'. Use 'docling' or 'pp_doclayout'."
-    raise ValueError(msg)
-
-
-def _create_text_provider(
-    provider: str,
-    config: dict[str, Any],
-) -> GeminiTextOcrProvider | VllmTextOcrProvider:
-    """Create a text-only OCR provider for the split pipeline.
-
-    Args:
-        provider: Provider type string.
-        config: Provider configuration dict.
-
-    Returns:
-        Text OCR provider instance.
-
-    Raises:
-        ValueError: If provider is unknown.
-    """
-    if provider == 'gemini':
-        return GeminiTextOcrProvider(
-            api_key=config['api_key'],
-            model=config.get('model', 'gemini-3-flash-preview'),
-        )
-
-    if provider == 'vllm':
-        return VllmTextOcrProvider(
-            host=config.get('host', 'localhost'),
-            port=config.get('port', 8000),
-            model=config.get('model', 'allenai/olmOCR-2-7B-1025-FP8'),
-        )
-
-    msg = f"Unknown split pipeline OCR provider: '{provider}'. Use 'gemini' or 'vllm'."
     raise ValueError(msg)
 
 

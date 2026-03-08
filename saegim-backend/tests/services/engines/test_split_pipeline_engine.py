@@ -14,7 +14,7 @@ _MODULE = 'saegim.services.engines.split_pipeline_engine'
 class TestSplitPipelineEngineInit:
     @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
     @patch(f'{_MODULE}.DoclingLayoutDetector', new=MagicMock())
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_gemini_creates_engine(self, mock_text):
         mock_text.return_value = MagicMock()
         config = {'api_key': 'test-key', 'model': 'gemini-3-flash-preview'}
@@ -27,7 +27,7 @@ class TestSplitPipelineEngineInit:
 
     @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
     @patch(f'{_MODULE}.DoclingLayoutDetector', new=MagicMock())
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_vllm_creates_engine(self, mock_text):
         mock_text.return_value = MagicMock()
         config = {'host': 'localhost', 'port': 8000}
@@ -48,7 +48,7 @@ class TestSplitPipelineEngineInit:
 
     @patch(f'{_MODULE}.OcrPipeline')
     @patch(f'{_MODULE}.DoclingLayoutDetector')
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_creates_pipeline_with_docling_layout(
         self, mock_text, mock_detector_cls, mock_pipeline_cls
     ):
@@ -66,7 +66,7 @@ class TestSplitPipelineEngineInit:
         )
 
     @patch(f'{_MODULE}.OcrPipeline')
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_pp_doclayout_creates_engine(self, mock_text, mock_pipeline_cls):
         mock_text.return_value = MagicMock()
 
@@ -83,7 +83,7 @@ class TestSplitPipelineEngineInit:
 
     @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
     @patch(f'{_MODULE}.DoclingLayoutDetector', new=MagicMock())
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_default_layout_provider_is_docling(self, mock_text):
         mock_text.return_value = MagicMock()
         engine = SplitPipelineEngine(
@@ -106,7 +106,7 @@ class TestSplitPipelineEngineInit:
 class TestSplitPipelineEngineExtractPage:
     @patch(f'{_MODULE}.OcrPipeline')
     @patch(f'{_MODULE}.DoclingLayoutDetector', new=MagicMock())
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_delegates_to_pipeline(self, mock_text, mock_pipeline_cls):
         mock_text.return_value = MagicMock()
         mock_pipeline = MagicMock()
@@ -129,7 +129,7 @@ class TestSplitPipelineEngineTestConnection:
     @patch(f'{_MODULE}._check_ocr_provider')
     @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
     @patch(f'{_MODULE}.DoclingLayoutDetector')
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_both_succeed(
         self,
         mock_text,
@@ -155,7 +155,7 @@ class TestSplitPipelineEngineTestConnection:
 
     @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
     @patch(f'{_MODULE}.DoclingLayoutDetector')
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_layout_fails_fast(self, mock_text, mock_detector_cls):
         mock_text.return_value = MagicMock()
         mock_detector = MagicMock()
@@ -175,7 +175,7 @@ class TestSplitPipelineEngineTestConnection:
     @patch(f'{_MODULE}._check_ocr_provider')
     @patch(f'{_MODULE}.OcrPipeline', new=MagicMock())
     @patch(f'{_MODULE}.DoclingLayoutDetector')
-    @patch(f'{_MODULE}._create_text_provider')
+    @patch(f'{_MODULE}.create_text_provider')
     def test_ocr_fails(
         self,
         mock_text,
