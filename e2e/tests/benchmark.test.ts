@@ -17,6 +17,8 @@ import {
   exportProject,
   deleteDocument,
   deleteProject,
+  register,
+  setAuthToken,
 } from "../helpers/api";
 import { ensureTestPdf, getTestPdfPath } from "../helpers/pdf";
 import { BenchmarkCollector } from "../helpers/timer";
@@ -31,6 +33,10 @@ describe("API Benchmarks", () => {
   beforeAll(async () => {
     await waitForBackendReady();
     await ensureTestPdf();
+
+    const ts = Date.now();
+    const { data: authData } = await register(`Bench User ${ts}`, `bench-${ts}`, `Pass${ts}!`);
+    setAuthToken(authData.access_token);
   });
 
   afterAll(async () => {
