@@ -1,0 +1,15 @@
+{
+  "name": "saegim-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo recording for saegim platform",
+  "scripts": {
+    "record": "bunx playwright test --project=demo",
+    "gif": "bash convert-to-gif.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^24.0.0"
+  }
+}

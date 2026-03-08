@@ -44,6 +44,7 @@ services:
       LOG_LEVEL: INFO
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       REFRESH_COOKIE_SECURE: "false"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./storage:/workspace/storage
     ports:
