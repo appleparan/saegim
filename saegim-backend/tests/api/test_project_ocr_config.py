@@ -379,7 +379,7 @@ class TestTestEngineConnection:
                 return_value=config,
             ),
             patch(
-                'saegim.services.engines.factory._build_engine_from_type',
+                'saegim.services.engines.factory.build_engine_from_type',
             ) as mock_build,
         ):
             mock_engine = mock_build.return_value

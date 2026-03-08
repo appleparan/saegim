@@ -77,130 +77,6 @@ class TestCropRegion:
         img.close()
 
 
-class TestBuildTextProvider:
-    def test_split_pipeline_gemini(self):
-        config = {
-            'engine_type': 'split_pipeline',
-            'split_pipeline': {
-                'ocr_provider': 'gemini',
-                'ocr_api_key': 'test-key',
-                'ocr_model': 'gemini-3-flash-preview',
-            },
-        }
-        provider = build_text_provider(config)
-        assert provider is not None
-        assert hasattr(provider, 'extract_text')
-
-    def test_split_pipeline_vllm(self):
-        config = {
-            'engine_type': 'split_pipeline',
-            'split_pipeline': {
-                'ocr_provider': 'vllm',
-                'ocr_host': 'localhost',
-                'ocr_port': 8000,
-            },
-        }
-        provider = build_text_provider(config)
-        assert provider is not None
-
-    def test_commercial_api_gemini(self):
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
-            },
-        }
-        provider = build_text_provider(config)
-        assert provider is not None
-
-    def test_vllm(self):
-        config = {
-            'engine_type': 'vllm',
-            'vllm': {
-                'host': 'localhost',
-                'port': 8000,
-                'model': 'datalab-to/chandra',
-            },
-        }
-        provider = build_text_provider(config)
-        assert provider is not None
-
-    def test_pdfminer_returns_none(self):
-        config = {'engine_type': 'pdfminer'}
-        assert build_text_provider(config) is None
-
-    def test_unknown_engine_returns_none(self):
-        config = {'engine_type': 'unknown'}
-        assert build_text_provider(config) is None
-
-    def test_empty_config_returns_none(self):
-        assert build_text_provider({}) is None
-
-    def test_gemini_without_api_key_returns_none(self):
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-            },
-        }
-        assert build_text_provider(config) is None
-
-    def test_engine_id_uses_override(self):
-        config = {
-            'engine_type': 'pdfminer',
-            'vllm': {
-                'host': 'localhost',
-                'port': 8000,
-                'model': 'datalab-to/chandra',
-            },
-        }
-        # Default engine is pdfminer (returns None), but override to vllm
-        provider = build_text_provider(config, engine_id='vllm')
-        assert provider is not None
-
-    def test_engine_id_none_uses_default(self):
-        config = {'engine_type': 'pdfminer'}
-        provider = build_text_provider(config, engine_id=None)
-        assert provider is None
-
-    def test_engine_id_commercial_api(self):
-        config = {
-            'engine_type': 'vllm',
-            'vllm': {'host': 'localhost', 'port': 8000},
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
-                'model': 'gemini-3-flash-preview',
-            },
-        }
-        # Override to commercial_api even though default is vllm
-        provider = build_text_provider(config, engine_id='commercial_api')
-        assert provider is not None
-        assert hasattr(provider, 'extract_text')
-
-    def test_engine_id_to_pdfminer_returns_none(self):
-        config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
-            },
-        }
-        # Override to pdfminer (no region-level extraction)
-        provider = build_text_provider(config, engine_id='pdfminer')
-        assert provider is None
-
-    def test_engine_id_missing_sub_config(self):
-        config = {
-            'engine_type': 'pdfminer',
-            # No commercial_api sub-config present
-        }
-        # Override to commercial_api, but no sub-config → gemini with no key → None
-        provider = build_text_provider(config, engine_id='commercial_api')
-        assert provider is None
-
-
 class TestBuildTextProviderMultiInstance:
     """Tests for build_text_provider with new multi-instance format."""
 
@@ -375,8 +251,14 @@ class TestResolveTextProvider:
             'project_id': project_id,
         }
         ocr_config = {
-            'engine_type': 'pdfminer',
-            'vllm': {'host': 'localhost', 'port': 8000, 'model': 'test-model'},
+            'default_engine_id': None,
+            'engines': {
+                'my-vllm': {
+                    'engine_type': 'vllm',
+                    'name': 'My vLLM',
+                    'config': {'host': 'localhost', 'port': 8000, 'model': 'test-model'},
+                },
+            },
         }
         with (
             patch(
@@ -390,7 +272,7 @@ class TestResolveTextProvider:
                 return_value=ocr_config,
             ),
         ):
-            _, provider = await resolve_text_provider(mock_pool, page_id, engine_id='vllm')
+            _, provider = await resolve_text_provider(mock_pool, page_id, engine_id='my-vllm')
         assert provider is not None
 
     @pytest.mark.asyncio
@@ -399,7 +281,7 @@ class TestResolveTextProvider:
             'image_path': '/storage/images/test.png',
             'project_id': project_id,
         }
-        ocr_config = {'engine_type': 'pdfminer'}
+        ocr_config = {'default_engine_id': None, 'engines': {}}
         with (
             patch(
                 'saegim.repositories.page_repo.get_by_id_with_context',
@@ -411,7 +293,7 @@ class TestResolveTextProvider:
                 new_callable=AsyncMock,
                 return_value=ocr_config,
             ),
-            pytest.raises(NoTextProviderError, match='pdfminer'),
+            pytest.raises(NoTextProviderError),
         ):
             await resolve_text_provider(mock_pool, page_id, engine_id=None)
 
@@ -436,10 +318,13 @@ class TestResolveTextProvider:
             'project_id': project_id,
         }
         ocr_config = {
-            'engine_type': 'commercial_api',
-            'commercial_api': {
-                'provider': 'gemini',
-                'api_key': 'test-key',
+            'default_engine_id': 'gemini-flash',
+            'engines': {
+                'gemini-flash': {
+                    'engine_type': 'commercial_api',
+                    'name': 'Gemini Flash',
+                    'config': {'provider': 'gemini', 'api_key': 'test-key'},
+                },
             },
         }
         with (

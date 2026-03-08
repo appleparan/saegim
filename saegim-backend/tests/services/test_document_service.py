@@ -29,7 +29,7 @@ def document_id():
 
 @pytest.fixture
 def mock_pdfminer_config():
-    return {'engine_type': 'pdfminer'}
+    return {'default_engine_id': None, 'engines': {}}
 
 
 @pytest.fixture
@@ -422,11 +422,17 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'engine_type': 'commercial_api',
-                    'commercial_api': {
-                        'provider': 'gemini',
-                        'api_key': 'k',
-                        'model': 'm',
+                    'default_engine_id': 'gemini-flash',
+                    'engines': {
+                        'gemini-flash': {
+                            'engine_type': 'commercial_api',
+                            'name': 'Gemini Flash',
+                            'config': {
+                                'provider': 'gemini',
+                                'api_key': 'k',
+                                'model': 'm',
+                            },
+                        },
                     },
                 },
             ),
@@ -483,13 +489,19 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'engine_type': 'split_pipeline',
-                    'split_pipeline': {
-                        'layout_server_url': 'http://localhost:18811',
-                        'ocr_provider': 'vllm',
-                        'ocr_host': 'h',
-                        'ocr_port': 8000,
-                        'ocr_model': 'm',
+                    'default_engine_id': 'split-1',
+                    'engines': {
+                        'split-1': {
+                            'engine_type': 'split_pipeline',
+                            'name': 'Split Pipeline',
+                            'config': {
+                                'layout_server_url': 'http://localhost:18811',
+                                'ocr_provider': 'vllm',
+                                'ocr_host': 'h',
+                                'ocr_port': 8000,
+                                'ocr_model': 'm',
+                            },
+                        },
                     },
                 },
             ),
@@ -543,11 +555,17 @@ class TestUploadAndConvertOcr:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'engine_type': 'commercial_api',
-                    'commercial_api': {
-                        'provider': 'gemini',
-                        'api_key': 'k',
-                        'model': 'm',
+                    'default_engine_id': 'gemini-flash',
+                    'engines': {
+                        'gemini-flash': {
+                            'engine_type': 'commercial_api',
+                            'name': 'Gemini Flash',
+                            'config': {
+                                'provider': 'gemini',
+                                'api_key': 'k',
+                                'model': 'm',
+                            },
+                        },
                     },
                 },
             ),
@@ -621,7 +639,7 @@ class TestReExtract:
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value={'engine_type': 'pdfminer'},
+                return_value={'default_engine_id': None, 'engines': {}},
             ),
         ):
             mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
@@ -656,7 +674,7 @@ class TestReExtract:
                 document_service,
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
-                return_value={'engine_type': 'pdfminer'},
+                return_value={'default_engine_id': None, 'engines': {}},
             ),
         ):
             mock_doc_repo.get_by_id = AsyncMock(return_value=doc_record)
@@ -700,8 +718,18 @@ class TestReExtract:
                 '_resolve_ocr_config',
                 new_callable=AsyncMock,
                 return_value={
-                    'engine_type': 'commercial_api',
-                    'commercial_api': {'provider': 'gemini', 'api_key': 'k', 'model': 'm'},
+                    'default_engine_id': 'gemini-flash',
+                    'engines': {
+                        'gemini-flash': {
+                            'engine_type': 'commercial_api',
+                            'name': 'Gemini Flash',
+                            'config': {
+                                'provider': 'gemini',
+                                'api_key': 'k',
+                                'model': 'm',
+                            },
+                        },
+                    },
                 },
             ),
             patch.object(

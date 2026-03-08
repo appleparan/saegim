@@ -12,6 +12,8 @@ import {
   getDocumentStatus,
   deleteProject,
   updateAnnotation,
+  register,
+  setAuthToken,
 } from '../helpers/api'
 import { ensureTestPdf, getTestPdfPath } from '../helpers/pdf'
 
@@ -25,6 +27,10 @@ describe('Document Re-extract', () => {
   beforeAll(async () => {
     await waitForBackendReady()
     await ensureTestPdf()
+
+    const ts = Date.now()
+    const { data: authData } = await register(`ReExt User ${ts}`, `reext-${ts}`, `Pass${ts}!`)
+    setAuthToken(authData.access_token)
 
     // Create project and upload PDF (pdfminer default)
     const { data: project } = await createProject(PROJECT_NAME, 'E2E re-extract test')

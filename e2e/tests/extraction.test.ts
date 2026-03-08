@@ -8,6 +8,8 @@ import {
   getPage,
   acceptExtraction,
   deleteProject,
+  register,
+  setAuthToken,
 } from "../helpers/api";
 import { ensureTestPdf, getTestPdfPath } from "../helpers/pdf";
 
@@ -21,6 +23,10 @@ describe("PDF Text/Image Extraction", () => {
   beforeAll(async () => {
     await waitForBackendReady();
     await ensureTestPdf();
+
+    const ts = Date.now();
+    const { data: authData } = await register(`Extract User ${ts}`, `extract-${ts}`, `Pass${ts}!`);
+    setAuthToken(authData.access_token);
 
     // Create project and upload PDF via API
     const { data: project } = await createProject(PROJECT_NAME, "E2E extraction test");

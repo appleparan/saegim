@@ -11,7 +11,7 @@ import pypdfium2 as pdfium
 
 from saegim.repositories import document_repo, page_repo, project_repo
 from saegim.services import attribute_classifier, extraction_service
-from saegim.services.engines import build_engine, build_engine_by_id
+from saegim.services.engines import build_engine_by_id
 
 logger = logging.getLogger(__name__)
 
@@ -170,54 +170,37 @@ async def _resolve_ocr_config(
 ) -> dict[str, Any]:
     """Resolve OCR configuration from project settings.
 
-    Supports both new multi-instance format (with 'engines' dict)
-    and legacy flat format (with 'engine_type' key).
-
     Args:
         pool: Database connection pool.
         project_id: Project UUID.
 
     Returns:
-        OCR config dict in either new or legacy format.
+        OCR config dict with 'engines' dict and optional 'default_engine_id'.
     """
     config = await project_repo.get_ocr_config(pool, project_id)
-    if not config:
+    if not config or 'engines' not in config:
         return {'default_engine_id': None, 'engines': {}}
 
-    # New multi-instance format (normalize_ocr_config already ran in repo)
-    if 'engines' in config:
-        return config
-
-    # Legacy flat format fallback
-    if config.get('engine_type'):
-        return config
-    return {'default_engine_id': None, 'engines': {}}
+    return config
 
 
 def _resolve_engine_type(ocr_config: dict[str, Any]) -> str:
     """Resolve the effective engine type from OCR config.
 
-    Supports both new multi-instance format and legacy flat format.
-
     Args:
-        ocr_config: OCR configuration dict.
+        ocr_config: OCR configuration dict with 'engines' and 'default_engine_id'.
 
     Returns:
         Engine type string (e.g. 'pdfminer', 'commercial_api').
     """
-    # New multi-instance format
-    if 'engines' in ocr_config:
-        default_id = ocr_config.get('default_engine_id')
-        if not default_id:
-            return 'pdfminer'
-        engines = ocr_config.get('engines', {})
-        entry = engines.get(default_id)
-        if entry is None:
-            return 'pdfminer'
-        return entry.get('engine_type', 'pdfminer')
-
-    # Legacy flat format
-    return ocr_config.get('engine_type', 'pdfminer')
+    default_id = ocr_config.get('default_engine_id')
+    if not default_id:
+        return 'pdfminer'
+    engines = ocr_config.get('engines', {})
+    entry = engines.get(default_id)
+    if entry is None:
+        return 'pdfminer'
+    return entry.get('engine_type', 'pdfminer')
 
 
 async def _run_ocr_extraction_background(
@@ -247,10 +230,7 @@ async def _run_ocr_extraction_background(
     )
 
     try:
-        if 'engines' in ocr_config:
-            engine = build_engine_by_id(ocr_config)
-        else:
-            engine = build_engine(ocr_config)
+        engine = build_engine_by_id(ocr_config)
 
         for page in page_info_list:
             page_id = page['page_id']

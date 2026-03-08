@@ -10,6 +10,8 @@ import {
   addElement,
   updateReadingOrder,
   deleteProject,
+  register,
+  setAuthToken,
 } from '../helpers/api'
 import { ensureTestPdf, getTestPdfPath } from '../helpers/pdf'
 
@@ -20,6 +22,10 @@ describe('Reading Order', () => {
   beforeAll(async () => {
     await waitForBackendReady()
     await ensureTestPdf()
+
+    const ts = Date.now()
+    const { data: authData } = await register(`Order User ${ts}`, `order-${ts}`, `Pass${ts}!`)
+    setAuthToken(authData.access_token)
 
     const { data: project } = await createProject(
       `ReadingOrder ${Date.now()}`,

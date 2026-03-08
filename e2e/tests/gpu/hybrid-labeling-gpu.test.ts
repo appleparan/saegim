@@ -10,6 +10,8 @@ import {
   getPage,
   acceptExtraction,
   deleteProject,
+  register,
+  setAuthToken,
 } from "../../helpers/api";
 import { ensureTestPdf, getTestPdfPath } from "../../helpers/pdf";
 
@@ -28,6 +30,10 @@ describe("GPU Hybrid Labeling — API Verification", () => {
     await waitForBackendReady();
     await waitForVllmReady();
     await ensureTestPdf();
+
+    const ts = Date.now();
+    const { data: authData } = await register(`GPU User ${ts}`, `gpu-${ts}`, `Pass${ts}!`);
+    setAuthToken(authData.access_token);
 
     // Create project and configure vLLM OCR
     const { data: project } = await createProject(PROJECT_NAME, "GPU hybrid labeling E2E test");
