@@ -9,6 +9,7 @@ import {
   listDocuments,
   listPages,
   getPage,
+  extractPage,
   deleteProject,
   register,
   setAuthToken,
@@ -62,12 +63,12 @@ describe("vLLM + Chandra OCR Extraction (GPU)", () => {
     expect(data.success).toBe(true);
   });
 
-  test("03 - upload PDF and wait for extraction", async () => {
+  test("03 - upload PDF and wait for ready", async () => {
     const { data: doc } = await uploadPdf(projectId, getTestPdfPath());
     documentId = doc.id;
 
-    // Wait for Celery worker to complete OCR extraction (up to 5 min)
-    const deadline = Date.now() + 300_000;
+    // Wait for image conversion to complete (no extraction at upload)
+    const deadline = Date.now() + 120_000;
     let lastStatus = "unknown";
     while (Date.now() < deadline) {
       const { data: docs } = await listDocuments(projectId);
@@ -77,21 +78,19 @@ describe("vLLM + Chandra OCR Extraction (GPU)", () => {
           documentId = docs[0].id;
           break;
         }
-        if (lastStatus === "extraction_failed") {
-          throw new Error("OCR extraction failed");
-        }
       }
-      await new Promise((r) => setTimeout(r, 5_000));
+      await new Promise((r) => setTimeout(r, 2_000));
     }
     expect(lastStatus).toBe("ready");
   });
 
-  test("04 - auto_extracted_data has layout elements", async () => {
+  test("04 - on-demand extraction populates auto_extracted_data", async () => {
     const { data: pages } = await listPages(documentId);
     expect(pages.length).toBeGreaterThan(0);
     pageId = pages[0].id;
 
-    const { data: page } = await getPage(pageId);
+    // On-demand extraction with vLLM engine
+    const { data: page } = await extractPage(pageId);
     expect(page.auto_extracted_data).toBeTruthy();
 
     const autoData = page.auto_extracted_data as Record<string, unknown>;

@@ -5,6 +5,7 @@ import {
   uploadPdf,
   listDocuments,
   listPages,
+  extractPage,
   acceptExtraction,
   exportProject,
   exportProjectZip,
@@ -48,9 +49,10 @@ describe('Export ZIP API', () => {
       await new Promise((r) => setTimeout(r, 2_000))
     }
 
-    // Accept extraction for first page
+    // On-demand extraction, then accept for first page
     const { data: pages } = await listPages(documentId)
     if (pages.length > 0) {
+      await extractPage(pages[0].id)
       await acceptExtraction(pages[0].id)
     }
   }, 180_000)
