@@ -12,25 +12,19 @@ PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
 
 프로젝트를 생성하고, OCR 엔진을 설정한 뒤, PDF를 업로드하면 페이지별 이미지로 자동 변환합니다.
 
-<video width="100%" autoplay loop muted>
-  <source src="demo/output/Project-setup.webm" type="video/webm">
-</video>
+[Project-setup.webm](https://github.com/user-attachments/assets/891dc0a9-59cf-4269-8c7e-2e28ff8c4367)
 
 ### 레이블 에디터
 
 AI OCR로 자동 추출된 레이아웃 요소를 검토하고, 바운딩 박스 그리기·요소 인덱스 오버레이·읽기 순서 편집 등 다양한 도구로 레이블링합니다.
 
-<video width="100%" autoplay loop muted>
-  <source src="demo/output/Label-editor-extraction-annotation-overlays.webm" type="video/webm">
-</video>
+[Label-editor-extraction-annotation-overlays.webm](https://github.com/user-attachments/assets/8661bf0c-e967-411c-b876-9bda47650532)
 
 ### 프로젝트 개요 & 내보내기
 
 작업 현황 대시보드에서 진행률을 확인하고, OmniDocBench 표준 JSON으로 내보냅니다.
 
-<video width="100%" autoplay loop muted>
-  <source src="demo/output/Project-overview-dashboard-and-export.webm" type="video/webm">
-</video>
+[Project-overview-dashboard-and-export.webm](https://github.com/user-attachments/assets/9699686f-0f6e-4d80-82cd-ec53f0203da6)
 
 ## 상세 기능
 
