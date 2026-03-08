@@ -210,9 +210,9 @@ async def logout(
 
     if saegim_refresh_token is not None:
         pool = get_pool()
-        from saegim.api.deps import _hash_token
+        from saegim.api.deps import hash_token
 
-        token_hash = _hash_token(saegim_refresh_token)
+        token_hash = hash_token(saegim_refresh_token)
         record = await refresh_token_repo.get_by_token_hash(pool, token_hash)
         if record is not None:
             await refresh_token_repo.revoke_family(pool, record['family_id'])

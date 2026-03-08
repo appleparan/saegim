@@ -45,10 +45,10 @@ def build_engine_by_id(
     engine_type = entry.get('engine_type', '')
     config = entry.get('config', {})
 
-    return _build_engine_from_type(engine_type, config)
+    return build_engine_from_type(engine_type, config)
 
 
-def _build_engine_from_type(
+def build_engine_from_type(
     engine_type: str,
     config: dict[str, Any],
 ) -> BaseOCREngine:

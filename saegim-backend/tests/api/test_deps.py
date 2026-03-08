@@ -8,7 +8,7 @@ import jwt
 import pytest
 
 from saegim.api.deps import (
-    _hash_token,
+    hash_token,
     clear_refresh_cookie,
     create_access_token,
     create_refresh_token,
@@ -115,13 +115,13 @@ class TestCreateAccessToken:
 
 class TestHashToken:
     def test_consistent_hash(self):
-        assert _hash_token('abc') == _hash_token('abc')
+        assert hash_token('abc') == hash_token('abc')
 
     def test_different_inputs_different_hashes(self):
-        assert _hash_token('abc') != _hash_token('def')
+        assert hash_token('abc') != hash_token('def')
 
     def test_returns_hex_string(self):
-        result = _hash_token('test')
+        result = hash_token('test')
         assert len(result) == 64
         assert all(c in '0123456789abcdef' for c in result)
 
@@ -179,7 +179,7 @@ class TestValidateRefreshToken:
         mock_pool.fetchrow.return_value = {
             'id': uuid.uuid4(),
             'user_id': user_id,
-            'token_hash': _hash_token(raw_token),
+            'token_hash': hash_token(raw_token),
             'family_id': family_id,
             'expires_at': datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=7),
             'revoked_at': None,
@@ -228,7 +228,7 @@ class TestValidateRefreshToken:
         mock_pool.fetchrow.return_value = {
             'id': uuid.uuid4(),
             'user_id': user_id,
-            'token_hash': _hash_token(raw_token),
+            'token_hash': hash_token(raw_token),
             'family_id': family_id,
             'expires_at': datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=7),
             'revoked_at': datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(seconds=5),
@@ -276,7 +276,7 @@ class TestRotateRefreshToken:
             {
                 'id': old_id,
                 'user_id': user_id,
-                'token_hash': _hash_token(old_token),
+                'token_hash': hash_token(old_token),
                 'family_id': family_id,
                 'expires_at': datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=7),
                 'revoked_at': None,

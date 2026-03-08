@@ -185,7 +185,7 @@ async def require_project_member(
 # ---------------------------------------------------------------------------
 
 
-def _hash_token(raw_token: str) -> str:
+def hash_token(raw_token: str) -> str:
     """Hash a raw refresh token using SHA-256.
 
     Args:
@@ -216,7 +216,7 @@ async def create_refresh_token(
         tuple: (raw_token, db_record).
     """
     raw_token = secrets.token_hex(32)
-    token_hash = _hash_token(raw_token)
+    token_hash = hash_token(raw_token)
     resolved_family_id = family_id or uuid.uuid4()
     expires_at = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(
         days=settings.refresh_token_expire_days,
@@ -250,7 +250,7 @@ async def validate_refresh_token(
     Raises:
         HTTPException: 401 if token is invalid, expired, or stolen.
     """
-    token_hash = _hash_token(raw_token)
+    token_hash = hash_token(raw_token)
     record = await refresh_token_repo.get_by_token_hash(pool, token_hash)
 
     if record is None:
@@ -306,7 +306,7 @@ async def rotate_refresh_token(
     Returns:
         tuple: (new_raw_token, new_db_record).
     """
-    old_hash = _hash_token(raw_token)
+    old_hash = hash_token(raw_token)
     old_record = await refresh_token_repo.get_by_token_hash(pool, old_hash)
     if old_record is not None and old_record['revoked_at'] is None:
         await refresh_token_repo.revoke(pool, old_record['id'])

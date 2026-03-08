@@ -625,10 +625,10 @@ async def test_engine_connection(
             detail=f"Engine '{body.engine_id}' not found",
         )
 
-    from saegim.services.engines.factory import _build_engine_from_type
+    from saegim.services.engines.factory import build_engine_from_type
 
     try:
-        engine = _build_engine_from_type(entry['engine_type'], entry.get('config', {}))
+        engine = build_engine_from_type(entry['engine_type'], entry.get('config', {}))
         success, message = engine.test_connection()
     except ValueError as exc:
         success, message = False, str(exc)
