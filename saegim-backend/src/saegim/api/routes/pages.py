@@ -216,6 +216,48 @@ async def force_accept_extraction(
     return PageResponse(**result)
 
 
+@router.post('/pages/{page_id}/extract', response_model=PageResponse)
+async def extract_page(
+    page_id: uuid.UUID,
+    _current_user: UserResponse = Depends(get_current_user),  # noqa: B008
+) -> PageResponse:
+    """Run on-demand OCR extraction for a single page.
+
+    Triggers the project's configured OCR engine to extract structured
+    layout elements from this page. Results are stored in auto_extracted_data.
+
+    Args:
+        page_id: Page UUID.
+
+    Returns:
+        PageResponse: Updated page data with auto_extracted_data populated.
+
+    Raises:
+        HTTPException: 404 if page not found, 503 if no OCR engine configured,
+            502 if extraction fails.
+    """
+    pool = get_pool()
+
+    try:
+        result = await labeling_service.extract_page_on_demand(pool, page_id)
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.warning('On-demand extraction failed for page %s: %s', page_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f'Extraction failed: {exc}',
+        ) from exc
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Page not found')
+
+    return PageResponse(**result)
+
+
 @router.post('/pages/{page_id}/extract-text', response_model=ExtractTextResponse)
 async def extract_text(
     page_id: uuid.UUID,
