@@ -57,9 +57,11 @@ bunx playwright test --project=demo
 ## GIF 변환
 
 ```bash
-bash convert-to-gif.sh                          # 기본값 (800px, 12fps)
-bash convert-to-gif.sh "" demo.gif 640 8        # 작은 파일 (GitHub용)
-bash convert-to-gif.sh "" demo-hq.gif 1280 15   # 고화질
+bash convert-to-gif.sh                              # test-results/ → output/ (이름 보존, 800px, 12fps)
+bash convert-to-gif.sh output/                       # output/ 내 webm → 같은 디렉토리에 gif
+bash convert-to-gif.sh video.webm                    # 단일 파일 변환
+bash convert-to-gif.sh test-results/ gifs/ 640 8     # 작은 파일 (GitHub용)
+bash convert-to-gif.sh test-results/ gifs/ 1280 15   # 고화질
 ```
 
 ## 커스터마이징
