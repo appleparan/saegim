@@ -1,7 +1,4 @@
-mkdocs
+mkdocs<2
 mkdocs-material
 mkdocs-static-i18n[material]
-mkdocstrings[python]
-mkdocs-gen-files
 mkdocs-section-index
-mkdocs-literate-nav

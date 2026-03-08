@@ -227,7 +227,6 @@ plugins:
   - search
   - i18n:
       docs_structure: folder
-      default_language: ko
       languages:
         - locale: ko
           default: true
