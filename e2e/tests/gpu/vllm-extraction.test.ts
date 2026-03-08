@@ -10,6 +10,8 @@ import {
   listPages,
   getPage,
   deleteProject,
+  register,
+  setAuthToken,
 } from "../../helpers/api";
 import { ensureTestPdf, getTestPdfPath } from "../../helpers/pdf";
 
@@ -26,6 +28,10 @@ describe("vLLM + Chandra OCR Extraction (GPU)", () => {
     await waitForBackendReady();
     await waitForVllmReady();
     await ensureTestPdf();
+
+    const ts = Date.now();
+    const { data: authData } = await register(`vLLM User ${ts}`, `vllm-${ts}`, `Pass${ts}!`);
+    setAuthToken(authData.access_token);
   });
 
   test("01 - create project and configure vLLM engine", async () => {
