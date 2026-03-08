@@ -8,17 +8,13 @@ authors = [
 readme = "README.md"
 dependencies = [
     "asyncpg~=0.31.0",
-    "docling-core~=2.66.0",
     "fastapi[standard]~=0.135.0",
     "hf-xet~=1.3.2",
     "httpx~=0.28",
-    "numpy~=2.3.5",
-    "pandas[parquet,performance]~=2.3.3",
     "partialjson~=1.1.0",
     "pillow~=12.1.1",
     "pydantic~=2.12.5",
     "pydantic-settings~=2.13.1",
-    "pydantic-extra-types~=2.11.0",
     "pdfminer.six>=20260107",
     "pypdfium2~=5.5.0",
     "python-multipart~=0.0.22",
@@ -356,7 +352,7 @@ convention = "google"
 
 [tool.ruff.lint.isort]
 known-first-party = ["saegim"]
-known-third-party = ["numpy", "scipy", "pandas", "matplotlib", "sklearn", "torch", "tqdm"]
+known-third-party = ["scipy", "matplotlib", "sklearn", "torch", "tqdm"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
