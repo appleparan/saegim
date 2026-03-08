@@ -173,8 +173,19 @@ describe('Browser Element Index Overlay', () => {
   test('clicking "요소" checkbox toggles overlay', async () => {
     await openLabelPage()
 
-    // Click the "요소" checkbox label
-    await clickByPattern(/checkbox.*요소|요소/)
+    // Click the "요소" checkbox via DOM (accessibility snapshot pattern varies)
+    await evaluateScript(
+      `() => {
+        const labels = document.querySelectorAll('label')
+        for (const label of labels) {
+          if (label.textContent?.includes('요소')) {
+            label.click()
+            return true
+          }
+        }
+        return false
+      }`,
+    )
     await new Promise((r) => setTimeout(r, 500))
 
     // Verify checkbox is checked
