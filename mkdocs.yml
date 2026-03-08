@@ -7,7 +7,7 @@ copyright: |
   &copy; Jongsu Kim
 
 site_dir: site/
-docs_dir: ../docs/
+docs_dir: docs/
 
 theme:
   name: 'material'
@@ -44,7 +44,7 @@ theme:
    text: 'Noto Sans Korean'
    code: 'Fira Code'
 
-  #language: 'en'
+  language: 'ko'
   #direction: 'ltr'
 
   features:
@@ -125,7 +125,15 @@ validation:
 # | - https://www.mkdocs.org/user-guide/configuration/#extra                                               |
 # |                                                                                                        |
 # +--------------------------------------------------------------------------------------------------------+
-# extra:
+extra:
+  alternate:
+    - name: 한국어
+      link: /ko/
+      lang: ko
+    - name: English
+      link: /en/
+      lang: en
+
   # social:
   #   - icon: 'fontawesome/brands/github'
   #     link: 'SOME_URL'
@@ -133,8 +141,6 @@ validation:
   #generator: true
 
   #manifest: manifest.webmanifest
-
-  #alternate:
 
 markdown_extensions:
   # Python Markdown
@@ -189,60 +195,54 @@ markdown_extensions:
   ## Add support for tilde strikethrough <del></del>
   - pymdownx.tilde
 
-# Assume REF_DOCS_DIR_NAME = 'reference' in scripts/gen_ref_pages.py
 nav:
-  - Home: README.md
+  - Home: ko/README.md
   - Architecture:
-    - 데이터 스키마: architecture/data-schema.md
-    - 추출 파이프라인: architecture/extraction-pipeline.md
-    - 레이블링 워크플로우: architecture/labeling-workflow.md
+    - 데이터 스키마: ko/architecture/data-schema.md
+    - 추출 파이프라인: ko/architecture/extraction-pipeline.md
+    - 레이블링 워크플로우: ko/architecture/labeling-workflow.md
   - Backend:
     - Guide:
-      - 시작하기: backend/guide/getting-started.md
-      - API 엔드포인트: backend/guide/api.md
+      - 시작하기: ko/backend/guide/getting-started.md
+      - API 엔드포인트: ko/backend/guide/api.md
     - Architecture:
-      - 아키텍처: backend/architecture/architecture.md
-      - 데이터베이스: backend/architecture/database.md
+      - 아키텍처: ko/backend/architecture/architecture.md
+      - 데이터베이스: ko/backend/architecture/database.md
     - Dev:
-      - 개발 가이드: backend/dev/development.md
+      - 개발 가이드: ko/backend/dev/development.md
   - Frontend:
     - Guide:
-      - 컴포넌트: frontend/guide/components.md
-      - 단축키: frontend/guide/shortcuts.md
+      - 컴포넌트: ko/frontend/guide/components.md
+      - 단축키: ko/frontend/guide/shortcuts.md
     - Architecture:
-      - 아키텍처: frontend/architecture/architecture.md
-      - 스토어: frontend/architecture/stores.md
+      - 아키텍처: ko/frontend/architecture/architecture.md
+      - 스토어: ko/frontend/architecture/stores.md
     - Dev:
-      - API 클라이언트: frontend/dev/api-client.md
+      - API 클라이언트: ko/frontend/dev/api-client.md
   - Deployment:
-    - 빠른 시작: deployment/quickstart.md
-    - Docker: deployment/docker.md
-    - Kubernetes: deployment/kubernetes.md
-  - API Reference: reference/
-
+    - 빠른 시작: ko/deployment/quickstart.md
+    - Docker: ko/deployment/docker.md
+    - Kubernetes: ko/deployment/kubernetes.md
 plugins:
   - search
-  - gen-files:
-      scripts:
-        - scripts/gen_ref_pages.py
-  - literate-nav:
-      nav_file: SUMMARY.md
+  - i18n:
+      docs_structure: folder
+      default_language: ko
+      languages:
+        - locale: ko
+          default: true
+          name: 한국어
+          build: true
+        - locale: en
+          name: English
+          build: true
+          nav_translations:
+            Home: Home
+            Architecture: Architecture
+            Backend: Backend
+            Frontend: Frontend
+            Deployment: Deployment
+            Guide: Guide
+            Dev: Dev
   - section-index
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]  # search packages in the src folder
-          options:
-            show_source: true
-            show_symbol_type_toc: true
-            docstring_options:
-              ignore_init_summary: true
-            docstring_section_style: list
-            filters: ["!^_", "!^test_"]
-            extra:
-              autodoc_type_aliases: true
-          inventories:
-            - https://docs.python.org/3/objects.inv  # Python standard library
-            - https://numpy.org/doc/stable/objects.inv # numpy
-            - https://docs.pydantic.dev/latest/objects.inv
 

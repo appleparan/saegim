@@ -11,6 +11,8 @@
     // Line length 120 (matches ruff/oxfmt settings)
     "MD013": { "line_length": 120, "tables": false },
     // Allow duplicate headings under different parent sections (e.g. State, Methods per store)
-    "MD024": { "siblings_only": true }
+    "MD024": { "siblings_only": true },
+    // Allow inline HTML for img tags (needed for width control in README)
+    "MD033": { "allowed_elements": ["img"] }
   }
 }

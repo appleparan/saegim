@@ -1,5 +1,7 @@
 # saegim Demo Recording
 
+> [English](README.en.md) | **한국어**
+
 Playwright로 주요 기능을 자동 시연하고 GIF로 변환합니다.
 
 ## 사전 준비
@@ -46,7 +48,7 @@ bunx playwright test --project=demo
 ## 데모 프로젝트 구조
 
 | 파일 | 내용 | 영상 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `auth-setup.ts` | 로그인 + 다크모드 + storageState 저장 | 없음 |
 | `demo-project-setup.spec.ts` | 프로젝트 생성 → OCR 설정 → PDF 업로드 | O |
 | `demo-labeling.spec.ts` | OCR 추출 수락 → 요소 검사 → element index → bbox → reading order → 저장 | O |
@@ -72,7 +74,7 @@ bash convert-to-gif.sh test-results/ gifs/ 1280 15   # 고화질
 ## 환경 변수
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `BASE_URL` | `http://localhost:13000` | 프론트엔드 URL |
 | `API_URL` | `http://localhost:15000` | 백엔드 API URL |
 | `ADMIN_PASSWORD` | (auto-detect) | 관리자 비밀번호 |
