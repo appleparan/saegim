@@ -7,7 +7,8 @@
  * 3. OCR settings (Gemini engine)
  * 4. Upload PDF
  * 5. Label editor — figure/table recognition with Gemini OCR
- * 6. Reading order, save, export
+ * 6. Element index overlay
+ * 7. Reading order, save, export
  *
  * Prerequisites:
  *   - Docker Compose services running (make up)
@@ -248,7 +249,7 @@ test('saegim demo walkthrough', async ({ page }) => {
 
   await test.step('Accept Gemini OCR extraction — Figure', async () => {
     const acceptBtn = page.getByRole('button', { name: /수락/ })
-    await expect(acceptBtn).toBeVisible({ timeout: 10_000 })
+    await expect(acceptBtn).toBeVisible({ timeout: 60_000 })
     await pause(page, PAUSE_MEDIUM)
 
     await acceptBtn.click()
@@ -284,7 +285,7 @@ test('saegim demo walkthrough', async ({ page }) => {
 
   await test.step('Accept Gemini OCR extraction — Table', async () => {
     const acceptBtn = page.getByRole('button', { name: /수락/ })
-    if (await acceptBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+    if (await acceptBtn.isVisible({ timeout: 60_000 }).catch(() => false)) {
       await acceptBtn.click()
       await pause(page, PAUSE_EXTRA)
     }
@@ -302,7 +303,21 @@ test('saegim demo walkthrough', async ({ page }) => {
     await pause(page, PAUSE_LONG)
   })
 
-  // ─── Scene 8: Draw bounding box ───────────────────────────
+  // ─── Scene 8: Element index overlay ──────────────────────
+  await test.step('Toggle element index overlay', async () => {
+    // Press I to show element index overlay (category-colored bbox + anno_id badges)
+    await page.keyboard.press('i')
+    await pause(page, PAUSE_LONG)
+
+    // Show overlay for a moment
+    await pause(page, PAUSE_EXTRA)
+
+    // Toggle off
+    await page.keyboard.press('i')
+    await pause(page, PAUSE_MEDIUM)
+  })
+
+  // ─── Scene 9: Draw bounding box ───────────────────────────
   await test.step('Draw bounding box', async () => {
     await page.keyboard.press('2')
     await pause(page, PAUSE_MEDIUM)
@@ -327,7 +342,7 @@ test('saegim demo walkthrough', async ({ page }) => {
     await pause(page, PAUSE_MEDIUM)
   })
 
-  // ─── Scene 9: Reading order ───────────────────────────────
+  // ─── Scene 10: Reading order ──────────────────────────────
   await test.step('Toggle reading order', async () => {
     await page.keyboard.press('r')
     await pause(page, PAUSE_LONG)
@@ -336,13 +351,13 @@ test('saegim demo walkthrough', async ({ page }) => {
     await pause(page, PAUSE_MEDIUM)
   })
 
-  // ─── Scene 10: Save ───────────────────────────────────────
+  // ─── Scene 11: Save ──────────────────────────────────────
   await test.step('Save annotations', async () => {
     await page.keyboard.press('Control+s')
     await pause(page, PAUSE_LONG)
   })
 
-  // ─── Scene 11: Back to project overview ───────────────────
+  // ─── Scene 12: Back to project overview ──────────────────
   await test.step('Back to project', async () => {
     const breadcrumb = page.getByText('Attention Is All You Need').first()
     if (await breadcrumb.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -353,7 +368,7 @@ test('saegim demo walkthrough', async ({ page }) => {
     await pause(page, PAUSE_LONG)
   })
 
-  // ─── Scene 12: Progress dashboard ─────────────────────────
+  // ─── Scene 13: Progress dashboard ────────────────────────
   await test.step('Progress dashboard', async () => {
     const progressBtn = page.getByRole('button', { name: /작업 현황/ }).or(
       page.getByRole('link', { name: /작업 현황/ })
@@ -366,7 +381,7 @@ test('saegim demo walkthrough', async ({ page }) => {
     }
   })
 
-  // ─── Scene 13: Export ─────────────────────────────────────
+  // ─── Scene 14: Export ────────────────────────────────────
   await test.step('Show export', async () => {
     const exportBtn = page.getByRole('button', { name: /전체 내보내기|내보내기|Export/ })
     if (await exportBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
