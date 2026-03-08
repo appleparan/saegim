@@ -78,37 +78,6 @@ def build_engine_from_type(
     raise ValueError(msg)
 
 
-def build_engine(ocr_config: dict[str, Any]) -> BaseOCREngine:
-    """Build an OCR engine from configuration.
-
-    Args:
-        ocr_config: OCR configuration dict with 'engine_type' key.
-
-    Returns:
-        BaseOCREngine instance for the specified engine type.
-
-    Raises:
-        ValueError: If engine_type is missing or unknown.
-    """
-    engine_type = ocr_config.get('engine_type', '')
-
-    if engine_type == 'pdfminer':
-        return _build_pdfminer()
-
-    if engine_type == 'commercial_api':
-        return _build_commercial_api(ocr_config.get('commercial_api', {}))
-
-    if engine_type == 'vllm':
-        return _build_vllm(ocr_config.get('vllm', {}))
-
-    if engine_type == 'split_pipeline':
-        return _build_split_pipeline(ocr_config.get('split_pipeline', {}))
-
-    valid = "'commercial_api', 'vllm', 'split_pipeline', 'pdfminer'"
-    msg = f"Unknown engine_type: '{engine_type}'. Use {valid}."
-    raise ValueError(msg)
-
-
 def _build_pdfminer() -> BaseOCREngine:
     """Build a pdfminer fallback engine.
 

@@ -72,34 +72,15 @@ def build_text_provider(
 ) -> TextOcrProvider | None:
     """Build a text-only OCR provider from project OCR configuration.
 
-    Supports the new multi-instance format (with 'engines' dict).
-    Falls back to old flat format for backward compatibility.
-
     Args:
-        ocr_config: Project OCR configuration dict.
+        ocr_config: Project OCR configuration dict with 'engines' and 'default_engine_id'.
         engine_id: Engine instance ID to use. None = use default.
 
     Returns:
         TextOcrProvider instance, or None if the engine does not support
         region-level text extraction.
     """
-    # New multi-instance format
-    if 'engines' in ocr_config:
-        return _build_text_provider_by_id(ocr_config, engine_id)
-
-    # Legacy flat format fallback
-    engine_type = engine_id or ocr_config.get('engine_type', '')
-
-    if engine_type == 'split_pipeline':
-        return _build_from_split_pipeline(ocr_config.get('split_pipeline', {}))
-
-    if engine_type == 'commercial_api':
-        return _build_from_commercial_api(ocr_config.get('commercial_api', {}))
-
-    if engine_type == 'vllm':
-        return _build_from_vllm(ocr_config.get('vllm', {}))
-
-    return None
+    return _build_text_provider_by_id(ocr_config, engine_id)
 
 
 def _build_text_provider_by_id(
