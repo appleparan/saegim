@@ -54,11 +54,26 @@ filter_unconventional = true
 split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
-  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](<REPO>/issues/${2}))"}, # replace issue numbers
+  # convert "Merge pull request #N from user/type/desc" → "type: merge PR #N (desc)"
+  { pattern = '^Merge pull request #(\d+) from [^/]+/(feat|fix|refactor|docs|test|chore|perf|ci|feature|infra)/(.+)', replace = "${2}: merge PR #${1} (${3})" },
+  # convert "Merge pull request #N from user/worktree-type/desc" → "type: merge PR #N (desc)"
+  { pattern = '^Merge pull request #(\d+) from [^/]+/worktree-(feat|fix|refactor|docs|test|chore|perf|ci|feature|infra)/(.+)', replace = "${2}: merge PR #${1} (${3})" },
+  # fallback: any remaining merge PR commits
+  { pattern = '^Merge pull request #(\d+) from .+', replace = "chore: merge PR #${1}" },
+  # convert "Merge branch 'type/desc'" → "type: merge (desc)"
+  { pattern = "^Merge branch '(feat|fix|refactor|docs|test|chore|perf|ci|feature|infra)/(.+)'", replace = "${1}: merge (${2})" },
+  # fallback: any remaining merge branch commits
+  { pattern = "^Merge branch '.+'", replace = "chore: merge branch" },
+  # convert non-conventional commits starting with uppercase to chore (legacy commits)
+  { pattern = '^([A-Z][^:]+)$', replace = "chore: ${1}" },
+  # replace issue numbers
+  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](<REPO>/issues/${2}))" },
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
   { message = "^feat", group = "Features" },
+  { message = "^feature", group = "Features" },
+  { message = "^infra", group = "Miscellaneous Tasks" },
   { message = "^fix", group = "Bug Fixes" },
   { message = "^doc", group = "Documentation" },
   { message = "^perf", group = "Performance" },
@@ -72,11 +87,12 @@ commit_parsers = [
   { message = "^chore|ci", group = "Miscellaneous Tasks" },
   { body = ".*security", group = "Security" },
   { message = "^revert", group = "Revert" },
+  { message = ".*", skip = true },  # skip non-conventional commits silently
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
 # filter out the commits that are not matched by commit parsers
-filter_commits = false
+filter_commits = true
 # regex for matching git tags
 tag_pattern = "v[0-9]+.[0-9]+.[0-9]+"
 
