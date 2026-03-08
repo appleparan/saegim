@@ -93,11 +93,8 @@ try {
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
 | `createElement(pageId, data)` | POST | `/api/v1/pages/:id/elements` | 요소 생성 |
-| ~~`updateElement(elementId, data)`~~ | PUT | `/api/v1/elements/:id` | 데드 코드 (백엔드 경로 없음, 전체 저장으로 대체) |
-| ~~`deleteElement(elementId)`~~ | DELETE | `/api/v1/elements/:id` | 데드 코드 (백엔드: `DELETE /pages/:pid/elements/:anno_id`) |
 
-> **참고**: 요소 삭제는 백엔드에서 `DELETE /api/v1/pages/{page_id}/elements/{anno_id}`로
-> 구현되어 있으나, 프론트엔드는 `savePage()`로 전체 저장하는 방식을 사용합니다.
+> **참고**: 요소 수정/삭제는 `savePage()`로 전체 저장하는 방식을 사용합니다.
 
 ### Relations (`src/lib/api/relations.ts`)
 

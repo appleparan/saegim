@@ -5,39 +5,6 @@ import uuid
 import asyncpg
 
 
-async def create(
-    pool: asyncpg.Pool,
-    name: str,
-    email: str,
-    role: str = 'annotator',
-    login_id: str | None = None,
-) -> asyncpg.Record:
-    """Create a new user.
-
-    Args:
-        pool: Database connection pool.
-        name: User name.
-        email: User email (must be unique).
-        role: User role (admin, annotator, reviewer).
-        login_id: Login ID. Defaults to email for backward compatibility.
-
-    Returns:
-        asyncpg.Record: Created user record.
-    """
-    resolved_login_id = login_id or email
-    return await pool.fetchrow(
-        """
-        INSERT INTO users (name, login_id, email, role)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, name, login_id, email, role, must_change_password, is_active, created_at
-        """,
-        name,
-        resolved_login_id,
-        email,
-        role,
-    )
-
-
 async def get_by_id(pool: asyncpg.Pool, user_id: uuid.UUID) -> asyncpg.Record | None:
     """Get a user by ID.
 
@@ -125,19 +92,6 @@ async def is_login_id_taken(
             exclude_user_id,
         )
     return row is not None
-
-
-async def get_by_email(pool: asyncpg.Pool, email: str) -> asyncpg.Record | None:
-    """Get a user by email address (includes password_hash)."""
-    return await pool.fetchrow(
-        """
-        SELECT id, name, login_id, email, role, password_hash,
-               must_change_password, is_active, created_at
-        FROM users
-        WHERE email = $1
-        """,
-        email,
-    )
 
 
 async def is_email_taken(
@@ -258,32 +212,6 @@ async def count_all(pool: asyncpg.Pool) -> int:
     """
     row = await pool.fetchrow('SELECT COUNT(*) AS cnt FROM users')
     return int(row['cnt'])
-
-
-async def update_role(
-    pool: asyncpg.Pool,
-    user_id: uuid.UUID,
-    role: str,
-) -> asyncpg.Record | None:
-    """Update a user's system role.
-
-    Args:
-        pool: Database connection pool.
-        user_id: User UUID.
-        role: New role value.
-
-    Returns:
-        asyncpg.Record or None: Updated user record, or None if not found.
-    """
-    return await pool.fetchrow(
-        """
-        UPDATE users SET role = $1
-        WHERE id = $2
-        RETURNING id, name, login_id, email, role, must_change_password, is_active, created_at
-        """,
-        role,
-        user_id,
-    )
 
 
 async def list_all(pool: asyncpg.Pool) -> list[asyncpg.Record]:

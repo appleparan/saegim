@@ -169,17 +169,6 @@ export interface CreateElementRequest {
   readonly text?: string
 }
 
-export interface UpdateElementRequest {
-  readonly category_type?: string
-  readonly poly?: readonly number[]
-  readonly text?: string
-  readonly latex?: string
-  readonly html?: string
-  readonly attribute?: Record<string, string | boolean>
-  readonly ignore?: boolean
-  readonly order?: number
-}
-
 export interface ElementResponse {
   readonly anno_id: number
   readonly category_type: string

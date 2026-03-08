@@ -4,7 +4,7 @@ import datetime
 import uuid
 from enum import StrEnum
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel
 
 
 class UserRole(StrEnum):
@@ -13,14 +13,6 @@ class UserRole(StrEnum):
     ADMIN = 'admin'
     ANNOTATOR = 'annotator'
     REVIEWER = 'reviewer'
-
-
-class UserCreate(BaseModel):
-    """Schema for creating a user."""
-
-    name: str = Field(min_length=1, max_length=255)
-    email: EmailStr
-    role: UserRole = Field(default=UserRole.ANNOTATOR)
 
 
 class UserUpdate(BaseModel):

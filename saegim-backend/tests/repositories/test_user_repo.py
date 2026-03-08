@@ -99,22 +99,6 @@ class TestUserRepoCountAll:
         assert count == 0
 
 
-class TestUserRepoUpdateRole:
-    @pytest.mark.asyncio
-    async def test_update(self, mock_pool, sample_user_record):
-        updated = {**sample_user_record, 'role': 'reviewer'}
-        mock_pool.fetchrow.return_value = updated
-        result = await user_repo.update_role(mock_pool, sample_user_record['id'], 'reviewer')
-        assert result is not None
-        assert result['role'] == 'reviewer'
-
-    @pytest.mark.asyncio
-    async def test_not_found(self, mock_pool):
-        mock_pool.fetchrow.return_value = None
-        result = await user_repo.update_role(mock_pool, uuid.uuid4(), 'admin')
-        assert result is None
-
-
 class TestUserRepoAvailabilityChecks:
     @pytest.mark.asyncio
     async def test_login_id_taken(self, mock_pool):
