@@ -7,6 +7,8 @@ import {
   listPages,
   getPage,
   deleteProject,
+  register,
+  setAuthToken,
 } from "../helpers/api";
 import { ensureFullPdf, getFullPdfPath } from "../helpers/pdf";
 
@@ -20,6 +22,10 @@ describe("Auto Attribute Classifier (pdfminer fallback)", () => {
   beforeAll(async () => {
     await waitForBackendReady();
     await ensureFullPdf();
+
+    const ts = Date.now();
+    const { data: authData } = await register(`AttrCls User ${ts}`, `attrcls-${ts}`, `Pass${ts}!`);
+    setAuthToken(authData.access_token);
 
     const { data: project } = await createProject(PROJECT_NAME, "E2E attribute classifier test");
     projectId = project.id;

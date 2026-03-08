@@ -10,6 +10,8 @@ import {
   deleteRelation,
   deleteDocument,
   deleteProject,
+  register,
+  setAuthToken,
 } from '../helpers/api'
 import { ensureTestPdf, getTestPdfPath } from '../helpers/pdf'
 
@@ -21,6 +23,10 @@ describe('Relation CRUD', () => {
   beforeAll(async () => {
     await waitForBackendReady()
     await ensureTestPdf()
+
+    const ts = Date.now()
+    const { data: authData } = await register(`Relation User ${ts}`, `relation-${ts}`, `Pass${ts}!`)
+    setAuthToken(authData.access_token)
 
     // Create project, upload PDF, and set up annotation with two elements
     const { data: project } = await createProject(`Relation E2E ${Date.now()}`, 'Relation test')

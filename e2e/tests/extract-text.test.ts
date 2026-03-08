@@ -8,6 +8,8 @@ import {
   getPage,
   extractText,
   deleteProject,
+  register,
+  setAuthToken,
 } from '../helpers/api'
 import { ensureTestPdf, getTestPdfPath } from '../helpers/pdf'
 
@@ -19,6 +21,10 @@ describe('Extract Text (On-demand OCR)', () => {
   beforeAll(async () => {
     await waitForBackendReady()
     await ensureTestPdf()
+
+    const ts = Date.now()
+    const { data: authData } = await register(`ExtText User ${ts}`, `exttext-${ts}`, `Pass${ts}!`)
+    setAuthToken(authData.access_token)
 
     const { data: project } = await createProject(
       `ExtractText E2E ${Date.now()}`,
