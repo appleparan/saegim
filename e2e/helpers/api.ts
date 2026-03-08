@@ -478,16 +478,6 @@ interface UserResponse {
   created_at: string
 }
 
-export async function createUser(
-  name: string,
-  email: string,
-  role: string = 'annotator',
-): Promise<{ data: UserResponse; status: number; duration: number }> {
-  return request<UserResponse>('POST', '/users', {
-    body: { name, email, role },
-  })
-}
-
 export async function listUsers(): Promise<{
   data: UserResponse[]
   status: number

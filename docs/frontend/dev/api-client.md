@@ -137,7 +137,7 @@ try {
 
 | 함수 | HTTP | 경로 | 설명 |
 | ------ | ------ | ------ | ------ |
-| `listUsers()` | GET | `/api/v1/users` | 사용자 목록 (레거시) |
+| `listUsers()` | GET | `/api/v1/users` | 사용자 목록 (인증 필요) |
 
 ## 주요 타입 (`src/lib/api/types.ts`)
 
