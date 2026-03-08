@@ -42,6 +42,8 @@ services:
       STORAGE_PATH: /workspace/storage
       CORS_ORIGINS: '["http://localhost:${FE_PORT:-13000}"]'
       LOG_LEVEL: INFO
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      REFRESH_COOKIE_SECURE: "false"
     volumes:
       - ./storage:/workspace/storage
     ports:
