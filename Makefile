@@ -1,4 +1,4 @@
-.PHONY: up down up-gpu down-gpu build build-gpu logs ps
+.PHONY: up down down-all up-gpu down-gpu down-all-gpu build build-gpu logs ps
 
 ## CPU mode (default)
 up:
@@ -6,6 +6,9 @@ up:
 
 down:
 	docker compose down
+
+down-all:
+	docker compose down -v
 
 build:
 	docker compose build
@@ -16,6 +19,9 @@ up-gpu:
 
 down-gpu:
 	docker compose --profile gpu down
+
+down-all-gpu:
+	docker compose --profile gpu down -v
 
 build-gpu:
 	docker compose --env-file .env --env-file .env.gpu build

@@ -157,6 +157,8 @@ docker compose --profile gpu exec backend nvidia-smi
 | `DB_POOL_MIN_SIZE` | `2` | 최소 DB 커넥션 |
 | `DB_POOL_MAX_SIZE` | `10` | 최대 DB 커넥션 |
 | `MAX_WORKERS` | `1` | Uvicorn 워커 수 |
+| `SECRET_KEY` | (랜덤 생성) | JWT 서명 키 (프로덕션에서 반드시 고정) |
+| `REFRESH_COOKIE_SECURE` | `true` | Refresh 쿠키 Secure 플래그 (HTTP 환경에서 `false`) |
 
 ### 프론트엔드 환경변수
 
@@ -219,7 +221,7 @@ docker compose exec postgres psql -U labeling -d labeling
 
 ```bash
 # PostgreSQL 데이터 초기화 후 재시작
-docker compose down -v
+make down-all
 make up
 ```
 
