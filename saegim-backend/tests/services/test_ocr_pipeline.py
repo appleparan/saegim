@@ -5,11 +5,11 @@ from unittest.mock import MagicMock
 
 from PIL import Image
 
+from saegim.services.image_utils import crop_region
 from saegim.services.layout_types import LayoutRegion
 from saegim.services.ocr_pipeline import (
     OcrPipeline,
     _build_layout_det,
-    _crop_region,
 )
 
 
@@ -31,7 +31,7 @@ def _make_test_image_path(tmp_path, width: int = 800, height: int = 1200):
 class TestCropRegion:
     def test_crop_basic(self):
         img = _make_test_image(100, 100)
-        result = _crop_region(img, (10.0, 20.0, 50.0, 60.0))
+        result = crop_region(img, (10.0, 20.0, 50.0, 60.0))
         # Verify it returns valid PNG bytes
         cropped = Image.open(io.BytesIO(result))
         assert cropped.size == (40, 40)
@@ -40,7 +40,7 @@ class TestCropRegion:
 
     def test_crop_clamped_to_bounds(self):
         img = _make_test_image(100, 100)
-        result = _crop_region(img, (-10.0, -5.0, 200.0, 150.0))
+        result = crop_region(img, (-10.0, -5.0, 200.0, 150.0))
         cropped = Image.open(io.BytesIO(result))
         assert cropped.size == (100, 100)
         img.close()
@@ -48,7 +48,7 @@ class TestCropRegion:
 
     def test_crop_zero_area_returns_empty(self):
         img = _make_test_image(100, 100)
-        result = _crop_region(img, (50.0, 50.0, 50.0, 50.0))
+        result = crop_region(img, (50.0, 50.0, 50.0, 50.0))
         assert result == b''
         img.close()
 

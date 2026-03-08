@@ -12,6 +12,7 @@ import logging
 import re
 from typing import Any
 
+from saegim.services.adapters import extract_content
 from saegim.services.docir import ElementIR, Geometry, PageIR
 
 logger = logging.getLogger(__name__)
@@ -68,24 +69,8 @@ class LightOnOcrAdapter:
         Returns:
             Parsed PageIR.
         """
-        text = _extract_content(result)
+        text = extract_content(result)
         return _parse_lighton_output(text, page_width, page_height)
-
-
-def _extract_content(result: dict[str, Any]) -> str:
-    """Extract text content from OpenAI-compatible response.
-
-    Args:
-        result: Raw API response dict.
-
-    Returns:
-        Text content string, or empty string if not available.
-    """
-    choices = result.get('choices', [])
-    if not choices:
-        return ''
-    message = choices[0].get('message', {})
-    return message.get('content', '')
 
 
 def _normalize_to_pixel(

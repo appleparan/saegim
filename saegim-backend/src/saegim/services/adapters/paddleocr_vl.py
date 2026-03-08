@@ -8,6 +8,7 @@ text without any geometry or coordinate information.
 import logging
 from typing import Any
 
+from saegim.services.adapters import extract_content
 from saegim.services.docir import ElementIR, PageIR
 
 logger = logging.getLogger(__name__)
@@ -77,24 +78,8 @@ class PaddleOcrVlAdapter:
         Returns:
             Parsed PageIR with geometry-free elements.
         """
-        text = _extract_content(result)
+        text = extract_content(result)
         return _parse_paddleocr_output(text, page_width, page_height, self._prompt)
-
-
-def _extract_content(result: dict[str, Any]) -> str:
-    """Extract text content from OpenAI-compatible response.
-
-    Args:
-        result: Raw API response dict.
-
-    Returns:
-        Text content string, or empty string if not available.
-    """
-    choices = result.get('choices', [])
-    if not choices:
-        return ''
-    message = choices[0].get('message', {})
-    return message.get('content', '')
 
 
 def _parse_paddleocr_output(

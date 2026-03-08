@@ -8,6 +8,47 @@ import asyncpg
 
 from saegim.repositories import page_repo
 
+_STANDARD_FIELDS = (
+    'id',
+    'document_id',
+    'page_no',
+    'width',
+    'height',
+    'image_path',
+    'status',
+    'assigned_to',
+    'updated_at',
+)
+
+
+def _parse_json_field(value: str | dict | list | None) -> dict | list | None:
+    """Parse a JSON string field if needed."""
+    if isinstance(value, str):
+        return json.loads(value)
+    return value
+
+
+def _record_to_page_dict(
+    record: asyncpg.Record,
+    *,
+    extra_fields: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Convert a database record to a page response dict.
+
+    Args:
+        record: Database record with page fields.
+        extra_fields: Additional field names to include from the record.
+
+    Returns:
+        Page data dictionary with parsed JSON fields.
+    """
+    result: dict[str, Any] = {field: record[field] for field in _STANDARD_FIELDS}
+    result['annotation_data'] = _parse_json_field(record['annotation_data']) or {}
+    result['auto_extracted_data'] = _parse_json_field(record['auto_extracted_data'])
+    for field in extra_fields:
+        result[field] = record[field]
+    return result
+
 
 async def get_page_data(pool: asyncpg.Pool, page_id: uuid.UUID) -> dict[str, Any] | None:
     """Get page data including annotation for the labeling UI.
@@ -23,31 +64,10 @@ async def get_page_data(pool: asyncpg.Pool, page_id: uuid.UUID) -> dict[str, Any
     if record is None:
         return None
 
-    annotation_data = record['annotation_data']
-    if isinstance(annotation_data, str):
-        annotation_data = json.loads(annotation_data)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': annotation_data or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-        'project_id': record['project_id'],
-        'project_name': record['project_name'],
-        'document_filename': record['document_filename'],
-        'pdf_path': record['pdf_path'],
-    }
+    return _record_to_page_dict(
+        record,
+        extra_fields=('project_id', 'project_name', 'document_filename', 'pdf_path'),
+    )
 
 
 async def save_annotation(
@@ -69,27 +89,7 @@ async def save_annotation(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def save_page_attribute(
@@ -111,27 +111,7 @@ async def save_page_attribute(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def add_element(
@@ -167,27 +147,7 @@ async def add_element(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def accept_auto_extraction(
@@ -210,27 +170,7 @@ async def accept_auto_extraction(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def force_accept_auto_extraction(
@@ -253,27 +193,7 @@ async def force_accept_auto_extraction(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def add_relation(
@@ -332,27 +252,7 @@ async def add_relation(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def delete_relation(
@@ -376,27 +276,7 @@ async def delete_relation(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)
 
 
 async def update_reading_order(
@@ -445,27 +325,7 @@ async def update_reading_order(
     if result is None:
         return None
 
-    result_annotation = result['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = result['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': result['id'],
-        'document_id': result['document_id'],
-        'page_no': result['page_no'],
-        'width': result['width'],
-        'height': result['height'],
-        'image_path': result['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': result['status'],
-        'assigned_to': result['assigned_to'],
-        'updated_at': result['updated_at'],
-    }
+    return _record_to_page_dict(result)
 
 
 async def delete_element(
@@ -487,24 +347,4 @@ async def delete_element(
     if record is None:
         return None
 
-    result_annotation = record['annotation_data']
-    if isinstance(result_annotation, str):
-        result_annotation = json.loads(result_annotation)
-
-    auto_extracted = record['auto_extracted_data']
-    if isinstance(auto_extracted, str):
-        auto_extracted = json.loads(auto_extracted)
-
-    return {
-        'id': record['id'],
-        'document_id': record['document_id'],
-        'page_no': record['page_no'],
-        'width': record['width'],
-        'height': record['height'],
-        'image_path': record['image_path'],
-        'annotation_data': result_annotation or {},
-        'auto_extracted_data': auto_extracted,
-        'status': record['status'],
-        'assigned_to': record['assigned_to'],
-        'updated_at': record['updated_at'],
-    }
+    return _record_to_page_dict(record)

@@ -2,8 +2,7 @@
  * Project API calls.
  */
 
-import { api, API_BASE } from './client'
-import { authStore } from '$lib/stores/auth.svelte'
+import { api } from './client'
 import type {
   AddProjectMemberRequest,
   ProjectResponse,
@@ -121,29 +120,5 @@ export async function removeProjectMember(projectId: string, userId: string): Pr
 // --- Export ---
 
 export async function exportProjectZip(projectId: string): Promise<void> {
-  const headers: Record<string, string> = {}
-  if (authStore.token) {
-    headers['Authorization'] = `Bearer ${authStore.token}`
-  }
-
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/export/zip`, {
-    credentials: 'include',
-    headers,
-  })
-
-  if (!res.ok) {
-    throw new Error(`Export failed: ${res.status}`)
-  }
-
-  const disposition = res.headers.get('Content-Disposition') ?? ''
-  const match = disposition.match(/filename="(.+)"/)
-  const filename = match?.[1] ?? `${projectId}.zip`
-
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+  await api.downloadBlob(`/api/v1/projects/${projectId}/export/zip`, `${projectId}.zip`)
 }

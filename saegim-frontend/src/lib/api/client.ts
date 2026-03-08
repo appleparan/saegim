@@ -37,44 +37,60 @@ function authHeaders(): Record<string, string> {
   return {}
 }
 
-async function doFetch(path: string, options?: RequestInit): Promise<Response> {
+async function doFetch(
+  path: string,
+  options?: RequestInit,
+  { json = true }: { json?: boolean } = {},
+): Promise<Response> {
   // Proactive refresh: if token expires within 2 min, refresh first
   if (authStore.shouldRefresh()) {
     await authStore.refreshToken()
   }
 
+  const headers: Record<string, string> = {
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
+    ...authHeaders(),
+    ...(options?.headers as Record<string, string>),
+  }
+
   return fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-      ...options?.headers,
-    },
+    headers,
   })
+}
+
+async function fetchWithRetry(
+  path: string,
+  options?: RequestInit,
+  fetchOptions?: { json?: boolean },
+): Promise<Response> {
+  let res = await doFetch(path, options, fetchOptions)
+
+  // On 401, try silent refresh and retry once
+  if (res.status === 401) {
+    const refreshed = await authStore.refreshToken()
+    if (refreshed) {
+      res = await doFetch(path, options, fetchOptions)
+    }
+    if (res.status === 401) {
+      authStore.logout()
+      const body = await res.json().catch(() => undefined)
+      throw new ApiError(res.status, res.statusText, body)
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => undefined)
+    throw new ApiError(res.status, res.statusText, body)
+  }
+
+  return res
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try {
-    let res = await doFetch(path, options)
-
-    // On 401, try silent refresh and retry once
-    if (res.status === 401) {
-      const refreshed = await authStore.refreshToken()
-      if (refreshed) {
-        res = await doFetch(path, options)
-      }
-      if (res.status === 401) {
-        authStore.logout()
-        const body = await res.json().catch(() => undefined)
-        throw new ApiError(res.status, res.statusText, body)
-      }
-    }
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => undefined)
-      throw new ApiError(res.status, res.statusText, body)
-    }
+    const res = await fetchWithRetry(path, options)
 
     if (res.status === 204) {
       return undefined as T
@@ -92,41 +108,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 async function requestRaw(path: string, options?: RequestInit): Promise<Response> {
   try {
-    let res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      credentials: 'include',
-      headers: {
-        ...authHeaders(),
-        ...options?.headers,
-      },
-    })
-
-    // On 401, try silent refresh and retry once
-    if (res.status === 401) {
-      const refreshed = await authStore.refreshToken()
-      if (refreshed) {
-        res = await fetch(`${API_BASE}${path}`, {
-          ...options,
-          credentials: 'include',
-          headers: {
-            ...authHeaders(),
-            ...options?.headers,
-          },
-        })
-      }
-      if (res.status === 401) {
-        authStore.logout()
-        const body = await res.json().catch(() => undefined)
-        throw new ApiError(res.status, res.statusText, body)
-      }
-    }
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => undefined)
-      throw new ApiError(res.status, res.statusText, body)
-    }
-
-    return res
+    return await fetchWithRetry(path, options, { json: false })
   } catch (error) {
     if (error instanceof ApiError) throw error
     throw new NetworkError(
@@ -169,4 +151,21 @@ export const api = {
       method: 'POST',
       body: formData,
     }),
+
+  /** Download a file as blob with browser save dialog. */
+  downloadBlob: async (path: string, fallbackFilename: string): Promise<void> => {
+    const res = await requestRaw(path, { method: 'GET' })
+
+    const disposition = res.headers.get('Content-Disposition') ?? ''
+    const match = disposition.match(/filename="(.+)"/)
+    const filename = match?.[1] ?? fallbackFilename
+
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 }

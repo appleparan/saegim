@@ -2,8 +2,7 @@
  * Document API calls.
  */
 
-import { api, API_BASE } from './client'
-import { authStore } from '$lib/stores/auth.svelte'
+import { api } from './client'
 import type { DocumentResponse, DocumentStatusResponse, PageSummary } from './types'
 
 export async function listDocuments(projectId: string): Promise<readonly DocumentResponse[]> {
@@ -34,32 +33,8 @@ export async function listPages(documentId: string): Promise<readonly PageSummar
 }
 
 export async function exportDocumentZip(projectId: string, documentId: string): Promise<void> {
-  const headers: Record<string, string> = {}
-  if (authStore.token) {
-    headers['Authorization'] = `Bearer ${authStore.token}`
-  }
-
-  const res = await fetch(
-    `${API_BASE}/api/v1/projects/${projectId}/documents/${documentId}/export/zip`,
-    {
-      credentials: 'include',
-      headers,
-    },
+  await api.downloadBlob(
+    `/api/v1/projects/${projectId}/documents/${documentId}/export/zip`,
+    `${documentId}.zip`,
   )
-
-  if (!res.ok) {
-    throw new Error(`Export failed: ${res.status}`)
-  }
-
-  const disposition = res.headers.get('Content-Disposition') ?? ''
-  const match = disposition.match(/filename="(.+)"/)
-  const filename = match?.[1] ?? `${documentId}.zip`
-
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
 }

@@ -1,8 +1,8 @@
 """Tests for LightOnOcrAdapter."""
 
+from saegim.services.adapters import extract_content
 from saegim.services.adapters.lightonocr import (
     LightOnOcrAdapter,
-    _extract_content,
     _normalize_to_pixel,
     _parse_lighton_output,
 )
@@ -182,17 +182,17 @@ class TestCoordinateConversion:
 class TestExtractContent:
     def test_normal_response(self):
         result = {'choices': [{'message': {'content': 'hello'}}]}
-        assert _extract_content(result) == 'hello'
+        assert extract_content(result) == 'hello'
 
     def test_empty_choices(self):
-        assert _extract_content({'choices': []}) == ''
+        assert extract_content({'choices': []}) == ''
 
     def test_no_choices_key(self):
-        assert _extract_content({}) == ''
+        assert extract_content({}) == ''
 
     def test_empty_content(self):
         result = {'choices': [{'message': {'content': ''}}]}
-        assert _extract_content(result) == ''
+        assert extract_content(result) == ''
 
 
 class TestParseLightonOutput:

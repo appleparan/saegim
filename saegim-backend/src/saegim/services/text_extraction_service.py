@@ -4,7 +4,6 @@ Crops a region from a page image and sends it to the configured
 text OCR provider (Gemini or vLLM) for text extraction.
 """
 
-import io
 import logging
 import uuid
 from pathlib import Path
@@ -15,6 +14,7 @@ from PIL import Image
 
 from saegim.repositories import page_repo, project_repo
 from saegim.services.gemini_ocr_service import GeminiTextOcrProvider
+from saegim.services.image_utils import crop_region as _crop_region_raw
 from saegim.services.ocr_pipeline import TextOcrProvider
 from saegim.services.vllm_ocr_service import VllmTextOcrProvider
 
@@ -59,21 +59,11 @@ def crop_region(
     Raises:
         TextExtractionError: If the region has zero or negative area.
     """
-    x1, y1, x2, y2 = bbox
-    x1 = max(0, min(x1, image.width))
-    y1 = max(0, min(y1, image.height))
-    x2 = max(0, min(x2, image.width))
-    y2 = max(0, min(y2, image.height))
-
-    ix1, iy1, ix2, iy2 = int(x1), int(y1), int(x2), int(y2)
-    if ix2 <= ix1 or iy2 <= iy1:
-        msg = f'Region has zero area: ({ix1}, {iy1}, {ix2}, {iy2})'
+    result = _crop_region_raw(image, bbox)
+    if not result:
+        msg = f'Region has zero area: {bbox}'
         raise TextExtractionError(msg)
-
-    cropped = image.crop((ix1, iy1, ix2, iy2))
-    buf = io.BytesIO()
-    cropped.save(buf, format='PNG')
-    return buf.getvalue()
+    return result
 
 
 def build_text_provider(
@@ -254,7 +244,7 @@ def _build_from_split_pipeline(
         for k, v in config.items()
         if k.startswith('ocr_') and k != 'ocr_provider'
     }
-    return _create_text_provider(ocr_provider, ocr_config)
+    return create_text_provider(ocr_provider, ocr_config)
 
 
 def _build_from_commercial_api(
@@ -269,7 +259,7 @@ def _build_from_commercial_api(
         Text OCR provider, or None if config is invalid.
     """
     provider = config.get('provider', '')
-    return _create_text_provider(provider, config)
+    return create_text_provider(provider, config)
 
 
 def _build_from_vllm(
@@ -290,7 +280,7 @@ def _build_from_vllm(
     )
 
 
-def _create_text_provider(
+def create_text_provider(
     provider: str,
     config: dict[str, Any],
 ) -> GeminiTextOcrProvider | VllmTextOcrProvider | None:
@@ -301,7 +291,7 @@ def _create_text_provider(
         config: Provider configuration dict.
 
     Returns:
-        Text OCR provider, or None if provider is unknown.
+        Text OCR provider, or None if provider is unknown or misconfigured.
     """
     if provider == 'gemini':
         api_key = config.get('api_key', '')
