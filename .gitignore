@@ -15,6 +15,7 @@ e2e/test-results/
 demo/node_modules/
 demo/bun.lock
 demo/test-results/
+demo/.auth/
 demo/*.gif
 
 # Local agent workspace
