@@ -6,6 +6,8 @@ describe('CanvasStore', () => {
     canvasStore.setViewport(1, 0, 0)
     canvasStore.setImageDimensions(0, 0)
     canvasStore.setTool('select')
+    if (canvasStore.showReadingOrder) canvasStore.toggleReadingOrder()
+    if (canvasStore.showElementIndex) canvasStore.toggleElementIndex()
   })
 
   describe('setViewport', () => {
@@ -172,6 +174,31 @@ describe('CanvasStore', () => {
 
       canvasStore.setTool('select')
       expect(canvasStore.toolMode).toBe('select')
+    })
+  })
+
+  describe('toggleElementIndex', () => {
+    it('toggles showElementIndex from false to true', () => {
+      expect(canvasStore.showElementIndex).toBe(false)
+      canvasStore.toggleElementIndex()
+      expect(canvasStore.showElementIndex).toBe(true)
+    })
+
+    it('toggles showElementIndex from true to false', () => {
+      canvasStore.toggleElementIndex()
+      expect(canvasStore.showElementIndex).toBe(true)
+      canvasStore.toggleElementIndex()
+      expect(canvasStore.showElementIndex).toBe(false)
+    })
+
+    it('is independent of showReadingOrder', () => {
+      canvasStore.toggleElementIndex()
+      expect(canvasStore.showElementIndex).toBe(true)
+      expect(canvasStore.showReadingOrder).toBe(false)
+
+      canvasStore.toggleReadingOrder()
+      expect(canvasStore.showElementIndex).toBe(true)
+      expect(canvasStore.showReadingOrder).toBe(true)
     })
   })
 })
