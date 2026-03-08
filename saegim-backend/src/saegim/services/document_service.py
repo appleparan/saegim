@@ -25,12 +25,9 @@ async def upload_and_convert(
 ) -> dict:
     """Upload a PDF and convert each page to an image.
 
-    Renders page images at 2x scale using pypdfium2. Extraction backend
-    is determined by the project's ``engine_type`` setting.
-
-    Engine types:
-    - 'pdfminer': Synchronous extraction via pdfminer.six
-    - Others: Background asyncio task for OCR extraction
+    Renders page images at 2x scale using pypdfium2. No extraction is
+    performed at upload time — extraction is triggered on-demand when
+    a user opens a page in the label editor.
 
     Args:
         pool: Database connection pool.
@@ -47,10 +44,6 @@ async def upload_and_convert(
     images_dir = storage / 'images'
     pdfs_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
-
-    # Resolve extraction engine from project config
-    ocr_config = await _resolve_ocr_config(pool, project_id)
-    engine_type = _resolve_engine_type(ocr_config)
 
     doc_id = uuid.uuid4()
     safe_name = f'{doc_id}_{filename}'
@@ -70,9 +63,6 @@ async def upload_and_convert(
         pdf_doc = pdfium.PdfDocument(str(pdf_path))
         total_pages = len(pdf_doc)
 
-        use_pdfminer = engine_type == 'pdfminer'
-        page_info_list: list[dict] = []
-
         for page_no in range(total_pages):
             page = pdf_doc[page_no]
             bitmap = page.render(scale=2.0)
@@ -84,78 +74,30 @@ async def upload_and_convert(
 
             width, height = pil_image.size
 
-            # pdfminer fallback: synchronous extraction
-            extracted = None
-            if use_pdfminer:
-                extracted = extraction_service.extract_page_elements(
-                    pdf_path,
-                    page_no=page_no,
-                    scale=2.0,
-                )
-                extracted = attribute_classifier.classify_attributes(extracted)
-
-            page_record = await page_repo.create(
+            await page_repo.create(
                 pool,
                 document_id=document_id,
                 page_no=page_no + 1,
                 width=width,
                 height=height,
                 image_path=str(image_path),
-                auto_extracted_data=extracted,
             )
-
-            # Collect page info for async extraction
-            if not use_pdfminer:
-                page_info_list.append(
-                    {
-                        'page_id': str(page_record['id']),
-                        'page_idx': page_no,
-                        'width': width,
-                        'height': height,
-                        'image_path': str(image_path),
-                    }
-                )
 
         pdf_doc.close()
 
-        # Dispatch based on extraction provider
-        if use_pdfminer:
-            await document_repo.update_status(
-                pool,
-                document_id=document_id,
-                status='ready',
-                total_pages=total_pages,
-            )
-            return {
-                'id': document_id,
-                'filename': filename,
-                'total_pages': total_pages,
-                'status': 'ready',
-            }
-
-        # Async extraction via background task
+        # No extraction at upload time — extraction is triggered
+        # on-demand when user opens a page in the label editor.
         await document_repo.update_status(
             pool,
             document_id=document_id,
-            status='extracting',
+            status='ready',
             total_pages=total_pages,
         )
-
-        _task = asyncio.create_task(
-            _run_ocr_extraction_background(
-                pool,
-                document_id,
-                page_info_list,
-                ocr_config,
-            )
-        )
-        _task.add_done_callback(lambda t: t.result() if not t.cancelled() else None)
-
         return {
             'id': document_id,
             'filename': filename,
             'total_pages': total_pages,
-            'status': 'extracting',
+            'status': 'ready',
         }
 
     except Exception:
