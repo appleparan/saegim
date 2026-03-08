@@ -276,6 +276,8 @@
       annotationStore.removeSelectedElements()
     } else if (e.key === 'r' || e.key === 'R') {
       canvasStore.toggleReadingOrder()
+    } else if (e.key === 'i' || e.key === 'I') {
+      canvasStore.toggleElementIndex()
     } else if (e.key === 'Escape') {
       annotationStore.clearSelection()
     } else if (e.key === 'q' || e.key === 'Q') {
