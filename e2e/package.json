@@ -28,9 +28,11 @@
     "test:export-zip": "bunx vitest run export-zip",
     "test:gpu": "bunx vitest run --config vitest.gpu.config.ts",
     "docker:up": "docker compose -f docker-compose.e2e.yml up -d --build",
-    "docker:down": "docker compose -f docker-compose.e2e.yml down -v",
+    "docker:down": "docker compose -f docker-compose.e2e.yml down",
+    "docker:down-all": "docker compose -f docker-compose.e2e.yml down -v",
     "docker:gpu:up": "docker compose -f docker-compose.e2e.yml --profile gpu up -d --build",
-    "docker:gpu:down": "docker compose -f docker-compose.e2e.yml --profile gpu down -v",
+    "docker:gpu:down": "docker compose -f docker-compose.e2e.yml --profile gpu down",
+    "docker:gpu:down-all": "docker compose -f docker-compose.e2e.yml --profile gpu down -v",
     "docker:logs": "docker compose -f docker-compose.e2e.yml logs -f"
   },
   "devDependencies": {

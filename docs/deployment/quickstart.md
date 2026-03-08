@@ -80,14 +80,17 @@ make ps
 ## 중지 및 정리
 
 ```bash
-# CPU 모드 중지
+# CPU 모드 중지 (데이터 유지)
 make down
 
-# GPU 모드 중지
+# GPU 모드 중지 (데이터 유지)
 make down-gpu
 
 # 서비스 중지 + 데이터 삭제 (PostgreSQL 데이터 포함)
-docker compose down -v
+make down-all
+
+# GPU 모드 중지 + 데이터 삭제
+make down-all-gpu
 ```
 
 ## 문제 해결
@@ -126,9 +129,11 @@ make up
 | 명령 | 설명 |
 | ------ | ------ |
 | `make up` | CPU 모드 빌드 + 실행 |
-| `make down` | CPU 모드 중지 |
+| `make down` | CPU 모드 중지 (데이터 유지) |
+| `make down-all` | CPU 모드 중지 + 데이터 삭제 |
 | `make up-gpu` | GPU 모드 빌드 + 실행 |
-| `make down-gpu` | GPU 모드 중지 |
+| `make down-gpu` | GPU 모드 중지 (데이터 유지) |
+| `make down-all-gpu` | GPU 모드 중지 + 데이터 삭제 |
 | `make build` | CPU 이미지 빌드만 |
 | `make build-gpu` | GPU 이미지 빌드만 |
 | `make logs` | 로그 스트리밍 |
