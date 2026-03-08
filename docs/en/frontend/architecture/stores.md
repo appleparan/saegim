@@ -1,6 +1,7 @@
 # State Management
 
-Uses a class store pattern based on Svelte 5 runes. Each store defines reactive state with `$state` and derived values with `$derived`. Singleton instances are exported via `export const`.
+Uses a class store pattern based on Svelte 5 runes. Each store defines reactive state with `$state`
+and derived values with `$derived`. Singleton instances are exported via `export const`.
 
 ## AnnotationStore (`src/lib/stores/annotation.svelte.ts`)
 

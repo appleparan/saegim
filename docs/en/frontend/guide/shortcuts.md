@@ -42,7 +42,8 @@ Only active on the labeling page (`/label/:pageId`). Ignored when INPUT, TEXTARE
 | ---- | ------ |
 | `` ` `` | Toggle keyboard shortcut help popover |
 
-You can view the full shortcut list by clicking the keyboard icon on the right side of the header or pressing the `` ` `` key.
+You can view the full shortcut list by clicking the keyboard icon
+on the right side of the header or pressing the `` ` `` key.
 
 ## Mouse
 

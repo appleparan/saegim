@@ -88,7 +88,7 @@ src/saegim/services/
 │   └── paddleocr_vl.py            # PaddleOcrVlAdapter (PaddleOCR-VL, task prompt-based)
 ├── exporters/                     # DocIR → final output conversion
 │   └── omnidocbench.py            # export_page(PageIR) → OmniDocBench dict
-├── document_service.py            # PDF upload → image conversion → extraction branching (pdfminer/asyncio), re-extraction (re_extract)
+├── document_service.py            # PDF upload → image conversion → extraction branching, re-extraction
 ├── extraction_service.py          # pdfminer.six fallback extraction (text_block + figure)
 ├── layout_types.py                # LayoutRegion dataclass, LayoutDetector Protocol
 ├── docling_layout_service.py      # DoclingLayoutDetector (ibm-granite/granite-docling-258M)
@@ -98,7 +98,7 @@ src/saegim/services/
 ├── gemini_ocr_service.py          # GeminiOcrProvider, GeminiTextOcrProvider
 ├── vllm_ocr_service.py            # VllmOcrProvider, VllmTextOcrProvider
 ├── ocr_connection_test.py         # check_gemini/vllm/docling_connection()
-├── labeling_service.py            # Annotation CRUD, element add/delete, auto-extraction accept/force-accept, reading order update, relation CRUD
+├── labeling_service.py            # Annotation CRUD, element ops, extraction accept, reading order
 ├── attribute_classifier.py        # Page/table/text/formula attribute auto-classification
 └── export_service.py              # OmniDocBench JSON assembly
 ```

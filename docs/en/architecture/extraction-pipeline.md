@@ -18,7 +18,8 @@ graph LR
     CONFIG --> E["ppdoclayout-vllm: split_pipeline"]
 ```
 
-`pdfminer` is an always-available fallback engine that is automatically used when `default_engine_id` is null, without requiring registration.
+`pdfminer` is an always-available fallback engine that is automatically used
+when `default_engine_id` is null, without requiring registration.
 
 | Engine Type | Description | External Service | Use Case |
 | --- | --- | --- | --- |
@@ -193,7 +194,8 @@ When `default_engine_id` is null, pdfminer fallback is used. Legacy format is au
 - `services/engines/pdfminer_engine.py`: `PdfminerEngine`
 - `services/engines/commercial_api_engine.py`: `CommercialApiEngine` (Gemini/vLLM full-page)
 - `services/engines/vllm_engine.py`: `VllmEngine` (DocIR Adapter pattern applied, `resolve_adapter()` auto-detection)
-- `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine` (layout detection + external OCR, `layout_provider` selection)
+- `services/engines/split_pipeline_engine.py`: `SplitPipelineEngine`
+  (layout detection + external OCR, `layout_provider` selection)
 
 ### Sub-services
 

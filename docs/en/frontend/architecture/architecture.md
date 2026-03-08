@@ -2,7 +2,9 @@
 
 ## Overview
 
-The Saegim frontend is a labeling web application for Korean document VLM benchmarks. It allows editing annotation data in OmniDocBench JSON format on a Canvas and saving it to a FastAPI backend.
+The Saegim frontend is a labeling web application for Korean document VLM benchmarks.
+It allows editing annotation data in OmniDocBench JSON format on a Canvas
+and saving it to a FastAPI backend.
 
 ## Tech Stack
 
@@ -71,9 +73,9 @@ src/
 │   └── components/
 │       ├── ui/            # shadcn-svelte (button, badge, card, dialog, ...)
 │       ├── common/         # Reusable UI widgets (LoadingSpinner, Select)
-│       ├── layout/         # Header, Sidebar (4 tabs: elements/attributes/text/relations), ThemeToggle
-│       ├── canvas/         # 3-layer viewer + overlays (HybridViewer, BboxLayer, ReadingOrderOverlay, RelationOverlay, etc.)
-│       ├── panels/         # Sidebar panels (ElementList, AttributePanel, ExtractionPreview, PageNavigator, RelationPanel, etc.)
+│       ├── layout/         # Header, Sidebar (4 tabs), ThemeToggle
+│       ├── canvas/         # 3-layer viewer + overlays (HybridViewer, BboxLayer, etc.)
+│       ├── panels/         # Sidebar panels (ElementList, AttributePanel, ExtractionPreview, etc.)
 │       ├── settings/       # Project settings (OcrSettingsPanel)
 │       └── admin/          # Admin dashboard panels (AdminUsersPanel, AdminProjectsPanel, AdminStatsPanel)
 └── tests/

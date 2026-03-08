@@ -216,7 +216,8 @@ Internal state machine:
 
 ### PdfRenderer
 
-Renders PDF.js `PDFPageProxy` as vector to `<canvas>`. High-resolution rendering at `PDF_BASE_SCALE`(2.0) then displayed via CSS transform.
+Renders PDF.js `PDFPageProxy` as vector to `<canvas>`.
+High-resolution rendering at `PDF_BASE_SCALE`(2.0) then displayed via CSS transform.
 
 | Prop | Type | Description |
 | ------ | ------ | ------ |
@@ -347,8 +348,11 @@ Auto-extraction result preview banner. Displayed on the left side of LabelingPag
 
 1. **Extracting** (`documentStatus === 'extracting'`): Spinner + "OCR extraction in progress..." message
 2. **No results** (no auto_extracted_data and annotation is empty): "No auto-extraction results" + link to OCR settings
-3. **Awaiting acceptance** (auto_extracted_data exists and annotation is empty): Element count display + accept/dismiss buttons (blue theme)
-4. **Awaiting force acceptance** (auto_extracted_data exists and annotation has content): Element count display + "Accepting will replace existing annotations" warning + accept/dismiss buttons (violet theme)
+3. **Awaiting acceptance** (auto_extracted_data exists and annotation is empty):
+   Element count display + accept/dismiss buttons (blue theme)
+4. **Awaiting force acceptance** (auto_extracted_data exists and annotation has content):
+   Element count display + "Accepting will replace existing annotations" warning
+   \+ accept/dismiss buttons (violet theme)
 
 - Displays extracted element count (N text, N images -- N total elements)
 - "Accept" button -> calls `acceptExtraction()` or `forceAcceptExtraction()` API -> updates annotations
