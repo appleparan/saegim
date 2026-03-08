@@ -569,9 +569,10 @@ export async function register(
   name: string,
   loginId: string,
   password: string,
+  email?: string,
 ): Promise<{ data: TokenResponse; status: number; duration: number }> {
   return request<TokenResponse>('POST', '/auth/register', {
-    body: { name, login_id: loginId, password },
+    body: { login_id: loginId, password, name, email: email ?? `${loginId}@test.example.com` },
   })
 }
 
