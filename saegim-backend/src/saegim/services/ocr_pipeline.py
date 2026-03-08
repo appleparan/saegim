@@ -4,7 +4,6 @@ Combines a pluggable layout detector with text-only OCR providers
 (Gemini, vLLM, or built-in text) to produce OmniDocBench pages.
 """
 
-import io
 import logging
 from pathlib import Path
 from typing import Any, Protocol
@@ -12,6 +11,7 @@ from typing import Any, Protocol
 from PIL import Image
 
 from saegim.services.exporters.omnidocbench import bbox_to_poly
+from saegim.services.image_utils import crop_region
 from saegim.services.layout_types import LayoutDetector, LayoutRegion
 
 logger = logging.getLogger(__name__)
@@ -127,38 +127,8 @@ class OcrPipeline:
         if region.category == 'figure':
             return ''
 
-        cropped_bytes = _crop_region(image, region.bbox)
+        cropped_bytes = crop_region(image, region.bbox)
         return self._text_provider.extract_text(cropped_bytes, region.category)
-
-
-def _crop_region(
-    image: Image.Image,
-    bbox: tuple[float, float, float, float],
-) -> bytes:
-    """Crop a region from an image and return as PNG bytes.
-
-    Args:
-        image: Full page PIL Image.
-        bbox: Bounding box as (x1, y1, x2, y2) in pixels.
-
-    Returns:
-        Cropped image as PNG bytes, empty bytes if region has zero area.
-    """
-    x1, y1, x2, y2 = bbox
-    # Clamp to image bounds
-    x1 = max(0, min(x1, image.width))
-    y1 = max(0, min(y1, image.height))
-    x2 = max(0, min(x2, image.width))
-    y2 = max(0, min(y2, image.height))
-
-    ix1, iy1, ix2, iy2 = int(x1), int(y1), int(x2), int(y2)
-    if ix2 <= ix1 or iy2 <= iy1:
-        return b''
-
-    cropped = image.crop((ix1, iy1, ix2, iy2))
-    buf = io.BytesIO()
-    cropped.save(buf, format='PNG')
-    return buf.getvalue()
 
 
 def _build_layout_det(
