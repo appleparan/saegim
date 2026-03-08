@@ -13,9 +13,10 @@ import {
   PAUSE_LONG,
   PAUSE_EXTRA,
   SAMPLE_PDF,
-  DEMO_PROJECT_NAME,
   DEMO_PROJECT_DESC,
 } from './helpers'
+
+const PROJECT_NAME = 'Demo: Project Setup'
 
 test('Project setup: create, OCR config, upload', async ({ page }) => {
   // ─── Create Project ──────────────────────────────────────────
@@ -27,7 +28,7 @@ test('Project setup: create, OCR config, upload', async ({ page }) => {
     await page.getByRole('button', { name: /새 프로젝트/ }).click()
     await pause(page, PAUSE_MEDIUM)
 
-    await page.getByLabel(/이름|프로젝트 이름/).fill(DEMO_PROJECT_NAME)
+    await page.getByLabel(/이름|프로젝트 이름/).fill(PROJECT_NAME)
     await pause(page, PAUSE_SHORT)
 
     const descInput = page.getByLabel(/설명/)
@@ -42,7 +43,7 @@ test('Project setup: create, OCR config, upload', async ({ page }) => {
 
   // ─── Navigate to Project ─────────────────────────────────────
   await test.step('Navigate to project', async () => {
-    const projectLink = page.getByRole('link', { name: new RegExp(DEMO_PROJECT_NAME) })
+    const projectLink = page.getByRole('link', { name: PROJECT_NAME })
     await projectLink.click()
     await pause(page, PAUSE_LONG)
   })

@@ -7,11 +7,27 @@
 
 import { type Page } from '@playwright/test'
 import { fileURLToPath } from 'node:url'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 // ─── Constants ────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// Load .env file if present (for GEMINI_API_KEY etc.)
+const envPath = path.resolve(__dirname, '.env')
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eqIdx = trimmed.indexOf('=')
+    if (eqIdx < 0) continue
+    const key = trimmed.slice(0, eqIdx)
+    const value = trimmed.slice(eqIdx + 1)
+    if (!process.env[key]) {
+      process.env[key] = value
+    }
+  }
+}
 
 export const SAMPLE_PDF = path.resolve(__dirname, '../e2e/sample_data/1706.03762v7_7p_9p.pdf')
 export const API_URL = process.env.API_URL ?? 'http://localhost:15000'
@@ -25,8 +41,7 @@ export const PAUSE_EXTRA = 4000
 export const PASSWORDS_TO_TRY = ['admin', 'DemoPass2025']
 export const NEW_PASSWORD = 'DemoPass2025'
 
-export const DEMO_PROJECT_NAME = 'Attention Is All You Need'
-export const DEMO_PROJECT_DESC = '논문 PDF 레이블링 데모 프로젝트'
+export const DEMO_PROJECT_DESC = '논문 PDF 레이블링 데모'
 
 // ─── UI Helpers ───────────────────────────────────────────────
 
@@ -62,7 +77,7 @@ function authHeaders(token: string): Record<string, string> {
 /** Create a project. Returns project ID. */
 export async function apiCreateProject(
   token: string,
-  name: string = DEMO_PROJECT_NAME,
+  name: string,
   description: string = DEMO_PROJECT_DESC,
 ): Promise<string> {
   const res = await fetch(`${API_URL}/api/v1/projects`, {
@@ -89,7 +104,7 @@ export async function apiFindProject(token: string, name: string): Promise<strin
 /** Ensure a project exists (find or create). Returns project ID. */
 export async function apiEnsureProject(
   token: string,
-  name: string = DEMO_PROJECT_NAME,
+  name: string,
   description: string = DEMO_PROJECT_DESC,
 ): Promise<string> {
   const existing = await apiFindProject(token, name)
@@ -97,13 +112,26 @@ export async function apiEnsureProject(
   return apiCreateProject(token, name, description)
 }
 
-/** Add Gemini OCR engine to a project. */
+/** Add Gemini OCR engine to a project (skips if already configured). */
 export async function apiAddOcrEngine(
   token: string,
   projectId: string,
   geminiApiKey?: string,
 ): Promise<void> {
+  // Check if engines already exist
+  const configRes = await fetch(`${API_URL}/api/v1/projects/${projectId}/ocr-config`, {
+    headers: authHeaders(token),
+  })
+  if (configRes.ok) {
+    const config = (await configRes.json()) as { engines: Record<string, unknown> }
+    if (Object.keys(config.engines).length > 0) return
+  }
+
   const apiKey = geminiApiKey ?? process.env.GEMINI_API_KEY ?? ''
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not set. Add it to demo/.env or set as environment variable.')
+  }
+
   const res = await fetch(`${API_URL}/api/v1/projects/${projectId}/ocr-config/engines`, {
     method: 'POST',
     headers: authHeaders(token),
@@ -113,13 +141,12 @@ export async function apiAddOcrEngine(
       config: {
         provider: 'gemini',
         api_key: apiKey,
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
       },
     }),
   })
   if (!res.ok) {
     const text = await res.text()
-    // Ignore if engine already exists
     if (!text.includes('already') && res.status !== 409) {
       throw new Error(`Failed to add OCR engine: ${res.status} ${text}`)
     }
@@ -195,11 +222,11 @@ export async function apiFindDocument(token: string, projectId: string): Promise
  * Ensure project has a document uploaded and ready.
  * Returns { projectId, documentId }.
  */
-export async function apiEnsureFullSetup(token: string): Promise<{
+export async function apiEnsureFullSetup(token: string, projectName: string): Promise<{
   projectId: string
   documentId: string
 }> {
-  const projectId = await apiEnsureProject(token)
+  const projectId = await apiEnsureProject(token, projectName)
   await apiAddOcrEngine(token, projectId)
 
   let documentId = await apiFindDocument(token, projectId)

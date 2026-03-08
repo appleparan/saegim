@@ -15,12 +15,13 @@ import {
   PAUSE_MEDIUM,
   PAUSE_LONG,
   PAUSE_EXTRA,
-  DEMO_PROJECT_NAME,
 } from './helpers'
+
+const PROJECT_NAME = 'Demo: Overview'
 
 test.beforeAll(async () => {
   const { token } = await apiLogin()
-  await apiEnsureFullSetup(token)
+  await apiEnsureFullSetup(token, PROJECT_NAME)
 })
 
 test('Project overview: dashboard and export', async ({ page }) => {
@@ -30,7 +31,7 @@ test('Project overview: dashboard and export', async ({ page }) => {
     await expect(page.getByRole('heading', { name: '프로젝트' })).toBeVisible({ timeout: 15_000 })
     await pause(page, PAUSE_LONG)
 
-    const projectLink = page.getByRole('link', { name: new RegExp(DEMO_PROJECT_NAME) })
+    const projectLink = page.getByRole('link', { name: PROJECT_NAME })
     await projectLink.click()
     await pause(page, PAUSE_LONG)
   })

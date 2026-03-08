@@ -18,8 +18,9 @@ import {
   PAUSE_MEDIUM,
   PAUSE_LONG,
   PAUSE_EXTRA,
-  DEMO_PROJECT_NAME,
 } from './helpers'
+
+const PROJECT_NAME = 'Demo: Labeling'
 
 let projectId: string
 let documentId: string
@@ -27,7 +28,7 @@ let pages: Array<{ id: string; page_no: number }>
 
 test.beforeAll(async () => {
   const { token } = await apiLogin()
-  const setup = await apiEnsureFullSetup(token)
+  const setup = await apiEnsureFullSetup(token, PROJECT_NAME)
   projectId = setup.projectId
   documentId = setup.documentId
   pages = await apiGetPages(token, documentId)
@@ -39,7 +40,7 @@ test('Label editor: extraction, annotation, overlays', async ({ page }) => {
     await page.goto('/')
     await pause(page, PAUSE_MEDIUM)
 
-    const projectLink = page.getByRole('link', { name: new RegExp(DEMO_PROJECT_NAME) })
+    const projectLink = page.getByRole('link', { name: PROJECT_NAME })
     await projectLink.click()
     await pause(page, PAUSE_LONG)
 
@@ -50,12 +51,13 @@ test('Label editor: extraction, annotation, overlays', async ({ page }) => {
     await pause(page, PAUSE_MEDIUM)
 
     // Open page 3 (Figure 1: Transformer architecture)
-    const pageTiles = page.locator('[data-page-tile]')
-    const tileCount = await pageTiles.count()
-    if (tileCount >= 3) {
-      await pageTiles.nth(2).click()
-    } else if (tileCount > 0) {
-      await pageTiles.first().click()
+    const page3Link = page.getByRole('link', { name: /^3/ })
+    if (await page3Link.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await page3Link.click()
+    } else {
+      // Fallback: click first page link
+      const page1Link = page.getByRole('link', { name: /^1/ })
+      await page1Link.click()
     }
     await pause(page, PAUSE_EXTRA)
 
