@@ -11,5 +11,11 @@ e2e/fixtures/*.pdf
 e2e/fixtures/benchmark_results.json
 e2e/test-results/
 
+# Demo recording
+demo/node_modules/
+demo/bun.lock
+demo/test-results/
+demo/*.gif
+
 # Local agent workspace
 .claude/
