@@ -19,6 +19,7 @@ import {
   listDocuments,
   listPages,
   assignPage,
+  extractPage,
   forceAcceptExtraction,
   deleteProject,
   getDocument,
@@ -89,6 +90,7 @@ describe('Browser Labeling Auto-save', () => {
     pageId = pages[0].id
     const userId = getUserIdFromToken(userToken)
 
+    await extractPage(pageId)
     await forceAcceptExtraction(pageId)
     await assignPage(pageId, userId)
 

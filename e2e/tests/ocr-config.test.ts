@@ -10,13 +10,20 @@ import {
   testOcrConnection,
   getAvailableEngines,
   deleteProject,
+  register,
+  setAuthToken,
 } from '../helpers/api'
 
+const ts = Date.now().toString().slice(-6)
 let projectId: string
 
 describe('OCR Config API (multi-instance engines)', () => {
   beforeAll(async () => {
     await waitForBackendReady()
+
+    const { data: authData } = await register(`OcrCfg User ${ts}`, `ocrcfg-${ts}`, `Pass${ts}!`)
+    setAuthToken(authData.access_token)
+
     const { data } = await createProject(`OCR Config E2E ${Date.now()}`, 'OCR config test')
     projectId = data.id
   })

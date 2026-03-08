@@ -12,6 +12,7 @@
     documentId: string
     autoExtractedData: AnnotationData | null
     documentStatus?: DocumentStatus
+    pageExtracting?: boolean
     reExtractVersion?: number
     onAccepted: (data: AnnotationData) => void
     onReExtract: () => void
@@ -22,6 +23,7 @@
     documentId,
     autoExtractedData,
     documentStatus,
+    pageExtracting = false,
     reExtractVersion,
     onAccepted,
     onReExtract,
@@ -32,7 +34,7 @@
   let wasExtracting = $state(false)
   let lastSeenVersion = $state(0)
 
-  let isExtracting = $derived(documentStatus === 'extracting')
+  let isExtracting = $derived(documentStatus === 'extracting' || pageExtracting)
 
   // Reset dismissed when extraction completes (extracting → ready)
   $effect(() => {

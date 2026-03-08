@@ -8,6 +8,7 @@ import {
   listDocuments,
   listPages,
   getPage,
+  extractPage,
   acceptExtraction,
   deleteProject,
   register,
@@ -50,11 +51,11 @@ describe("GPU Hybrid Labeling — API Verification", () => {
       },
     });
 
-    // Upload PDF and wait for extraction (up to 5 min)
+    // Upload PDF and wait for ready (no extraction at upload)
     const { data: doc } = await uploadPdf(projectId, getTestPdfPath());
     documentId = doc.id;
 
-    const deadline = Date.now() + 300_000;
+    const deadline = Date.now() + 120_000;
     let lastStatus = "unknown";
     while (Date.now() < deadline) {
       const { data: docs } = await listDocuments(projectId);
@@ -64,11 +65,8 @@ describe("GPU Hybrid Labeling — API Verification", () => {
           documentId = docs[0].id;
           break;
         }
-        if (lastStatus === "extraction_failed") {
-          throw new Error("OCR extraction failed");
-        }
       }
-      await new Promise((r) => setTimeout(r, 5_000));
+      await new Promise((r) => setTimeout(r, 2_000));
     }
     expect(lastStatus).toBe("ready");
 
@@ -77,7 +75,8 @@ describe("GPU Hybrid Labeling — API Verification", () => {
     expect(pages.length).toBeGreaterThan(0);
     pageId = pages[0].id;
 
-    // Accept extraction so annotation_data is populated
+    // On-demand extraction, then accept so annotation_data is populated
+    await extractPage(pageId);
     await acceptExtraction(pageId);
   });
 

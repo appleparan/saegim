@@ -331,6 +331,12 @@ export async function forceAcceptExtraction(
   return request<PageResponse>('POST', `/pages/${pageId}/force-accept-extraction`)
 }
 
+export async function extractPage(
+  pageId: string,
+): Promise<{ data: PageResponse; status: number; duration: number }> {
+  return request<PageResponse>('POST', `/pages/${pageId}/extract`)
+}
+
 interface DocumentStatusResponse {
   id: string
   status: string

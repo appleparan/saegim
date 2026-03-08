@@ -8,6 +8,12 @@ import pytest
 
 from saegim.services import labeling_service
 
+FAKE_EXTRACTED = {
+    'layout_dets': [{'anno_id': 0, 'category_type': 'text_block', 'text': 'hello'}],
+    'page_attribute': {},
+    'extra': {'relation': []},
+}
+
 
 @pytest.fixture
 def mock_pool():
@@ -646,3 +652,130 @@ class TestDeleteElement:
 
         assert result is not None
         assert result['annotation_data'] == {'layout_dets': []}
+
+
+class TestExtractPageOnDemand:
+    @pytest.mark.asyncio
+    async def test_returns_none_when_page_not_found(self, mock_pool, page_id):
+        with patch.object(labeling_service, 'page_repo') as mock_repo:
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=None)
+            result = await labeling_service.extract_page_on_demand(mock_pool, page_id)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_pdfminer_extraction(self, mock_pool, page_id, document_id):
+        record = _make_page_record(page_id, document_id, with_context=True)
+
+        updated_record = _make_page_record(
+            page_id, document_id, auto_extracted_data=FAKE_EXTRACTED
+        )
+
+        ocr_config = {'default_engine_id': None, 'engines': {}}
+
+        with (
+            patch.object(labeling_service, 'page_repo') as mock_repo,
+            patch.object(
+                labeling_service, '_resolve_ocr_config', new_callable=AsyncMock
+            ) as mock_ocr,
+            patch.object(labeling_service, '_resolve_engine_type') as mock_engine_type,
+            patch.object(labeling_service, 'extraction_service') as mock_extract,
+            patch.object(labeling_service, 'attribute_classifier') as mock_classifier,
+        ):
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
+            mock_repo.update_auto_extracted_data = AsyncMock(return_value=updated_record)
+            mock_ocr.return_value = ocr_config
+            mock_engine_type.return_value = 'pdfminer'
+            mock_extract.extract_page_elements.return_value = FAKE_EXTRACTED
+            mock_classifier.classify_attributes.return_value = FAKE_EXTRACTED
+
+            result = await labeling_service.extract_page_on_demand(mock_pool, page_id)
+
+        assert result is not None
+        assert result['auto_extracted_data'] == FAKE_EXTRACTED
+        mock_extract.extract_page_elements.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ocr_engine_extraction(self, mock_pool, page_id, document_id):
+        record = _make_page_record(page_id, document_id, with_context=True)
+
+        updated_record = _make_page_record(
+            page_id, document_id, auto_extracted_data=FAKE_EXTRACTED
+        )
+
+        ocr_config = {
+            'default_engine_id': 'gemini-1',
+            'engines': {'gemini-1': {'engine_type': 'commercial_api', 'config': {}}},
+        }
+
+        mock_engine = MagicMock()
+        mock_engine.extract_page.return_value = FAKE_EXTRACTED
+
+        with (
+            patch.object(labeling_service, 'page_repo') as mock_repo,
+            patch.object(
+                labeling_service, '_resolve_ocr_config', new_callable=AsyncMock
+            ) as mock_ocr,
+            patch.object(labeling_service, '_resolve_engine_type') as mock_engine_type,
+            patch.object(labeling_service, 'build_engine_by_id') as mock_build,
+            patch.object(labeling_service, 'attribute_classifier') as mock_classifier,
+        ):
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
+            mock_repo.update_auto_extracted_data = AsyncMock(return_value=updated_record)
+            mock_ocr.return_value = ocr_config
+            mock_engine_type.return_value = 'commercial_api'
+            mock_build.return_value = mock_engine
+            mock_classifier.classify_attributes.return_value = FAKE_EXTRACTED
+
+            result = await labeling_service.extract_page_on_demand(mock_pool, page_id)
+
+        assert result is not None
+        assert result['auto_extracted_data'] == FAKE_EXTRACTED
+        mock_engine.extract_page.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_pdfminer_raises_when_no_pdf_path(self, mock_pool, page_id, document_id):
+        record = _make_page_record(page_id, document_id, with_context=True)
+        record['pdf_path'] = None
+
+        ocr_config = {'default_engine_id': None, 'engines': {}}
+
+        with (
+            patch.object(labeling_service, 'page_repo') as mock_repo,
+            patch.object(
+                labeling_service, '_resolve_ocr_config', new_callable=AsyncMock
+            ) as mock_ocr,
+            patch.object(labeling_service, '_resolve_engine_type') as mock_engine_type,
+        ):
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
+            mock_ocr.return_value = ocr_config
+            mock_engine_type.return_value = 'pdfminer'
+
+            with pytest.raises(LookupError, match='PDF file path'):
+                await labeling_service.extract_page_on_demand(mock_pool, page_id)
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_update_fails(self, mock_pool, page_id, document_id):
+        record = _make_page_record(page_id, document_id, with_context=True)
+
+        ocr_config = {'default_engine_id': None, 'engines': {}}
+
+        with (
+            patch.object(labeling_service, 'page_repo') as mock_repo,
+            patch.object(
+                labeling_service, '_resolve_ocr_config', new_callable=AsyncMock
+            ) as mock_ocr,
+            patch.object(labeling_service, '_resolve_engine_type') as mock_engine_type,
+            patch.object(labeling_service, 'extraction_service') as mock_extract,
+            patch.object(labeling_service, 'attribute_classifier') as mock_classifier,
+        ):
+            mock_repo.get_by_id_with_context = AsyncMock(return_value=record)
+            mock_repo.update_auto_extracted_data = AsyncMock(return_value=None)
+            mock_ocr.return_value = ocr_config
+            mock_engine_type.return_value = 'pdfminer'
+            mock_extract.extract_page_elements.return_value = FAKE_EXTRACTED
+            mock_classifier.classify_attributes.return_value = FAKE_EXTRACTED
+
+            result = await labeling_service.extract_page_on_demand(mock_pool, page_id)
+
+        assert result is None

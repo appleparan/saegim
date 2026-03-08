@@ -6,6 +6,7 @@ import {
   listDocuments,
   listPages,
   getPage,
+  extractPage,
   deleteProject,
   register,
   setAuthToken,
@@ -47,6 +48,9 @@ describe("Auto Attribute Classifier (pdfminer fallback)", () => {
     const { data: pages } = await listPages(documentId);
     expect(pages.length).toBeGreaterThan(0);
     pageId = pages[0].id;
+
+    // On-demand: trigger extraction before attribute tests
+    await extractPage(pageId);
   });
 
   test("01 - page_attribute is populated in auto_extracted_data", async () => {

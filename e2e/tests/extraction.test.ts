@@ -6,6 +6,7 @@ import {
   listDocuments,
   listPages,
   getPage,
+  extractPage,
   acceptExtraction,
   deleteProject,
   register,
@@ -52,10 +53,17 @@ describe("PDF Text/Image Extraction", () => {
     pageId = pages[0].id;
   });
 
-  test("01 - auto_extracted_data is populated after PDF upload", async () => {
+  test("01 - auto_extracted_data is null after upload (on-demand extraction)", async () => {
     const { data: page } = await getPage(pageId);
 
-    // auto_extracted_data should exist with layout_dets
+    // On-demand: auto_extracted_data should be null right after upload
+    expect(page.auto_extracted_data).toBeNull();
+  });
+
+  test("02 - extractPage populates auto_extracted_data on demand", async () => {
+    const { data: page } = await extractPage(pageId);
+
+    // After on-demand extraction, auto_extracted_data should exist with layout_dets
     expect(page.auto_extracted_data).toBeTruthy();
     const autoData = page.auto_extracted_data as Record<string, unknown>;
     expect(autoData.layout_dets).toBeDefined();
@@ -84,7 +92,7 @@ describe("PDF Text/Image Extraction", () => {
     }
   });
 
-  test("02 - annotation_data is initially empty", async () => {
+  test("03 - annotation_data is initially empty", async () => {
     const { data: page } = await getPage(pageId);
 
     // annotation_data should be empty or have no layout_dets
@@ -93,7 +101,7 @@ describe("PDF Text/Image Extraction", () => {
     expect(layoutDets.length).toBe(0);
   });
 
-  test("05 - accept extraction via API copies to annotation_data", async () => {
+  test("04 - accept extraction via API copies to annotation_data", async () => {
     const { data: accepted } = await acceptExtraction(pageId);
 
     // annotation_data should now have the extracted elements
@@ -109,7 +117,7 @@ describe("PDF Text/Image Extraction", () => {
     expect(layoutDets.length).toBe(autoLayoutDets.length);
   });
 
-  test("06 - accept extraction again returns 409 (already has annotations)", async () => {
+  test("05 - accept extraction again returns 409 (already has annotations)", async () => {
     // Second accept should fail because annotation_data is now populated
     try {
       await acceptExtraction(pageId);
@@ -125,7 +133,7 @@ describe("PDF Text/Image Extraction", () => {
     expect(layoutDets.length).toBeGreaterThan(0);
   });
 
-  test("09 - extracted elements have correct coordinate scaling", async () => {
+  test("06 - extracted elements have correct coordinate scaling", async () => {
     const { data: pageData } = await getPage(pageId);
     const annotationData = pageData.annotation_data as Record<string, unknown>;
     const layoutDets = annotationData.layout_dets as Array<Record<string, unknown>>;

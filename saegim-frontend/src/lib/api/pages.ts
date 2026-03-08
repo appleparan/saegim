@@ -54,6 +54,11 @@ export async function reviewPage(pageId: string, data: ReviewRequest): Promise<P
   return api.post<PageResponse>(`/api/v1/pages/${pageId}/review`, data)
 }
 
+/** Trigger on-demand OCR extraction for a full page. */
+export async function extractPage(pageId: string): Promise<PageResponse> {
+  return api.post<PageResponse>(`/api/v1/pages/${pageId}/extract`)
+}
+
 /** Request OCR text extraction for a specific region on the page. */
 export async function extractElementText(
   pageId: string,

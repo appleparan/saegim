@@ -6,6 +6,7 @@ import {
   listDocuments,
   listPages,
   getPage,
+  extractPage,
   acceptExtraction,
   forceAcceptExtraction,
   reExtractDocument,
@@ -54,6 +55,9 @@ describe('Document Re-extract', () => {
     const { data: pages } = await listPages(documentId)
     expect(pages.length).toBeGreaterThan(0)
     pageId = pages[0].id
+
+    // On-demand: trigger extraction before re-extract tests
+    await extractPage(pageId)
   })
 
   test('01 - re-extract returns 200 with DocumentStatusResponse', async () => {

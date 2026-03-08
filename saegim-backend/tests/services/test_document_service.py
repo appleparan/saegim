@@ -403,9 +403,11 @@ class TestUploadAndConvert:
         assert result['status'] == 'ready'
 
 
-class TestUploadAndConvertOcr:
+class TestUploadAndConvertNoExtraction:
+    """Tests verifying that upload no longer triggers extraction."""
+
     @pytest.mark.asyncio
-    async def test_creates_background_task_for_ocr(
+    async def test_upload_goes_directly_to_ready(
         self, mock_pool, project_id, tmp_path, mock_ocr_settings
     ):
         doc_id = uuid.uuid4()
@@ -417,30 +419,6 @@ class TestUploadAndConvertOcr:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
-            patch.object(
-                document_service,
-                '_resolve_ocr_config',
-                new_callable=AsyncMock,
-                return_value={
-                    'default_engine_id': 'gemini-flash',
-                    'engines': {
-                        'gemini-flash': {
-                            'engine_type': 'commercial_api',
-                            'name': 'Gemini Flash',
-                            'config': {
-                                'provider': 'gemini',
-                                'api_key': 'k',
-                                'model': 'm',
-                            },
-                        },
-                    },
-                },
-            ),
-            patch.object(
-                document_service.asyncio,
-                'create_task',
-                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
-            ) as mock_create_task,
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -465,14 +443,13 @@ class TestUploadAndConvertOcr:
                 mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
             )
 
-        assert result['status'] == 'extracting'
-        mock_create_task.assert_called_once()
+        assert result['status'] == 'ready'
         mock_doc_repo.update_status.assert_called_once_with(
-            mock_pool, document_id=doc_id, status='extracting', total_pages=1
+            mock_pool, document_id=doc_id, status='ready', total_pages=1
         )
 
     @pytest.mark.asyncio
-    async def test_does_not_call_pdfminer_extraction_for_ocr_engine(
+    async def test_no_extraction_called_during_upload(
         self, mock_pool, project_id, tmp_path, mock_ocr_settings
     ):
         doc_id = uuid.uuid4()
@@ -484,32 +461,6 @@ class TestUploadAndConvertOcr:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
-            patch.object(
-                document_service,
-                '_resolve_ocr_config',
-                new_callable=AsyncMock,
-                return_value={
-                    'default_engine_id': 'split-1',
-                    'engines': {
-                        'split-1': {
-                            'engine_type': 'split_pipeline',
-                            'name': 'Split Pipeline',
-                            'config': {
-                                'layout_server_url': 'http://localhost:18811',
-                                'ocr_provider': 'vllm',
-                                'ocr_host': 'h',
-                                'ocr_port': 8000,
-                                'ocr_model': 'm',
-                            },
-                        },
-                    },
-                },
-            ),
-            patch.object(
-                document_service.asyncio,
-                'create_task',
-                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
-            ),
             patch.object(document_service, 'extraction_service') as mock_ext,
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
@@ -550,30 +501,6 @@ class TestUploadAndConvertOcr:
             patch.object(document_service, 'page_repo') as mock_page_repo,
             patch.object(document_service, 'pdfium') as mock_pdfium,
             patch.object(document_service.uuid, 'uuid4', return_value=doc_id),
-            patch.object(
-                document_service,
-                '_resolve_ocr_config',
-                new_callable=AsyncMock,
-                return_value={
-                    'default_engine_id': 'gemini-flash',
-                    'engines': {
-                        'gemini-flash': {
-                            'engine_type': 'commercial_api',
-                            'name': 'Gemini Flash',
-                            'config': {
-                                'provider': 'gemini',
-                                'api_key': 'k',
-                                'model': 'm',
-                            },
-                        },
-                    },
-                },
-            ),
-            patch.object(
-                document_service.asyncio,
-                'create_task',
-                side_effect=lambda coro: (coro.close(), MagicMock())[-1],
-            ),
         ):
             mock_doc_repo.create = AsyncMock(return_value=doc_record)
             mock_doc_repo.update_status = AsyncMock()
@@ -598,7 +525,9 @@ class TestUploadAndConvertOcr:
                 mock_pool, project_id, 'test.pdf', b'%PDF', str(tmp_path)
             )
 
-        assert mock_page_repo.create.call_args.kwargs['auto_extracted_data'] is None
+        # No auto_extracted_data kwarg should be passed (extraction is on-demand now)
+        call_kwargs = mock_page_repo.create.call_args.kwargs
+        assert 'auto_extracted_data' not in call_kwargs
 
 
 class TestReExtract:

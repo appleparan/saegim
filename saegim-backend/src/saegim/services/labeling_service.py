@@ -1,12 +1,20 @@
 """Labeling service for annotation data management."""
 
+import asyncio
 import json
+import logging
 import uuid
+from pathlib import Path
 from typing import Any
 
 import asyncpg
 
 from saegim.repositories import page_repo
+from saegim.services import attribute_classifier, extraction_service
+from saegim.services.document_service import _resolve_engine_type, _resolve_ocr_config
+from saegim.services.engines import build_engine_by_id
+
+logger = logging.getLogger(__name__)
 
 _STANDARD_FIELDS = (
     'id',
@@ -348,3 +356,66 @@ async def delete_element(
         return None
 
     return _record_to_page_dict(record)
+
+
+async def extract_page_on_demand(
+    pool: asyncpg.Pool,
+    page_id: uuid.UUID,
+) -> dict[str, Any] | None:
+    """Run on-demand OCR extraction for a single page.
+
+    Resolves the OCR engine from the page's project config and extracts
+    structured layout elements. For pdfminer, uses the PDF file directly.
+    For other engines, uses the rendered page image.
+
+    Args:
+        pool: Database connection pool.
+        page_id: Page UUID.
+
+    Returns:
+        dict or None: Updated page data with auto_extracted_data populated,
+        or None if page not found.
+
+    Raises:
+        LookupError: If project has no OCR config or engine not found.
+    """
+    record = await page_repo.get_by_id_with_context(pool, page_id)
+    if record is None:
+        return None
+
+    project_id = record['project_id']
+    image_path = record['image_path']
+    pdf_path = record['pdf_path']
+    page_no = record['page_no']
+    width = record['width']
+    height = record['height']
+
+    ocr_config = await _resolve_ocr_config(pool, project_id)
+    engine_type = _resolve_engine_type(ocr_config)
+
+    if engine_type == 'pdfminer':
+        if not pdf_path:
+            msg = 'PDF file path not available for pdfminer extraction'
+            raise LookupError(msg)
+        extracted = await asyncio.to_thread(
+            extraction_service.extract_page_elements,
+            Path(pdf_path),
+            page_no=page_no - 1,
+            scale=2.0,
+        )
+    else:
+        engine = build_engine_by_id(ocr_config)
+        extracted = await asyncio.to_thread(
+            engine.extract_page,
+            Path(image_path),
+            width,
+            height,
+        )
+
+    extracted = attribute_classifier.classify_attributes(extracted)
+
+    updated = await page_repo.update_auto_extracted_data(pool, page_id, extracted)
+    if updated is None:
+        return None
+
+    return _record_to_page_dict(updated)

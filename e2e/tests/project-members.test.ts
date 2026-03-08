@@ -17,8 +17,10 @@ describe('Project Members', () => {
   let memberUserId: string
   let projectId: string
 
-  const ts = Date.now()
+  const ts = Date.now().toString().slice(-6)
+  const ownerLoginId = `e2e-owner-${ts}`
   const ownerEmail = `e2e-owner-${ts}@test.com`
+  const memberLoginId = `e2e-member-${ts}`
   const memberEmail = `e2e-member-${ts}@test.com`
   const password = 'TestPassword123!'
 
@@ -26,12 +28,12 @@ describe('Project Members', () => {
     await waitForBackendReady()
 
     // Register owner (first user = admin)
-    const ownerRes = await register('E2E Owner', ownerEmail, password)
+    const ownerRes = await register('E2E Owner', ownerLoginId, password, ownerEmail)
     expect(ownerRes.status).toBe(201)
     ownerToken = ownerRes.data.access_token
 
     // Register member (second user = annotator)
-    const memberRes = await register('E2E Member', memberEmail, password)
+    const memberRes = await register('E2E Member', memberLoginId, password, memberEmail)
     expect(memberRes.status).toBe(201)
     memberToken = memberRes.data.access_token
 
@@ -83,8 +85,9 @@ describe('Project Members', () => {
 
   test('non-owner cannot add member (403)', async () => {
     setAuthToken(memberToken)
+    const thirdLoginId = `e2e-third-${ts}`
     const thirdEmail = `e2e-third-${ts}@test.com`
-    const thirdRes = await register('E2E Third', thirdEmail, password)
+    const thirdRes = await register('E2E Third', thirdLoginId, password, thirdEmail)
     const thirdId = decodeJwtSub(thirdRes.data.access_token)
 
     const { status } = await addProjectMember(projectId, thirdId, 'annotator')
