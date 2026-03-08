@@ -1,5 +1,7 @@
 # saegim
 
+> [한국어](../ko/README.md) | **English**
+
 Human-in-the-Loop Labeling Platform for Korean Document VLM Benchmarks.
 
 Upload PDF documents to automatically convert them into per-page images,
