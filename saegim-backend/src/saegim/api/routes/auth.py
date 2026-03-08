@@ -47,7 +47,7 @@ async def register(body: RegisterRequest, response: Response) -> TokenResponse:
     """Register a new user. First user automatically becomes admin.
 
     Args:
-        body: Registration data (name, login_id, password).
+        body: Registration data (login_id, password, name, email).
         response: FastAPI response for setting cookies.
 
     Returns:
@@ -64,6 +64,13 @@ async def register(body: RegisterRequest, response: Response) -> TokenResponse:
 
     password_hashed = hash_password(body.password)
 
+    email_str = str(body.email)
+    if await user_repo.is_email_taken(pool, email_str):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='User with this email already exists',
+        )
+
     try:
         record = await user_repo.create_with_password(
             pool,
@@ -71,12 +78,13 @@ async def register(body: RegisterRequest, response: Response) -> TokenResponse:
             login_id=body.login_id,
             password_hash=password_hashed,
             role=role,
+            email=email_str,
         )
     except Exception as e:
         if 'unique' in str(e).lower():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail='User with this login ID already exists',
+                detail='User with this login ID or email already exists',
             ) from e
         raise
 

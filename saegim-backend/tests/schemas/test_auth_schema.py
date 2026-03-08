@@ -16,25 +16,45 @@ class TestRegisterRequest:
     """Test cases for RegisterRequest schema."""
 
     def test_valid_register(self):
-        req = RegisterRequest(name='Test', login_id='testuser', password='password123')
-        assert req.name == 'Test'
+        req = RegisterRequest(
+            login_id='testuser',
+            password='password123',
+            name='Test',
+            email='test@example.com',
+        )
         assert req.login_id == 'testuser'
+        assert req.name == 'Test'
+        assert str(req.email) == 'test@example.com'
 
     def test_password_too_short(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='Test', login_id='testuser', password='short')
+            RegisterRequest(
+                login_id='testuser', password='short', name='Test', email='t@example.com'
+            )
 
     def test_password_too_long(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='Test', login_id='testuser', password='x' * 129)
+            RegisterRequest(
+                login_id='testuser', password='x' * 129, name='Test', email='t@example.com'
+            )
 
     def test_short_login_id(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='Test', login_id='ab', password='password123')
+            RegisterRequest(
+                login_id='ab', password='password123', name='Test', email='t@example.com'
+            )
 
     def test_empty_name(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(name='', login_id='testuser', password='password123')
+            RegisterRequest(
+                login_id='testuser', password='password123', name='', email='t@example.com'
+            )
+
+    def test_invalid_email(self):
+        with pytest.raises(ValidationError):
+            RegisterRequest(
+                login_id='testuser', password='password123', name='Test', email='not-an-email'
+            )
 
 
 class TestLoginRequest:

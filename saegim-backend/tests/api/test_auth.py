@@ -44,6 +44,11 @@ class TestRegisterEndpoint:
                 return_value=0,
             ),
             patch(
+                'saegim.repositories.user_repo.is_email_taken',
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
                 'saegim.repositories.user_repo.create_with_password',
                 new_callable=AsyncMock,
                 return_value=record,
@@ -57,9 +62,10 @@ class TestRegisterEndpoint:
             response = client.post(
                 '/api/v1/auth/register',
                 json={
-                    'name': 'Admin',
                     'login_id': 'admin',
                     'password': 'password123',
+                    'name': 'Admin',
+                    'email': 'admin@example.com',
                 },
             )
 
@@ -68,6 +74,7 @@ class TestRegisterEndpoint:
         assert 'access_token' in data
         assert data['token_type'] == 'bearer'
         assert mock_create.call_args.kwargs['role'] == 'admin'
+        assert mock_create.call_args.kwargs['email'] == 'admin@example.com'
         assert 'saegim_refresh_token' in response.cookies
 
     def test_subsequent_user_becomes_annotator(self, client: TestClient):
@@ -88,6 +95,11 @@ class TestRegisterEndpoint:
                 return_value=3,
             ),
             patch(
+                'saegim.repositories.user_repo.is_email_taken',
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
                 'saegim.repositories.user_repo.create_with_password',
                 new_callable=AsyncMock,
                 return_value=record,
@@ -101,21 +113,27 @@ class TestRegisterEndpoint:
             response = client.post(
                 '/api/v1/auth/register',
                 json={
-                    'name': 'User',
                     'login_id': 'user01',
                     'password': 'password123',
+                    'name': 'User',
+                    'email': 'user@example.com',
                 },
             )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert mock_create.call_args.kwargs['role'] == 'annotator'
 
-    def test_duplicate_email_returns_409(self, client: TestClient):
+    def test_duplicate_login_id_returns_409(self, client: TestClient):
         with (
             patch(
                 'saegim.repositories.user_repo.count_all',
                 new_callable=AsyncMock,
                 return_value=1,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_email_taken',
+                new_callable=AsyncMock,
+                return_value=False,
             ),
             patch(
                 'saegim.repositories.user_repo.create_with_password',
@@ -126,9 +144,35 @@ class TestRegisterEndpoint:
             response = client.post(
                 '/api/v1/auth/register',
                 json={
-                    'name': 'Test',
                     'login_id': 'dup-user',
                     'password': 'password123',
+                    'name': 'Test',
+                    'email': 'test@example.com',
+                },
+            )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_duplicate_email_returns_409(self, client: TestClient):
+        with (
+            patch(
+                'saegim.repositories.user_repo.count_all',
+                new_callable=AsyncMock,
+                return_value=1,
+            ),
+            patch(
+                'saegim.repositories.user_repo.is_email_taken',
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = client.post(
+                '/api/v1/auth/register',
+                json={
+                    'login_id': 'newuser',
+                    'password': 'password123',
+                    'name': 'Test',
+                    'email': 'taken@example.com',
                 },
             )
 
@@ -138,9 +182,10 @@ class TestRegisterEndpoint:
         response = client.post(
             '/api/v1/auth/register',
             json={
-                'name': 'Test',
                 'login_id': 'testuser',
                 'password': 'short',
+                'name': 'Test',
+                'email': 'test@example.com',
             },
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

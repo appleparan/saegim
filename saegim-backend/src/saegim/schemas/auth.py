@@ -6,9 +6,10 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 class RegisterRequest(BaseModel):
     """Schema for user registration."""
 
-    name: str = Field(min_length=1, max_length=255)
     login_id: str = Field(min_length=3, max_length=64)
     password: str = Field(min_length=8, max_length=128)
+    name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
 
 
 class LoginRequest(BaseModel):
