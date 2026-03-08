@@ -1,5 +1,7 @@
 # saegim Demo Recording
 
+> [English](README.en.md) | **한국어**
+
 Playwright로 주요 기능을 자동 시연하고 GIF로 변환합니다.
 
 ## 사전 준비

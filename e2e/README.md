@@ -1,5 +1,7 @@
 # E2E Tests
 
+> [English](README.en.md) | **한국어**
+
 Vitest 기반 end-to-end 테스트. Docker Compose로 전체 스택(postgres, backend, frontend)을 띄우고 API를 검증한다.
 
 ## 사전 준비

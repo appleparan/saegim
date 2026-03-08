@@ -1,5 +1,7 @@
 # saegim (새김)
 
+> [English](README.en.md) | **한국어**
+
 한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
 
 PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
@@ -79,20 +81,20 @@ bun install && bun run dev
 
 로컬 접속: 프론트엔드 `http://localhost:5173` / API 문서 `http://localhost:5000/docs`
 
-> 데이터베이스 설정, 마이그레이션 등 상세 가이드는 [백엔드 시작하기](docs/backend/guide/getting-started.md)를 참고하세요.
+> 데이터베이스 설정, 마이그레이션 등 상세 가이드는 [백엔드 시작하기](docs/ko/backend/guide/getting-started.md)를 참고하세요.
 
 ## Documentation
 
 | 문서 | 설명 |
 | ---- | ---- |
-| [아키텍처 개요](docs/architecture/README.md) | 시스템 구조, 기술 스택, 인증 |
-| [백엔드 아키텍처](docs/backend/architecture/architecture.md) | 레이어드 아키텍처, 데이터 흐름 |
-| [프론트엔드 아키텍처](docs/frontend/architecture/architecture.md) | 컴포넌트 구조, 상태 관리 |
-| [API 가이드](docs/backend/guide/api.md) | REST API 엔드포인트 |
-| [추출 파이프라인](docs/architecture/extraction-pipeline.md) | OCR 엔진 아키텍처 |
-| [데이터 스키마](docs/architecture/data-schema.md) | DB 구조, OmniDocBench 포맷 |
-| [멀티유저 협업](docs/architecture/multi-user-collaboration.md) | 인증, 역할, 태스크 워크플로우 |
-| [배포 가이드](docs/deployment/quickstart.md) | Docker, Kubernetes |
+| [아키텍처 개요](docs/ko/architecture/README.md) | 시스템 구조, 기술 스택, 인증 |
+| [백엔드 아키텍처](docs/ko/backend/architecture/architecture.md) | 레이어드 아키텍처, 데이터 흐름 |
+| [프론트엔드 아키텍처](docs/ko/frontend/architecture/architecture.md) | 컴포넌트 구조, 상태 관리 |
+| [API 가이드](docs/ko/backend/guide/api.md) | REST API 엔드포인트 |
+| [추출 파이프라인](docs/ko/architecture/extraction-pipeline.md) | OCR 엔진 아키텍처 |
+| [데이터 스키마](docs/ko/architecture/data-schema.md) | DB 구조, OmniDocBench 포맷 |
+| [멀티유저 협업](docs/ko/architecture/multi-user-collaboration.md) | 인증, 역할, 태스크 워크플로우 |
+| [배포 가이드](docs/ko/deployment/quickstart.md) | Docker, Kubernetes |
 | [플래닝 가이드](AGENTS.md) | 프로젝트 비전, 로드맵 |
 
 ## 개발
