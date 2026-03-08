@@ -9,8 +9,9 @@ from typing import Any
 
 import asyncpg
 
-from saegim.repositories import page_repo, project_repo
+from saegim.repositories import page_repo
 from saegim.services import attribute_classifier, extraction_service
+from saegim.services.document_service import _resolve_engine_type, _resolve_ocr_config
 from saegim.services.engines import build_engine_by_id
 
 logger = logging.getLogger(__name__)
@@ -418,41 +419,3 @@ async def extract_page_on_demand(
         return None
 
     return _record_to_page_dict(updated)
-
-
-async def _resolve_ocr_config(
-    pool: asyncpg.Pool,
-    project_id: uuid.UUID,
-) -> dict[str, Any]:
-    """Resolve OCR configuration from project settings.
-
-    Args:
-        pool: Database connection pool.
-        project_id: Project UUID.
-
-    Returns:
-        OCR config dict with 'engines' dict and optional 'default_engine_id'.
-    """
-    config = await project_repo.get_ocr_config(pool, project_id)
-    if not config or 'engines' not in config:
-        return {'default_engine_id': None, 'engines': {}}
-    return config
-
-
-def _resolve_engine_type(ocr_config: dict[str, Any]) -> str:
-    """Resolve the effective engine type from OCR config.
-
-    Args:
-        ocr_config: OCR configuration dict with 'engines' and 'default_engine_id'.
-
-    Returns:
-        Engine type string (e.g. 'pdfminer', 'commercial_api').
-    """
-    default_id = ocr_config.get('default_engine_id')
-    if not default_id:
-        return 'pdfminer'
-    engines = ocr_config.get('engines', {})
-    entry = engines.get(default_id)
-    if entry is None:
-        return 'pdfminer'
-    return entry.get('engine_type', 'pdfminer')
