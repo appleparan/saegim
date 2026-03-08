@@ -169,13 +169,15 @@ export async function registerUser(
   name: string,
   loginId: string,
   password: string,
+  email?: string,
   contextId?: string,
 ): Promise<void> {
   await openPage('/register', contextId)
-  await fillByPattern(/textbox "이름"/, name)
   await fillByPattern(/textbox "ID"/, loginId)
   await fillByPattern(/textbox "비밀번호"/, password)
   await fillByPattern(/textbox "비밀번호 확인"/, password)
+  await fillByPattern(/textbox "이름"/, name)
+  await fillByPattern(/textbox "이메일"/, email ?? `${loginId}@test.example.com`)
   await clickByPattern(/button "회원가입"/)
 }
 
