@@ -50,8 +50,11 @@ ORM 없이 순수 SQL과 JSONB를 활용합니다.
 ```mermaid
 erDiagram
     projects ||--o{ documents : has
+    projects ||--o{ project_members : has
     documents ||--o{ pages : has
     users ||--o{ pages : "assigned_to"
+    users ||--o{ project_members : has
+    users ||--o{ refresh_tokens : has
     pages ||--o{ task_history : has
     users ||--o{ task_history : has
 
@@ -91,7 +94,11 @@ erDiagram
     users {
         uuid id PK
         varchar name
+        varchar login_id
         varchar email
+        varchar password_hash
+        boolean must_change_password
+        boolean is_active
         varchar role
         timestamptz created_at
     }
@@ -102,6 +109,23 @@ erDiagram
         uuid user_id FK
         varchar action
         jsonb snapshot
+        timestamptz created_at
+    }
+
+    project_members {
+        uuid project_id PK
+        uuid user_id PK
+        varchar role
+        timestamptz joined_at
+    }
+
+    refresh_tokens {
+        uuid id PK
+        uuid user_id FK
+        varchar token_hash
+        uuid family_id
+        timestamptz expires_at
+        timestamptz revoked_at
         timestamptz created_at
     }
 ```
@@ -192,7 +216,11 @@ PDF 문서 정보를 저장합니다.
 | ------ | ------ | -------- | ------ |
 | `id` | UUID PK | `uuid_generate_v4()` | 사용자 ID |
 | `name` | VARCHAR(255) | - | 이름 |
+| `login_id` | VARCHAR(64) UNIQUE | - | 로그인 ID |
 | `email` | VARCHAR(255) UNIQUE | - | 이메일 |
+| `password_hash` | VARCHAR(255) | `NULL` | bcrypt 비밀번호 해시 |
+| `must_change_password` | BOOLEAN | `FALSE` | 최초 로그인 시 비밀번호 변경 강제 |
+| `is_active` | BOOLEAN | `TRUE` | 계정 활성화 상태 |
 | `role` | VARCHAR(20) | `'annotator'` | 역할 |
 | `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
 
@@ -212,6 +240,50 @@ PDF 문서 정보를 저장합니다.
 | `created_at` | TIMESTAMPTZ | `NOW()` | 발생 시각 |
 
 **action 값:** `assigned`, `started`, `saved`, `submitted`, `approved`, `rejected`
+
+**인덱스:**
+
+- `idx_task_history_page_id` - `page_id` (페이지별 이력 조회)
+- `idx_task_history_user_id` - `user_id` (사용자별 이력 조회)
+
+### project_members
+
+프로젝트-사용자 N:M 관계를 관리합니다.
+
+| 컬럼 | 타입 | 기본값 | 설명 |
+| ------ | ------ | -------- | ------ |
+| `project_id` | UUID PK, FK | - | 소속 프로젝트 |
+| `user_id` | UUID PK, FK | - | 멤버 사용자 |
+| `role` | VARCHAR(20) | `'annotator'` | 프로젝트 내 역할 |
+| `joined_at` | TIMESTAMPTZ | `NOW()` | 참여 시각 |
+
+**PK:** `(project_id, user_id)` 복합 키
+
+**role 값:** `owner`, `annotator`, `reviewer`
+
+**인덱스:**
+
+- `idx_project_members_user_id` - `user_id` (사용자별 프로젝트 조회)
+
+### refresh_tokens
+
+JWT 리프레시 토큰을 관리합니다. Family 기반 토큰 로테이션과 탈취 감지를 지원합니다.
+
+| 컬럼 | 타입 | 기본값 | 설명 |
+| ------ | ------ | -------- | ------ |
+| `id` | UUID PK | `uuid_generate_v4()` | 토큰 ID |
+| `user_id` | UUID FK | - | 토큰 소유자 |
+| `token_hash` | VARCHAR(128) UNIQUE | - | SHA-256 토큰 해시 |
+| `family_id` | UUID | - | 토큰 패밀리 ID (로테이션 추적) |
+| `expires_at` | TIMESTAMPTZ | - | 만료 시각 |
+| `revoked_at` | TIMESTAMPTZ | `NULL` | 폐기 시각 (soft revocation) |
+| `created_at` | TIMESTAMPTZ | `NOW()` | 생성 시각 |
+
+**인덱스:**
+
+- `idx_refresh_tokens_user_id` - `user_id` (사용자별 토큰 조회)
+- `idx_refresh_tokens_token_hash` - `token_hash` (토큰 검증)
+- `idx_refresh_tokens_family_id` - `family_id` (패밀리 단위 폐기)
 
 ## annotation_data JSONB 구조
 
@@ -336,7 +408,7 @@ SQL 파일 기반으로 수동 관리합니다:
 
 ```text
 migrations/
-└── 001_init.sql  # 전체 스키마 (projects, users, documents, pages, task_history)
+└── 001_init.sql  # 전체 스키마 (projects, users, documents, pages, task_history, project_members, refresh_tokens)
 ```
 
 실행 방법:
