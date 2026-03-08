@@ -1,4 +1,6 @@
-<div class="bg-primary/5 hidden flex-col justify-center px-12 lg:flex lg:w-1/2 xl:px-20">
+<div
+  class="bg-primary/5 hidden flex-col items-center justify-center px-12 lg:flex lg:w-1/2 xl:px-20"
+>
   <div class="max-w-lg">
     <h1 class="text-foreground text-4xl font-bold tracking-tight">saegim</h1>
     <p class="text-muted-foreground mt-2 text-lg">문서 레이블링 플랫폼</p>
@@ -78,7 +80,7 @@
         <div>
           <h3 class="text-foreground font-semibold">팀 협업</h3>
           <p class="text-muted-foreground mt-1 text-sm">
-            프로젝트별로 팀원을 관리하고, 작업을 할당하여 효율적으로 협업합니다.
+            팀원과 역할을 관리하고, 작업을 할당하여 효율적으로 협업합니다.
           </p>
         </div>
       </div>

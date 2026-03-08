@@ -43,7 +43,7 @@
   }
 </script>
 
-<div class="flex min-h-screen">
+<div class="mx-auto flex min-h-screen w-full max-w-6xl">
   <AuthHero />
 
   <div class="flex w-full items-center justify-center px-4 lg:w-1/2">
