@@ -1,117 +1,125 @@
-# saegim (새김)
+# saegim
 
-> [English](README.en.md) | **한국어**
+> [Korean](README.ko.md) | **English**
 
-한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
+A Human-in-the-Loop labeling platform for Korean document VLM benchmarks.
 
-PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
-웹 기반 에디터에서 레이아웃 요소의 바운딩 박스·카테고리·속성을 레이블링하여
-[OmniDocBench](https://github.com/opendatalab/OmniDocBench) 표준 JSON으로 내보내는 도구입니다.
+Upload PDF documents, automatically convert them into per-page images,
+and label bounding boxes, categories, and attributes of layout elements
+in a web-based editor to export as
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench)-standard JSON.
 
 ## Key Features
 
-### 프로젝트 설정 & PDF 업로드
+### Project Setup & PDF Upload
 
-프로젝트를 생성하고, OCR 엔진을 설정한 뒤, PDF를 업로드하면 페이지별 이미지로 자동 변환합니다.
+Create a project, configure an OCR engine, and upload PDFs to
+automatically convert them into per-page images.
 
 <img src="demo/output/Project-setup.gif" width="100%" alt="Project Setup">
 
-### 레이블 에디터
+### Label Editor
 
-AI OCR로 자동 추출된 레이아웃 요소를 검토하고, 바운딩 박스 그리기·요소 인덱스 오버레이·읽기 순서 편집 등 다양한 도구로 레이블링합니다.
+Review layout elements automatically extracted by AI OCR, and annotate
+them using a variety of tools including bounding box drawing, element
+index overlays, and reading order editing.
 
 <img src="demo/output/Label-editor-extraction-annotation-overlays.gif" width="100%" alt="Project Setup">
 
-### 프로젝트 개요 & 내보내기
+### Project Overview & Export
 
-작업 현황 대시보드에서 진행률을 확인하고, OmniDocBench 표준 JSON으로 내보냅니다.
+Monitor progress on the task dashboard and export to
+OmniDocBench-standard JSON.
 
 <img src="demo/output/Project-overview-dashboard-and-export.gif" width="100%" alt="Project Setup">
 
-## 상세 기능
+## Detailed Features
 
-- **PDF 변환** — PDF를 페이지별 고해상도 PNG로 자동 변환
-- **다중 OCR 엔진** — 프로젝트별 엔진 등록·관리 (Gemini API, vLLM, Docling+OCR, pdfminer)
-- **자동 속성 분류** — 페이지/테이블/텍스트/수식 속성 자동 분류
-- **캔버스 에디터** — 바운딩 박스 생성·편집·삭제, 줌/패닝, 키보드 단축키
-- **읽기 순서 에디터** — 드래그앤드롭 재정렬 + 캔버스 오버레이
-- **관계 도구** — 요소 간 관계 CRUD + SVG 화살표 시각화
-- **OmniDocBench 레이블링** — 15종 Block-level + 4종 Span-level 카테고리
-- **인증/인가** — JWT 기반 인증, 시스템 역할 (admin/annotator/reviewer)
-- **관리자 대시보드** — 유저/프로젝트/시스템 통계 관리
-- **JSON Export** — OmniDocBench 표준 포맷으로 내보내기
+- **PDF Conversion** — Automatically convert PDFs to high-resolution per-page PNGs
+- **Multiple OCR Engines** — Register and manage engines per project
+  (Gemini API, vLLM, Docling+OCR, pdfminer)
+- **Automatic Attribute Classification** — Auto-classify page, table, text, and formula attributes
+- **Canvas Editor** — Create, edit, and delete bounding boxes with zoom/pan and keyboard shortcuts
+- **Reading Order Editor** — Drag-and-drop reordering with canvas overlay
+- **Relation Tool** — Element relation CRUD with SVG arrow visualization
+- **OmniDocBench Labeling** — 15 Block-level + 4 Span-level categories
+- **Authentication & Authorization** — JWT-based auth with system roles
+  (admin/annotator/reviewer)
+- **Admin Dashboard** — User, project, and system statistics management
+- **JSON Export** — Export in OmniDocBench-standard format
 
 ## Quickstart
 
-### Docker Compose (권장)
+### Docker Compose (Recommended)
 
-Docker만 설치되어 있으면 3단계로 바로 시작할 수 있습니다.
+Get started in 3 steps with just Docker installed.
 
 ```bash
-# 1. 환경 변수 설정
+# 1. Set up environment variables
 cp .env.example .env
 
-# 2. 빌드 + 실행
+# 2. Build + run
 make up
-# 또는: docker compose up -d --build
+# or: docker compose up -d --build
 
-# 3. 브라우저에서 접속
-#    프론트엔드: http://localhost:13000
-#    API 문서:   http://localhost:15000/docs
+# 3. Open in browser
+#    Frontend: http://localhost:13000
+#    API docs: http://localhost:15000/docs
 ```
 
-GPU 모드가 필요하다면 NVIDIA Container Toolkit 설치 후:
+If you need GPU mode, install NVIDIA Container Toolkit first:
 
 ```bash
 make up-gpu
 ```
 
-### 로컬 개발 환경
+### Local Development
 
 ```bash
-# 백엔드
+# Backend
 cd saegim-backend
-uv sync --group dev --group docs --extra cpu    # CPU (또는 --extra cu128)
+uv sync --group dev --group docs --extra cpu    # CPU (or --extra cu128)
 uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
 
-# 프론트엔드
+# Frontend
 cd saegim-frontend
 bun install && bun run dev
 ```
 
-로컬 접속: 프론트엔드 `http://localhost:5173` / API 문서 `http://localhost:5000/docs`
+Local access: Frontend `http://localhost:5173` / API docs `http://localhost:5000/docs`
 
-> 데이터베이스 설정, 마이그레이션 등 상세 가이드는 [백엔드 시작하기](docs/ko/backend/guide/getting-started.md)를 참고하세요.
+> For database setup, migrations, and other detailed guides, see
+> [Backend Getting Started](docs/en/backend/guide/getting-started.md).
 
 ## Documentation
 
-| 문서 | 설명 |
+| Document | Description |
 | ---- | ---- |
-| [아키텍처 개요](docs/ko/architecture/README.md) | 시스템 구조, 기술 스택, 인증 |
-| [백엔드 아키텍처](docs/ko/backend/architecture/architecture.md) | 레이어드 아키텍처, 데이터 흐름 |
-| [프론트엔드 아키텍처](docs/ko/frontend/architecture/architecture.md) | 컴포넌트 구조, 상태 관리 |
-| [API 가이드](docs/ko/backend/guide/api.md) | REST API 엔드포인트 |
-| [추출 파이프라인](docs/ko/architecture/extraction-pipeline.md) | OCR 엔진 아키텍처 |
-| [데이터 스키마](docs/ko/architecture/data-schema.md) | DB 구조, OmniDocBench 포맷 |
-| [멀티유저 협업](docs/ko/architecture/multi-user-collaboration.md) | 인증, 역할, 태스크 워크플로우 |
-| [배포 가이드](docs/ko/deployment/quickstart.md) | Docker, Kubernetes |
-| [플래닝 가이드](AGENTS.md) | 프로젝트 비전, 로드맵 |
+| [Architecture Overview](docs/en/architecture/README.md) | System structure, tech stack, authentication |
+| [Backend Architecture](docs/en/backend/architecture/architecture.md) | Layered architecture, data flow |
+| [Frontend Architecture](docs/en/frontend/architecture/architecture.md) | Component structure, state management |
+| [API Guide](docs/en/backend/guide/api.md) | REST API endpoints |
+| [Extraction Pipeline](docs/en/architecture/extraction-pipeline.md) | OCR engine architecture |
+| [Data Schema](docs/en/architecture/data-schema.md) | DB structure, OmniDocBench format |
+| [Multi-User Collaboration](docs/en/architecture/multi-user-collaboration.md) | Auth, roles, task workflow |
+| [Deployment Guide](docs/en/deployment/quickstart.md) | Docker, Kubernetes |
+| [Planning Guide](AGENTS.md) | Project vision, roadmap |
 
-## 개발
+## Development
 
 ```bash
-# 백엔드
-uv run ruff format                  # 포맷팅
-uv run ruff check --fix             # 린트
-uv run ty check                     # 타입 체크
-uv run pytest --cov                 # 테스트 + 커버리지
+# Backend
+uv run ruff format                  # Formatting
+uv run ruff check --fix             # Lint
+uv run ty check                     # Type check
+uv run pytest --cov                 # Test + coverage
 
-# 프론트엔드
-bun run check                       # 타입 체크
-bun run test                        # 테스트
-bun run build                       # 프로덕션 빌드
+# Frontend
+bun run check                       # Type check
+bun run test                        # Test
+bun run build                       # Production build
 ```
 
-## 라이선스
+## License
 
 Apache-2.0 License

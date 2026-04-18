@@ -1,6 +1,6 @@
 # saegim
 
-> [한국어](README.md) | **English**
+> [Korean](README.ko.md) | **English**
 
 A Human-in-the-Loop labeling platform for Korean document VLM benchmarks.
 

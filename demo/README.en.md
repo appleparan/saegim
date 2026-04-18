@@ -1,6 +1,6 @@
 # saegim Demo Recording
 
-> [한국어](README.md) | **English**
+> [Korean](README.ko.md) | **English**
 
 Automatically demonstrates key features using Playwright and converts them to GIFs.
 
