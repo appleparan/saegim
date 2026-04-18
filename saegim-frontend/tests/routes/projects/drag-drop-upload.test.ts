@@ -100,7 +100,7 @@ describe('Project page drag-and-drop upload', () => {
 
     dropZone.dispatchEvent(event)
     await vi.waitFor(() => {
-      expect(screen.getByText('PDF 파일을 여기에 놓으세요')).toBeTruthy()
+      expect(screen.getByText('Drop PDF files here')).toBeTruthy()
     })
   })
 
@@ -114,12 +114,12 @@ describe('Project page drag-and-drop upload', () => {
     // Enter then leave
     dropZone.dispatchEvent(createDragEvent('dragenter', [pdfFile]))
     await vi.waitFor(() => {
-      expect(screen.getByText('PDF 파일을 여기에 놓으세요')).toBeTruthy()
+      expect(screen.getByText('Drop PDF files here')).toBeTruthy()
     })
 
     dropZone.dispatchEvent(createDragEvent('dragleave'))
     await vi.waitFor(() => {
-      expect(screen.queryByText('PDF 파일을 여기에 놓으세요')).toBeNull()
+      expect(screen.queryByText('Drop PDF files here')).toBeNull()
     })
   })
 
@@ -133,7 +133,7 @@ describe('Project page drag-and-drop upload', () => {
     dropZone.dispatchEvent(event)
 
     // Overlay should not appear
-    expect(screen.queryByText('PDF 파일을 여기에 놓으세요')).toBeNull()
+    expect(screen.queryByText('Drop PDF files here')).toBeNull()
   })
 
   it('uploads PDF on drop', async () => {
@@ -163,7 +163,7 @@ describe('Project page drag-and-drop upload', () => {
     dropZone.dispatchEvent(createDragEvent('drop', [imageFile]))
 
     await vi.waitFor(() => {
-      expect(screen.getByText('PDF 파일만 업로드할 수 있습니다.')).toBeTruthy()
+      expect(screen.getByText('Only PDF files can be uploaded.')).toBeTruthy()
     })
     expect(mockUploadDocument).not.toHaveBeenCalled()
   })
@@ -198,7 +198,7 @@ describe('Project page drag-and-drop upload', () => {
     dropZone.dispatchEvent(createDragEvent('drop', [pdfFile]))
 
     await vi.waitFor(() => {
-      expect(screen.getByText('PDF 업로드에 실패했습니다.')).toBeTruthy()
+      expect(screen.getByText('Failed to upload PDF.')).toBeTruthy()
     })
   })
 
@@ -211,12 +211,12 @@ describe('Project page drag-and-drop upload', () => {
 
     dropZone.dispatchEvent(createDragEvent('dragenter', [pdfFile]))
     await vi.waitFor(() => {
-      expect(screen.getByText('PDF 파일을 여기에 놓으세요')).toBeTruthy()
+      expect(screen.getByText('Drop PDF files here')).toBeTruthy()
     })
 
     dropZone.dispatchEvent(createDragEvent('drop', [pdfFile]))
     await vi.waitFor(() => {
-      expect(screen.queryByText('PDF 파일을 여기에 놓으세요')).toBeNull()
+      expect(screen.queryByText('Drop PDF files here')).toBeNull()
     })
   })
 
@@ -236,7 +236,7 @@ describe('Project page drag-and-drop upload', () => {
 
     dropZone.dispatchEvent(createDragEvent('dragenter', [newPdf]))
     await vi.waitFor(() => {
-      expect(screen.getByText('PDF 파일을 여기에 놓으세요')).toBeTruthy()
+      expect(screen.getByText('Drop PDF files here')).toBeTruthy()
     })
   })
 

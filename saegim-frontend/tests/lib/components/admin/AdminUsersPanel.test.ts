@@ -36,7 +36,7 @@ describe('AdminUsersPanel', () => {
       props: { users: [] },
     })
 
-    expect(screen.getByText('등록된 사용자가 없습니다.')).toBeTruthy()
+    expect(screen.getByText('No users registered.')).toBeTruthy()
   })
 
   it('renders user list with names and emails', () => {
@@ -44,7 +44,7 @@ describe('AdminUsersPanel', () => {
       props: { users: sampleUsers },
     })
 
-    expect(screen.getByText('Admin')).toBeTruthy()
+    expect(screen.getAllByText('Admin').length).toBeGreaterThan(0)
     expect(screen.getByText('admin@example.com')).toBeTruthy()
     expect(screen.getByText('User')).toBeTruthy()
     expect(screen.getByText('user@example.com')).toBeTruthy()
@@ -64,6 +64,6 @@ describe('AdminUsersPanel', () => {
       props: { users: sampleUsers },
     })
 
-    expect(screen.getByText('사용자 관리')).toBeTruthy()
+    expect(screen.getByText('User Admin')).toBeTruthy()
   })
 })

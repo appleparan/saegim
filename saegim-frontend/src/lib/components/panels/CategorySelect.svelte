@@ -12,7 +12,7 @@
 
 <div>
   <label class="text-muted-foreground mb-1 block text-xs font-medium" for="category-select"
-    >카테고리</label
+    >Category</label
   >
   <select
     id="category-select"

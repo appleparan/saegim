@@ -37,7 +37,7 @@
   const ENGINE_LABELS: Record<RegisterableEngineType, string> = {
     commercial_api: 'Gemini API',
     vllm: 'vLLM',
-    split_pipeline: '레이아웃 + OCR',
+    split_pipeline: 'Layout + OCR',
   }
 
   function initEdit() {
@@ -86,7 +86,7 @@
         {isDefault
         ? 'text-amber-500'
         : 'text-muted-foreground/30 hover:text-amber-400'}"
-      title={isDefault ? '기본 엔진' : '기본 엔진으로 설정'}
+      title={isDefault ? 'Default Engine' : 'Set as Default Engine'}
       onclick={() => !isDefault && onsetdefault?.()}
     >
       <svg class="h-5 w-5" fill={isDefault ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -109,7 +109,7 @@
           </svg>
         </div>
       {:else if connectionStatus?.success === true}
-        <div class="text-emerald-500" title="연결됨">
+        <div class="text-emerald-500" title="Connected">
           <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
             <circle cx="10" cy="10" r="5" />
           </svg>
@@ -121,7 +121,7 @@
           </svg>
         </div>
       {:else}
-        <div class="text-muted-foreground/40" title="미테스트">
+        <div class="text-muted-foreground/40" title="Untested">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -133,7 +133,7 @@
     <button
       type="button"
       class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-      title="삭제"
+      title="Delete"
       onclick={() => ondelete?.()}
     >
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -146,7 +146,7 @@
   {#if isExpanded}
     <div class="border-border space-y-3 border-t p-4">
       <div>
-        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-name-{engineId}">이름</label>
+        <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-name-{engineId}">Name</label>
         <input
           id="edit-name-{engineId}"
           type="text"
@@ -167,7 +167,7 @@
           />
         </div>
         <div>
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-model-{engineId}">모델</label>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-model-{engineId}">Model</label>
           <select
             id="edit-model-{engineId}"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
@@ -179,12 +179,12 @@
           </select>
         </div>
         <div>
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-prompt-{engineId}">OCR 프롬프트 (선택)</label>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-prompt-{engineId}">OCR Prompt (Optional)</label>
           <textarea
             id="edit-prompt-{engineId}"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
             rows="4"
-            placeholder="비워두면 기본 레이아웃 분석 프롬프트를 사용합니다."
+            placeholder="Leave empty to use the default layout analysis prompt."
             value={String(editConfig.prompt ?? '')}
             oninput={(e) => (editConfig = { ...editConfig, prompt: (e.target as HTMLTextAreaElement).value })}
           ></textarea>
@@ -194,7 +194,7 @@
       {#if engine.engine_type === 'vllm'}
         <div class="grid grid-cols-3 gap-3">
           <div class="col-span-2">
-            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-host-{engineId}">호스트</label>
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-host-{engineId}">Host</label>
             <input
               id="edit-host-{engineId}"
               type="text"
@@ -204,7 +204,7 @@
             />
           </div>
           <div>
-            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-port-{engineId}">포트</label>
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-port-{engineId}">Port</label>
             <input
               id="edit-port-{engineId}"
               type="number"
@@ -215,7 +215,7 @@
           </div>
         </div>
         <div>
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-vllm-model-{engineId}">모델</label>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-vllm-model-{engineId}">Model</label>
           <input
             id="edit-vllm-model-{engineId}"
             type="text"
@@ -228,7 +228,7 @@
 
       {#if engine.engine_type === 'split_pipeline'}
         <div>
-          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-layout-provider-{engineId}">레이아웃 감지기</label>
+          <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-layout-provider-{engineId}">Layout Detector</label>
           <select
             id="edit-layout-provider-{engineId}"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
@@ -241,7 +241,7 @@
         </div>
         {#if String(editConfig.layout_provider ?? 'docling') === 'docling'}
           <div>
-            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-docling-{engineId}">Docling 모델</label>
+            <label class="text-muted-foreground mb-1 block text-xs font-medium" for="edit-docling-{engineId}">Docling Model</label>
             <input
               id="edit-docling-{engineId}"
               type="text"
@@ -279,9 +279,9 @@
 
       <div class="flex items-center justify-end gap-2 pt-1">
         <Button variant="outline" size="sm" disabled={isTesting} onclick={() => ontest?.()}>
-          {isTesting ? '테스트 중...' : '연결 테스트'}
+          {isTesting ? 'Testing...' : 'Connection Test'}
         </Button>
-        <Button variant="default" size="sm" onclick={handleSave}>저장</Button>
+        <Button variant="default" size="sm" onclick={handleSave}>Save</Button>
       </div>
     </div>
   {/if}

@@ -22,9 +22,9 @@
       projects = await listProjects()
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.'
+        error = 'Cannot connect to the backend server. Make sure it is running.'
       } else {
-        error = '프로젝트 목록을 불러오는 데 실패했습니다.'
+        error = 'Failed to load projects.'
       }
     } finally {
       isLoading = false
@@ -44,7 +44,7 @@
       newProjectName = ''
       newProjectDescription = ''
     } catch {
-      error = '프로젝트 생성에 실패했습니다.'
+      error = 'Failed to create project.'
     } finally {
       isCreating = false
     }
@@ -53,12 +53,12 @@
   async function handleDeleteProject(e: Event, projectId: string) {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('이 프로젝트와 모든 문서를 삭제하시겠습니까?')) return
+    if (!confirm('Delete this project and all documents?')) return
     try {
       await deleteProject(projectId)
       projects = projects.filter((p) => p.id !== projectId)
     } catch {
-      error = '프로젝트 삭제에 실패했습니다.'
+      error = 'Failed to delete project.'
     }
   }
 
@@ -74,15 +74,15 @@
     <div class="mx-auto max-w-4xl">
       <div class="mb-8 flex items-center justify-between">
         <div>
-          <h1 class="text-foreground text-2xl font-bold">프로젝트</h1>
-          <p class="text-muted-foreground mt-1 text-sm">문서 레이블링 프로젝트를 관리합니다</p>
+          <h1 class="text-foreground text-2xl font-bold">Project</h1>
+          <p class="text-muted-foreground mt-1 text-sm">Manage document labeling projects</p>
         </div>
-        <Button variant="default" onclick={() => (showCreateDialog = true)}>새 프로젝트</Button>
+        <Button variant="default" onclick={() => (showCreateDialog = true)}>New Project</Button>
       </div>
 
       {#if isLoading}
         <div class="py-12">
-          <LoadingSpinner message="프로젝트 불러오는 중..." />
+          <LoadingSpinner message="Loading projects..." />
         </div>
       {:else if error}
         <div
@@ -106,7 +106,7 @@
             </svg>
           </div>
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadProjects}>다시 시도</Button>
+          <Button variant="outline" onclick={loadProjects}>Retry</Button>
         </div>
       {:else if projects.length === 0}
         <div class="bg-muted border-border rounded-2xl border p-16 text-center">
@@ -127,12 +127,12 @@
               />
             </svg>
           </div>
-          <p class="text-muted-foreground mb-2 text-lg font-medium">아직 프로젝트가 없습니다</p>
+          <p class="text-muted-foreground mb-2 text-lg font-medium">No projects yet</p>
           <p class="text-muted-foreground mb-6 text-sm">
-            첫 프로젝트를 만들어 문서 레이블링을 시작하세요.
+            Create your first project to start labeling documents.
           </p>
           <Button variant="default" onclick={() => (showCreateDialog = true)}>
-            첫 프로젝트 만들기
+            Create First Project
           </Button>
         </div>
       {:else}
@@ -159,7 +159,7 @@
                   class="text-muted-foreground hover:text-destructive text-xs transition-colors"
                   onclick={(e) => handleDeleteProject(e, project.id)}
                 >
-                  삭제
+                  Delete
                 </button>
               </div>
             </div>
@@ -172,43 +172,43 @@
   {#if showCreateDialog}
     <div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
       <div class="bg-card border-border mx-4 w-full max-w-md rounded-2xl border p-6 shadow-2xl">
-        <h2 class="text-foreground mb-1 text-lg font-semibold">새 프로젝트 만들기</h2>
-        <p class="text-muted-foreground mb-5 text-sm">프로젝트 정보를 입력하세요.</p>
+        <h2 class="text-foreground mb-1 text-lg font-semibold">Create New Project</h2>
+        <p class="text-muted-foreground mb-5 text-sm">Enter project details.</p>
         <div class="space-y-4">
           <div>
             <label class="text-foreground mb-1.5 block text-sm font-medium" for="project-name"
-              >프로젝트 이름</label
+              >Project Name</label
             >
             <input
               id="project-name"
               type="text"
               class="border-border focus:border-ring focus:ring-ring/20 bg-background text-foreground block w-full rounded-lg border px-3 py-2.5 text-sm transition-all outline-none focus:ring-2"
               bind:value={newProjectName}
-              placeholder="프로젝트 이름을 입력하세요"
+              placeholder="Enter a project name"
             />
           </div>
           <div>
             <label
               class="text-foreground mb-1.5 block text-sm font-medium"
-              for="project-description">설명 (선택)</label
+              for="project-description">Description (Optional)</label
             >
             <textarea
               id="project-description"
               class="border-border focus:border-ring focus:ring-ring/20 bg-background text-foreground block w-full resize-none rounded-lg border px-3 py-2.5 text-sm transition-all outline-none focus:ring-2"
               bind:value={newProjectDescription}
-              placeholder="프로젝트에 대한 설명을 입력하세요"
+              placeholder="Enter a project description"
               rows="3"
             ></textarea>
           </div>
         </div>
         <div class="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onclick={() => (showCreateDialog = false)}>취소</Button>
+          <Button variant="outline" onclick={() => (showCreateDialog = false)}>Cancel</Button>
           <Button
             variant="default"
             disabled={!newProjectName.trim() || isCreating}
             onclick={handleCreateProject}
           >
-            {isCreating ? '생성 중...' : '생성'}
+            {isCreating ? 'Creating...' : 'Create'}
           </Button>
         </div>
       </div>

@@ -40,12 +40,12 @@
     {
       value: 'vllm',
       label: 'vLLM',
-      description: 'vLLM 호환 서버',
+      description: 'vLLM-compatible server',
     },
     {
       value: 'split_pipeline',
-      label: '레이아웃 + OCR',
-      description: '레이아웃 감지 + OCR 파이프라인',
+      label: 'Layout + OCR',
+      description: 'Layout detection + OCR pipeline',
     },
   ]
 
@@ -75,7 +75,7 @@
     // Pre-fill name based on type
     if (t === 'commercial_api') name = 'Gemini Flash'
     else if (t === 'vllm') name = 'vLLM'
-    else if (t === 'split_pipeline') name = '레이아웃 + OCR'
+    else if (t === 'split_pipeline') name = 'Layout + OCR'
     // Pre-fill API key from env if available
     if (t === 'commercial_api' && envGeminiApiKey) {
       caApiKey = envGeminiApiKey
@@ -134,12 +134,12 @@
   <Dialog.Content class="sm:max-w-lg">
     <Dialog.Header>
       <Dialog.Title>
-        {step === 'type' ? '엔진 타입 선택' : '엔진 설정'}
+        {step === 'type' ? 'Select Engine Type' : 'Engine Settings'}
       </Dialog.Title>
       <Dialog.Description>
         {step === 'type'
-          ? '등록할 OCR 엔진 타입을 선택하세요.'
-          : `${ENGINE_OPTIONS.find((e) => e.value === engineType)?.label} 엔진의 이름과 설정을 입력하세요.`}
+          ? 'Select the OCR engine type to register.'
+          : `Enter the name and settings for the ${ENGINE_OPTIONS.find((e) => e.value === engineType)?.label} engine.`}
       </Dialog.Description>
     </Dialog.Header>
 
@@ -161,13 +161,13 @@
         <!-- Name -->
         <div>
           <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-name">
-            이름
+            Name
           </label>
           <input
             id="add-name"
             type="text"
             class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
-            placeholder="표시될 이름"
+            placeholder="Display name"
             bind:value={name}
           />
         </div>
@@ -187,7 +187,7 @@
           </div>
           <div>
             <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-model">
-              모델
+              Model
             </label>
             <select
               id="add-model"
@@ -200,13 +200,13 @@
           </div>
           <div>
             <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-prompt">
-              OCR 프롬프트 (선택)
+              OCR Prompt (Optional)
             </label>
             <textarea
               id="add-prompt"
               class="border-input bg-background text-foreground focus:border-ring focus:ring-ring block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
               rows="4"
-              placeholder={"비워두면 기본 레이아웃 분석 프롬프트를 사용합니다. {width}와 {height}로 이미지 크기를 참조할 수 있습니다."}
+              placeholder={"Leave empty to use the default layout analysis prompt. Use {width} and {height} to reference image dimensions."}
               bind:value={caPrompt}
             ></textarea>
           </div>
@@ -216,7 +216,7 @@
           <div class="grid grid-cols-3 gap-3">
             <div class="col-span-2">
               <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-host">
-                호스트
+                Host
               </label>
               <input
                 id="add-host"
@@ -228,7 +228,7 @@
             </div>
             <div>
               <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-port">
-                포트
+                Port
               </label>
               <input
                 id="add-port"
@@ -241,7 +241,7 @@
           </div>
           <div>
             <label class="text-muted-foreground mb-1 block text-xs font-medium" for="add-vllm-model">
-              모델
+              Model
             </label>
             <input
               id="add-vllm-model"
@@ -259,7 +259,7 @@
               class="text-muted-foreground mb-1 block text-xs font-medium"
               for="add-layout-provider"
             >
-              레이아웃 감지기
+              Layout Detector
             </label>
             <select
               id="add-layout-provider"
@@ -276,7 +276,7 @@
                 class="text-muted-foreground mb-1 block text-xs font-medium"
                 for="add-docling"
               >
-                Docling 모델
+                Docling Model
               </label>
               <input
                 id="add-docling"
@@ -306,8 +306,8 @@
         {/if}
 
         <Dialog.Footer>
-          <Button variant="outline" onclick={() => (step = 'type')}>뒤로</Button>
-          <Button variant="default" disabled={!isValid} onclick={handleAdd}>추가</Button>
+          <Button variant="outline" onclick={() => (step = 'type')}>Back</Button>
+          <Button variant="default" disabled={!isValid} onclick={handleAdd}>Add</Button>
         </Dialog.Footer>
       </div>
     {/if}

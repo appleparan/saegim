@@ -32,7 +32,7 @@ describe('OcrSettingsPanel', () => {
   it('renders empty state when no engines registered', () => {
     render(OcrSettingsPanel, { props: { config: emptyConfig } })
 
-    expect(screen.getByText('등록된 엔진이 없습니다.')).toBeTruthy()
+    expect(screen.getByText('No engines registered.')).toBeTruthy()
   })
 
   it('renders engine cards when engines exist', () => {
@@ -45,7 +45,7 @@ describe('OcrSettingsPanel', () => {
   it('shows add engine button', () => {
     render(OcrSettingsPanel, { props: { config: emptyConfig } })
 
-    expect(screen.getByText('엔진 추가')).toBeTruthy()
+    expect(screen.getByText('Add Engine')).toBeTruthy()
   })
 
   it('shows pdfminer fallback note', () => {
@@ -57,7 +57,7 @@ describe('OcrSettingsPanel', () => {
   it('shows header with description', () => {
     render(OcrSettingsPanel, { props: { config: emptyConfig } })
 
-    expect(screen.getByText('OCR 엔진 관리')).toBeTruthy()
+    expect(screen.getByText('OCR Engine Management')).toBeTruthy()
   })
 
   const configWithSplitPipeline: OcrConfigResponse = {

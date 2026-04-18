@@ -12,32 +12,32 @@
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
   <Card.Root>
     <Card.Header>
-      <Card.Description>총 사용자</Card.Description>
+      <Card.Description>Total Users</Card.Description>
       <Card.Title class="text-3xl">{stats.total_users}</Card.Title>
     </Card.Header>
     <Card.Content>
-      <p class="text-muted-foreground text-xs">활성 사용자: {stats.active_users}명</p>
+      <p class="text-muted-foreground text-xs">Active users: {stats.active_users}</p>
     </Card.Content>
   </Card.Root>
 
   <Card.Root>
     <Card.Header>
-      <Card.Description>총 프로젝트</Card.Description>
+      <Card.Description>Total Projects</Card.Description>
       <Card.Title class="text-3xl">{stats.total_projects}</Card.Title>
     </Card.Header>
     <Card.Content>
-      <p class="text-muted-foreground text-xs">총 페이지: {stats.total_pages}</p>
+      <p class="text-muted-foreground text-xs">Total Pages: {stats.total_pages}</p>
     </Card.Content>
   </Card.Root>
 
   <Card.Root>
     <Card.Header>
-      <Card.Description>전체 완료율</Card.Description>
+      <Card.Description>Overall Completion</Card.Description>
       <Card.Title class="text-3xl">{stats.completion_rate}%</Card.Title>
     </Card.Header>
     <Card.Content>
       <p class="text-muted-foreground text-xs">
-        완료: {stats.completed_pages} / 검수 대기: {stats.submitted_pages}
+        Complete: {stats.completed_pages} / Review Pending: {stats.submitted_pages}
       </p>
     </Card.Content>
   </Card.Root>

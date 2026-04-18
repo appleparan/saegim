@@ -1,102 +1,102 @@
 # saegim-backend
 
-saegim 레이블링 플랫폼의 백엔드. FastAPI + asyncpg 기반 REST API 서버.
+Backend for the saegim labeling platform. Provides a FastAPI + asyncpg REST API server.
 
-## 기술 스택
+## Tech Stack
 
-| 분류 | 기술 |
+| Category | Technology |
 | ---- | ---- |
-| **프레임워크** | FastAPI |
-| **DB 드라이버** | asyncpg (raw SQL) |
-| **데이터베이스** | PostgreSQL 15+ (JSONB) |
-| **스키마** | Pydantic |
-| **PDF 처리** | pypdfium2 + pdfminer.six |
-| **OCR** | 4종 Strategy 패턴 (Gemini API, vLLM, Layout+OCR, pdfminer) |
-| **포맷터** | ruff format |
-| **린터** | ruff check |
-| **타입 체커** | ty |
-| **테스트** | pytest |
-| **패키지 관리** | uv |
+| **Framework** | FastAPI |
+| **DB Driver** | asyncpg (raw SQL) |
+| **Database** | PostgreSQL 15+ (JSONB) |
+| **Schema** | Pydantic |
+| **PDF Processing** | pypdfium2 + pdfminer.six |
+| **OCR** | 4-type Strategy pattern (Gemini API, vLLM, Layout+OCR, pdfminer) |
+| **Formatter** | ruff format |
+| **Linter** | ruff check |
+| **Type Checker** | ty |
+| **Tests** | pytest |
+| **Package Management** | uv |
 
-## 프로젝트 구조
+## Project Structure
 
 ```text
 saegim-backend/
 ├── src/saegim/
-│   ├── app.py                    # FastAPI 앱 팩토리
+│   ├── app.py                    # FastAPI app factory
 │   ├── api/
-│   │   └── routes/               # REST 엔드포인트
-│   ├── schemas/                  # Pydantic 모델 (EngineType, OcrConfig 등)
+│   │   └── routes/               # REST endpoints
+│   ├── schemas/                  # Pydantic models (EngineType, OcrConfig, etc.)
 │   ├── services/
-│   │   ├── engines/              # OCR 엔진 Strategy 패턴
+│   │   ├── engines/              # OCR engine Strategy pattern
 │   │   │   ├── base.py           # BaseOCREngine ABC
-│   │   │   ├── factory.py        # build_engine_by_id() 팩토리
+│   │   │   ├── factory.py        # build_engine_by_id() factory
 │   │   │   ├── pdfminer_engine.py
 │   │   │   ├── commercial_api_engine.py
 │   │   │   ├── vllm_engine.py
 │   │   │   └── split_pipeline_engine.py
-│   │   ├── docir.py                 # DocIR 중간 표현 (PageIR, ElementIR 등)
-│   │   ├── adapters/                # 모델별 Adapter (raw → DocIR)
-│   │   │   ├── base.py             # ModelAdapter Protocol
-│   │   │   ├── resolver.py          # resolve_adapter() 자동 선택
-│   │   │   ├── chandra.py           # ChandraAdapter
-│   │   │   ├── lightonocr.py        # LightOnOcrAdapter
-│   │   │   └── paddleocr_vl.py      # PaddleOcrVlAdapter
-│   │   ├── exporters/               # DocIR → 최종 출력 변환
-│   │   │   └── omnidocbench.py      # export_page(PageIR) → OmniDocBench dict
-│   │   ├── layout_types.py          # LayoutRegion, LayoutDetector Protocol
-│   │   ├── docling_layout_service.py # Docling 레이아웃 감지
-│   │   ├── pp_doclayout_service.py  # PP-DocLayoutV3 레이아웃 감지
-│   │   ├── gemini_ocr_service.py    # Gemini VLM 프로바이더
-│   │   ├── vllm_ocr_service.py      # vLLM 프로바이더 (Chandra 등)
-│   │   └── ocr_pipeline.py          # 2단계 파이프라인 오케스트레이터
-│   ├── repositories/             # 데이터 접근 (raw SQL)
-│   └── core/                     # DB 커넥션 풀, 설정
-├── migrations/                   # SQL 마이그레이션
-├── tests/                        # pytest 유닛/통합 테스트
-│   ├── api/                      # API 라우트 테스트
-│   ├── schemas/                  # Pydantic 스키마 테스트
-│   └── services/                 # 서비스 로직 테스트
-├── docs/                         # MkDocs 문서
-└── pyproject.toml                # 프로젝트 설정 (uv, ruff, ty 등)
+│   │   ├── docir.py              # DocIR intermediate representation
+│   │   ├── adapters/             # Model adapters (raw -> DocIR)
+│   │   │   ├── base.py           # ModelAdapter Protocol
+│   │   │   ├── resolver.py       # resolve_adapter() auto-selection
+│   │   │   ├── chandra.py        # ChandraAdapter
+│   │   │   ├── lightonocr.py     # LightOnOcrAdapter
+│   │   │   └── paddleocr_vl.py   # PaddleOcrVlAdapter
+│   │   ├── exporters/            # DocIR -> final output conversion
+│   │   │   └── omnidocbench.py   # export_page(PageIR) -> OmniDocBench dict
+│   │   ├── layout_types.py       # LayoutRegion, LayoutDetector Protocol
+│   │   ├── docling_layout_service.py # Docling layout detection
+│   │   ├── pp_doclayout_service.py   # PP-DocLayoutV3 layout detection
+│   │   ├── gemini_ocr_service.py     # Gemini VLM provider
+│   │   ├── vllm_ocr_service.py       # vLLM provider (Chandra, etc.)
+│   │   └── ocr_pipeline.py           # 2-stage pipeline orchestrator
+│   ├── repositories/             # Data access (raw SQL)
+│   └── core/                     # DB connection pool and settings
+├── migrations/                   # SQL migrations
+├── tests/                        # pytest unit/integration tests
+│   ├── api/                      # API route tests
+│   ├── schemas/                  # Pydantic schema tests
+│   └── services/                 # Service logic tests
+├── docs/                         # MkDocs documentation
+└── pyproject.toml                # Project settings (uv, ruff, ty, etc.)
 ```
 
-## 개발
+## Development
 
 ```bash
 cd saegim-backend
 
-# 환경 설정
+# Environment setup
 uv python install 3.14
 uv python pin 3.14
 uv sync --group dev --group docs
 
-# 서버 실행
+# Run server
 uv run uvicorn saegim.app:app --reload --host 0.0.0.0 --port 5000
 
-# 코드 퀄리티
-uv run ruff format                  # 포맷팅
-uv run ruff check --fix             # 린트
-uv run ty check                     # 타입 체크
-uv run pytest --cov                 # 테스트 + 커버리지
+# Code quality
+uv run ruff format                  # Formatting
+uv run ruff check --fix             # Lint
+uv run ty check                     # Type check
+uv run pytest --cov                 # Tests + coverage
 
-# 문서
-uv run mkdocs serve                 # 로컬 문서 서버
-uv run mkdocs build                 # 문서 빌드
+# Docs
+uv run mkdocs serve                 # Local docs server
+uv run mkdocs build                 # Docs build
 ```
 
-## 릴리스
+## Release
 
 ```bash
 sh scripts/release.sh
 ```
 
-`release.sh`는 다음을 수행한다:
+`release.sh`:
 
-1. `git-cliff`로 다음 버전을 결정
-2. `CHANGELOG.md`와 `RELEASE.md` 생성
-3. 커밋, 태그, 푸시
+1. Determines the next version with `git-cliff`
+2. Generates `CHANGELOG.md` and `RELEASE.md`
+3. Commits, tags, and pushes
 
 ---
 
-*이 프로젝트 템플릿은 [copier-modern-ml](https://github.com/appleparan/copier-modern-ml) 기반으로 생성되었습니다.*
+*This project template was generated from [copier-modern-ml](https://github.com/appleparan/copier-modern-ml).*

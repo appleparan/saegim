@@ -1,5 +1,5 @@
 /**
- * Category types, attribute enums, and Korean labels for the labeling UI.
+ * Category types, attribute enums, and display labels for the labeling UI.
  */
 
 // --- Block-level categories (18 types) ---
@@ -118,19 +118,19 @@ export const CATEGORY_ATTRIBUTES: Partial<Record<BlockCategoryType, readonly Att
     text_block: [
       {
         key: 'text_language',
-        label: '텍스트 언어',
+        label: 'Text Language',
         type: 'select',
         options: TEXT_LANGUAGES,
       },
       {
         key: 'text_background',
-        label: '배경',
+        label: 'Background',
         type: 'select',
         options: TEXT_BACKGROUNDS,
       },
       {
         key: 'text_rotate',
-        label: '회전',
+        label: 'Rotation',
         type: 'select',
         options: TEXT_ROTATIONS,
       },
@@ -138,19 +138,19 @@ export const CATEGORY_ATTRIBUTES: Partial<Record<BlockCategoryType, readonly Att
     title: [
       {
         key: 'text_language',
-        label: '텍스트 언어',
+        label: 'Text Language',
         type: 'select',
         options: TEXT_LANGUAGES,
       },
       {
         key: 'text_background',
-        label: '배경',
+        label: 'Background',
         type: 'select',
         options: TEXT_BACKGROUNDS,
       },
       {
         key: 'text_rotate',
-        label: '회전',
+        label: 'Rotation',
         type: 'select',
         options: TEXT_ROTATIONS,
       },
@@ -158,94 +158,94 @@ export const CATEGORY_ATTRIBUTES: Partial<Record<BlockCategoryType, readonly Att
     table: [
       {
         key: 'table_layout',
-        label: '테이블 방향',
+        label: 'Table Orientation',
         type: 'select',
         options: TABLE_LAYOUTS,
       },
-      { key: 'with_span', label: '병합 셀', type: 'toggle' },
-      { key: 'line', label: '선 스타일', type: 'select', options: TABLE_LINES },
+      { key: 'with_span', label: 'Merged Cells', type: 'toggle' },
+      { key: 'line', label: 'Line Style', type: 'select', options: TABLE_LINES },
       {
         key: 'language',
-        label: '테이블 언어',
+        label: 'Table Language',
         type: 'select',
         options: TABLE_LANGUAGES,
       },
-      { key: 'include_equation', label: '수식 포함', type: 'toggle' },
-      { key: 'include_background', label: '배경 포함', type: 'toggle' },
-      { key: 'table_vertical', label: '세로 회전', type: 'toggle' },
+      { key: 'include_equation', label: 'Contains Formula', type: 'toggle' },
+      { key: 'include_background', label: 'Contains Background', type: 'toggle' },
+      { key: 'table_vertical', label: 'Vertical Rotation', type: 'toggle' },
     ],
     equation_isolated: [
       {
         key: 'formula_type',
-        label: '수식 유형',
+        label: 'Formula Type',
         type: 'select',
         options: FORMULA_TYPES,
       },
       {
         key: 'equation_language',
-        label: '수식 언어',
+        label: 'Formula Language',
         type: 'select',
         options: EQUATION_LANGUAGES,
       },
     ],
   }
 
-// --- Korean labels for UI display ---
+// --- Labels for UI display ---
 
 export const CATEGORY_LABELS: Record<BlockCategoryType, string> = {
-  title: '제목',
-  text_block: '본문 텍스트',
-  figure: '그림',
-  figure_caption: '그림 설명',
-  figure_footnote: '그림 주석',
-  table: '테이블',
-  table_caption: '테이블 설명',
-  table_footnote: '테이블 주석',
-  equation_isolated: '별행 수식',
-  equation_caption: '수식 번호',
-  header: '머리글',
-  footer: '바닥글',
-  page_number: '페이지 번호',
-  page_footnote: '페이지 각주',
-  abandon: '무시 대상',
-  code_txt: '코드 블록',
-  code_txt_caption: '코드 설명',
-  reference: '참고문헌',
+  title: 'Title',
+  text_block: 'Body Text',
+  figure: 'Figure',
+  figure_caption: 'Figure Caption',
+  figure_footnote: 'Figure Footnote',
+  table: 'Table',
+  table_caption: 'Table Caption',
+  table_footnote: 'Table Footnote',
+  equation_isolated: 'Isolated Equation',
+  equation_caption: 'Equation Number',
+  header: 'Header',
+  footer: 'Footer',
+  page_number: 'Page Number',
+  page_footnote: 'Page Footnote',
+  abandon: 'Ignored Content',
+  code_txt: 'Code Block',
+  code_txt_caption: 'Code Caption',
+  reference: 'Reference',
 }
 
 export const SPAN_LABELS: Record<SpanCategoryType, string> = {
-  text_span: '텍스트 라인',
-  equation_ignore: '무시할 수식',
-  equation_inline: '인라인 수식',
-  footnote_mark: '각주 마크',
+  text_span: 'Text Line',
+  equation_ignore: 'Ignored Equation',
+  equation_inline: 'Inline Equation',
+  footnote_mark: 'Footnote Mark',
 }
 
-/** Korean labels for page-level attribute values */
+/** Labels for page-level attribute values */
 export const DATA_SOURCE_LABELS: Record<DataSource, string> = {
-  academic_literature: '학술 논문',
+  academic_literature: 'Academic Literature',
   PPT2PDF: 'PPT → PDF',
-  book: '도서',
-  colorful_textbook: '컬러 교과서',
-  exam_paper: '시험지',
-  note: '노트',
-  magazine: '잡지',
-  research_report: '연구 보고서',
-  newspaper: '신문',
-  government_doc: '공문서',
-  financial_report_kr: '재무보고서',
+  book: 'Book',
+  colorful_textbook: 'Colorful Textbook',
+  exam_paper: 'Exam Paper',
+  note: 'Note',
+  magazine: 'Magazine',
+  research_report: 'Research Report',
+  newspaper: 'Newspaper',
+  government_doc: 'Government Document',
+  financial_report_kr: 'Financial Report',
 }
 
 export const PAGE_LANGUAGE_LABELS: Record<PageLanguage, string> = {
-  ko: '한국어',
-  en: '영어',
-  ko_en_mixed: '한영 혼합',
-  ko_ch_mixed: '한중 혼합',
+  ko: 'Korean',
+  en: 'English',
+  ko_en_mixed: 'Korean-English Mixed',
+  ko_ch_mixed: 'Korean-Chinese Mixed',
 }
 
 export const PAGE_LAYOUT_LABELS: Record<PageLayout, string> = {
-  single_column: '단일 열',
-  double_column: '이중 열',
-  three_column: '삼중 열',
-  '1andmore_column': '복합 열',
-  other_layout: '기타',
+  single_column: 'Single Column',
+  double_column: 'Double Column',
+  three_column: 'Three Columns',
+  '1andmore_column': 'Mixed Columns',
+  other_layout: 'Other',
 }

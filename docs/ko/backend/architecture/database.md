@@ -313,7 +313,7 @@ Export 시 이 컬럼을 모아서 배열로 만들면 바로 최종 JSON이 된
 }
 ```
 
-타입 정의: [saegim-frontend/src/lib/types/omnidocbench.ts](../../saegim-frontend/src/lib/types/omnidocbench.ts)
+타입 정의: [saegim-frontend/src/lib/types/omnidocbench.ts](https://github.com/appleparan/saegim/blob/main/saegim-frontend/src/lib/types/omnidocbench.ts)
 
 스키마 상세: [데이터 스키마](../../architecture/data-schema.md)
 

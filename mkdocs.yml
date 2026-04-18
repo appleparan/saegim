@@ -198,9 +198,13 @@ markdown_extensions:
 nav:
   - Home: ko/README.md
   - Architecture:
+    - 개요: ko/architecture/README.md
     - 데이터 스키마: ko/architecture/data-schema.md
     - 추출 파이프라인: ko/architecture/extraction-pipeline.md
+    - DocIR 아키텍처: ko/architecture/docir-architecture.md
     - 레이블링 워크플로우: ko/architecture/labeling-workflow.md
+    - 멀티유저 협업: ko/architecture/multi-user-collaboration.md
+    - 데이터 큐레이션: ko/architecture/data-curation.md
   - Backend:
     - Guide:
       - 시작하기: ko/backend/guide/getting-started.md
@@ -243,5 +247,21 @@ plugins:
             Deployment: Deployment
             Guide: Guide
             Dev: Dev
+            개요: Overview
+            데이터 스키마: Data Schema
+            추출 파이프라인: Extraction Pipeline
+            DocIR 아키텍처: DocIR Architecture
+            레이블링 워크플로우: Labeling Workflow
+            멀티유저 협업: Multi-User Collaboration
+            데이터 큐레이션: Data Curation
+            시작하기: Getting Started
+            API 엔드포인트: API Endpoints
+            아키텍처: Architecture
+            데이터베이스: Database
+            개발 가이드: Development Guide
+            컴포넌트: Components
+            단축키: Shortcuts
+            스토어: Stores
+            API 클라이언트: API Client
+            빠른 시작: Quickstart
   - section-index
-

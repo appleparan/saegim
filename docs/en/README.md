@@ -1,7 +1,5 @@
 # saegim
 
-> [한국어](../ko/README.md) | **English**
-
 Human-in-the-Loop Labeling Platform for Korean Document VLM Benchmarks.
 
 Upload PDF documents to automatically convert them into per-page images,
@@ -187,5 +185,5 @@ bun run docker:gpu:up && bun run test:gpu  # GPU tests
 | [API Guide](backend/guide/api.md) | REST API endpoints (including Auth, Admin) |
 | [Multi-User Collaboration](architecture/multi-user-collaboration.md) | Authentication, roles, task workflow |
 | [Backend Getting Started](backend/guide/getting-started.md) | Development environment setup |
-| [E2E Testing](../e2e/README.md) | E2E testing guide |
-| [Planning Guide](../AGENTS.md) | Project vision, roadmap |
+| [E2E Testing](https://github.com/appleparan/saegim/blob/main/e2e/README.md) | E2E testing guide |
+| [Planning Guide](https://github.com/appleparan/saegim/blob/main/AGENTS.md) | Project vision, roadmap |

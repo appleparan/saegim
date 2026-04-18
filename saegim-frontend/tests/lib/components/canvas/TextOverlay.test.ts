@@ -35,7 +35,7 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 0,
           anno_id: 0,
-          text: '안녕하세요 테스트',
+          text: 'Hello test',
         },
         {
           category_type: 'title',
@@ -43,7 +43,7 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 1,
           anno_id: 1,
-          text: '제목입니다',
+          text: 'This is a title',
         },
       ]),
     )
@@ -51,8 +51,8 @@ describe('TextOverlay', () => {
     render(TextOverlay, { props: { pointerEvents: 'auto' } })
 
     // Both text blocks should be rendered
-    expect(screen.getByText('안녕하세요 테스트')).toBeTruthy()
-    expect(screen.getByText('제목입니다')).toBeTruthy()
+    expect(screen.getByText('Hello test')).toBeTruthy()
+    expect(screen.getByText('This is a title')).toBeTruthy()
   })
 
   it('excludes image-block categories (figure, table, equation_isolated)', () => {
@@ -65,7 +65,7 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 0,
           anno_id: 0,
-          text: '표시될 텍스트',
+          text: 'Visible text',
         },
         {
           category_type: 'figure',
@@ -73,7 +73,7 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 1,
           anno_id: 1,
-          text: '숨겨질 그림',
+          text: 'Hidden figure',
         },
         {
           category_type: 'table',
@@ -81,16 +81,16 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 2,
           anno_id: 2,
-          text: '숨겨질 테이블',
+          text: 'Hidden table',
         },
       ]),
     )
 
     render(TextOverlay, { props: { pointerEvents: 'auto' } })
 
-    expect(screen.getByText('표시될 텍스트')).toBeTruthy()
-    expect(screen.queryByText('숨겨질 그림')).toBeNull()
-    expect(screen.queryByText('숨겨질 테이블')).toBeNull()
+    expect(screen.getByText('Visible text')).toBeTruthy()
+    expect(screen.queryByText('Hidden figure')).toBeNull()
+    expect(screen.queryByText('Hidden table')).toBeNull()
   })
 
   it('renders empty string when text is undefined', () => {
@@ -125,7 +125,7 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 0,
           anno_id: 0,
-          text: '텍스트',
+          text: 'Text',
         },
       ]),
     )
@@ -149,14 +149,14 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 0,
           anno_id: 0,
-          text: '위치 테스트',
+          text: 'Position test',
         },
       ]),
     )
 
     render(TextOverlay, { props: { pointerEvents: 'auto' } })
 
-    const textDiv = screen.getByText('위치 테스트')
+    const textDiv = screen.getByText('Position test')
     const style = textDiv.style
     expect(style.left).toBe('100px')
     expect(style.top).toBe('200px')
@@ -228,7 +228,7 @@ describe('TextOverlay', () => {
           ignore: false,
           order: 0,
           anno_id: 0,
-          text: '줌 테스트',
+          text: 'Zoom test',
         },
       ]),
     )

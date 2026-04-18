@@ -7,10 +7,10 @@
   import RelationPanel from '$lib/components/panels/RelationPanel.svelte'
 
   const tabs: { key: PanelTab; label: string }[] = [
-    { key: 'elements', label: '요소' },
-    { key: 'attributes', label: '속성' },
-    { key: 'text', label: '텍스트' },
-    { key: 'relations', label: '관계' },
+    { key: 'elements', label: 'Element' },
+    { key: 'attributes', label: 'Attributes' },
+    { key: 'text', label: 'Text' },
+    { key: 'relations', label: 'Relations' },
   ]
 </script>
 

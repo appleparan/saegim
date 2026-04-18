@@ -37,7 +37,7 @@ describe('ProjectMembersPanel', () => {
       props: { members: [], currentUserId: 'user-1' },
     })
 
-    expect(screen.getByText('멤버가 없습니다.')).toBeTruthy()
+    expect(screen.getByText('No members.')).toBeTruthy()
   })
 
   it('renders member list with names and emails', () => {
@@ -63,12 +63,12 @@ describe('ProjectMembersPanel', () => {
     expect(screen.getByText('Reviewer')).toBeTruthy()
   })
 
-  it('shows "(나)" label for current user', () => {
+  it('shows "(You)" label for current user', () => {
     render(ProjectMembersPanel, {
       props: { members: sampleMembers, currentUserId: 'user-1' },
     })
 
-    expect(screen.getByText('(나)')).toBeTruthy()
+    expect(screen.getByText('(You)')).toBeTruthy()
   })
 
   it('shows header with title', () => {
@@ -76,7 +76,7 @@ describe('ProjectMembersPanel', () => {
       props: { members: [], currentUserId: 'user-1' },
     })
 
-    expect(screen.getByText('멤버 관리')).toBeTruthy()
+    expect(screen.getByText('Member Management')).toBeTruthy()
   })
 
   it('shows add member button when owner or admin', () => {
@@ -84,7 +84,7 @@ describe('ProjectMembersPanel', () => {
       props: { members: sampleMembers, currentUserId: 'user-1', isOwnerOrAdmin: true },
     })
 
-    expect(screen.getByText('멤버 추가')).toBeTruthy()
+    expect(screen.getByText('Add Member')).toBeTruthy()
   })
 
   it('hides add member button when not owner or admin', () => {
@@ -92,7 +92,7 @@ describe('ProjectMembersPanel', () => {
       props: { members: sampleMembers, currentUserId: 'user-2', isOwnerOrAdmin: false },
     })
 
-    expect(screen.queryByText('멤버 추가')).toBeNull()
+    expect(screen.queryByText('Add Member')).toBeNull()
   })
 
   it('shows remove button for non-owner members when owner', () => {
@@ -101,7 +101,7 @@ describe('ProjectMembersPanel', () => {
     })
 
     // Should show remove buttons for non-owner, non-self members
-    const removeButtons = screen.getAllByText('제거')
+    const removeButtons = screen.getAllByText('Remove')
     expect(removeButtons.length).toBe(2) // Bob and Charlie
   })
 
@@ -112,7 +112,7 @@ describe('ProjectMembersPanel', () => {
 
     // Owner (Alice) should not have a remove button
     // Bob, Charlie should have remove buttons
-    const removeButtons = screen.getAllByText('제거')
+    const removeButtons = screen.getAllByText('Remove')
     expect(removeButtons.length).toBe(2)
   })
 })

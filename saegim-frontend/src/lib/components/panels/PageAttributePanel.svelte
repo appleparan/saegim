@@ -17,10 +17,10 @@
 
 {#if attr}
   <div class="space-y-4 p-3">
-    <h3 class="text-foreground text-sm font-semibold">페이지 속성</h3>
+    <h3 class="text-foreground text-sm font-semibold">Page Attributes</h3>
 
     <Select
-      label="데이터 출처"
+      label="Data Source"
       value={attr.data_source ?? ''}
       options={DATA_SOURCES}
       labels={DATA_SOURCE_LABELS}
@@ -28,7 +28,7 @@
     />
 
     <Select
-      label="언어"
+      label="Language"
       value={attr.language ?? ''}
       options={PAGE_LANGUAGES}
       labels={PAGE_LANGUAGE_LABELS}
@@ -36,7 +36,7 @@
     />
 
     <Select
-      label="레이아웃"
+      label="Layout"
       value={attr.layout ?? ''}
       options={PAGE_LAYOUTS}
       labels={PAGE_LAYOUT_LABELS}
@@ -44,7 +44,7 @@
     />
 
     <div class="border-border space-y-3 border-t pt-3">
-      <h4 class="text-muted-foreground text-xs font-medium uppercase">특수 속성</h4>
+      <h4 class="text-muted-foreground text-xs font-medium uppercase">Special Attributes</h4>
       <div class="flex items-center gap-2">
         <Switch
           checked={attr.watermark ?? false}
@@ -53,7 +53,7 @@
               watermark: !(attr?.watermark ?? false),
             })}
         />
-        <Label class="text-sm">워터마크</Label>
+        <Label class="text-sm">Watermark</Label>
       </div>
       <div class="flex items-center gap-2">
         <Switch
@@ -63,7 +63,7 @@
               fuzzy_scan: !(attr?.fuzzy_scan ?? false),
             })}
         />
-        <Label class="text-sm">흐린 스캔</Label>
+        <Label class="text-sm">Blurry Scan</Label>
       </div>
       <div class="flex items-center gap-2">
         <Switch
@@ -73,12 +73,12 @@
               colorful_background: !(attr?.colorful_background ?? false),
             })}
         />
-        <Label class="text-sm">컬러 배경</Label>
+        <Label class="text-sm">Color Background</Label>
       </div>
     </div>
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-muted-foreground py-8 text-sm">페이지 데이터를 불러오는 중...</p>
+    <p class="text-muted-foreground py-8 text-sm">Loading page data...</p>
   </div>
 {/if}

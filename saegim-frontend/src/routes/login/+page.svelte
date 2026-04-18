@@ -33,9 +33,9 @@
       await goto('/')
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        error = 'ID 또는 비밀번호가 올바르지 않습니다.'
+        error = 'Invalid ID or password.'
       } else {
-        error = '로그인 중 오류가 발생했습니다. 다시 시도해 주세요.'
+        error = 'An error occurred while signing in. Please try again.'
       }
     } finally {
       isSubmitting = false
@@ -50,7 +50,7 @@
     <Card.Root class="w-full max-w-sm">
       <Card.Header class="text-center">
         <Card.Title class="text-2xl font-bold">saegim</Card.Title>
-        <Card.Description>계정에 로그인하세요</Card.Description>
+        <Card.Description>Sign in to your account</Card.Description>
       </Card.Header>
       <Card.Content>
         <form onsubmit={handleSubmit} class="space-y-4">
@@ -75,7 +75,7 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="password">비밀번호</Label>
+            <Label for="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -86,14 +86,14 @@
           </div>
 
           <Button type="submit" class="w-full" disabled={isSubmitting}>
-            {isSubmitting ? '로그인 중...' : '로그인'}
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
       </Card.Content>
       <Card.Footer class="justify-center">
         <p class="text-muted-foreground text-sm">
-          계정이 없으신가요?
-          <a href="/register" class="text-primary font-medium hover:underline">회원가입</a>
+          No account yet?
+          <a href="/register" class="text-primary font-medium hover:underline">Sign up</a>
         </p>
       </Card.Footer>
     </Card.Root>

@@ -1,131 +1,133 @@
 # E2E Tests
 
-> [English](README.en.md) | **한국어**
+> [Korean](README.ko.md) | **English**
 
-Vitest 기반 end-to-end 테스트. Docker Compose로 전체 스택(postgres, backend, frontend)을 띄우고 API를 검증한다.
+End-to-end tests based on Vitest. Spins up the full stack (postgres, backend, frontend) via Docker Compose
+and verifies the API.
 
-## 사전 준비
+## Prerequisites
 
 ```bash
 cd e2e
 bun install
 ```
 
-## 기본 테스트 (GPU 불필요)
+## Basic Tests (No GPU Required)
 
-기본 프로파일은 postgres + backend + frontend만 실행한다. pdfminer.six 폴백으로 OCR 추출하므로 GPU가 필요 없다.
+The default profile runs only postgres + backend + frontend. It uses pdfminer.six fallback for OCR
+extraction, so no GPU is needed.
 
 ```bash
-# 1. 서비스 시작
+# 1. Start services
 bun run docker:up
 
-# 2. 테스트 실행
+# 2. Run tests
 bun run test
 
-# 3. 개별 테스트 실행
+# 3. Run individual tests
 bun run test:health        # health check
-bun run test:extraction    # pdfminer 추출 → 수락 워크플로우
-bun run test:ocr-config    # OCR 엔진 설정 API
-bun run test:attribute     # 속성 분류기
-bun run test:reading-order # 읽기 순서 CRUD
-bun run test:relations     # 관계 CRUD
-bun run test:re-extract    # 문서 재추출 + 강제 수락
-bun run test:benchmark     # API 벤치마크
-bun run test:browser:mcp   # chrome-devtools MCP 브라우저 E2E (로그인/ID 중복체크)
+bun run test:extraction    # pdfminer extraction -> accept workflow
+bun run test:ocr-config    # OCR engine configuration API
+bun run test:attribute     # attribute classifier
+bun run test:reading-order # reading order CRUD
+bun run test:relations     # relations CRUD
+bun run test:re-extract    # document re-extraction + force accept
+bun run test:benchmark     # API benchmark
+bun run test:browser:mcp   # chrome-devtools MCP browser E2E (login/ID duplication check)
 
-# 4. 정리
+# 4. Cleanup
 bun run docker:down
 ```
 
-## GPU 테스트 (vLLM + Chandra)
+## GPU Tests (vLLM + Chandra)
 
-`gpu` 프로파일은 기본 서비스에 vLLM 서버를 추가한다. vLLM은 `prithivMLmods/chandra-FP8-Latest` 모델을 로드하며,
-**24GB+ VRAM GPU**가 필요하다.
+The `gpu` profile adds a vLLM server on top of the default services. vLLM loads the
+`prithivMLmods/chandra-FP8-Latest` model and requires a **24GB+ VRAM GPU**.
 
-### 요구사항
+### Requirements
 
 - NVIDIA GPU (24GB+ VRAM, e.g. RTX 4090, A5000, A6000)
 - NVIDIA Container Toolkit (`nvidia-docker2`)
-- 첫 실행 시 모델 다운로드 (~18GB)
+- First run downloads the model (~18GB)
 
-### 실행
+### Running
 
 ```bash
-# 1. GPU 프로파일로 서비스 시작
+# 1. Start services with GPU profile
 bun run docker:gpu:up
 
-# 2. vLLM 모델 로딩 대기 (첫 실행 시 다운로드 포함 10-30분)
-#    로그로 진행 상황 확인:
+# 2. Wait for vLLM model loading (10-30 min on first run including download)
+#    Check progress via logs:
 docker compose -f docker-compose.e2e.yml --profile gpu logs -f vllm
 
-# 3. GPU 테스트 실행
+# 3. Run GPU tests
 bun run test:gpu
 
-# 4. 정리
+# 4. Cleanup
 bun run docker:gpu:down
 ```
 
-### HuggingFace 캐시
+### HuggingFace Cache
 
-모델 다운로드를 영속화하려면 `HF_CACHE_DIR` 환경변수를 설정한다:
+To persist model downloads, set the `HF_CACHE_DIR` environment variable:
 
 ```bash
-# 기본값: ~/.cache/huggingface
+# Default: ~/.cache/huggingface
 export HF_CACHE_DIR=/data/models/huggingface
 bun run docker:gpu:up
 ```
 
-## 테스트 구조
+## Test Structure
 
 ```text
 e2e/
-├── docker-compose.e2e.yml    # Docker Compose (기본 + gpu 프로파일)
-├── vitest.config.ts          # Vitest 설정 (기본 테스트)
-├── vitest.gpu.config.ts      # Vitest 설정 (GPU 테스트)
+├── docker-compose.e2e.yml    # Docker Compose (default + gpu profiles)
+├── vitest.config.ts          # Vitest config (basic tests)
+├── vitest.gpu.config.ts      # Vitest config (GPU tests)
 ├── package.json
 ├── helpers/
-│   ├── api.ts                # API 헬퍼 (CRUD, OCR config, vLLM health)
-│   ├── pdf.ts                # 테스트 PDF 다운로드 (attention.pdf)
-│   └── timer.ts              # 벤치마크 타이머
+│   ├── api.ts                # API helpers (CRUD, OCR config, vLLM health)
+│   ├── pdf.ts                # Test PDF download (attention.pdf)
+│   └── timer.ts              # Benchmark timer
 ├── tests/
-│   ├── health.test.ts              # 서비스 health check
-│   ├── extraction.test.ts          # pdfminer 추출 → 수락 워크플로우
-│   ├── ocr-config.test.ts          # OCR 엔진 설정 API (다중 인스턴스 CRUD + validation)
-│   ├── attribute-classifier.test.ts  # 속성 분류기
-│   ├── reading-order.test.ts       # 읽기 순서 CRUD + 유효성 검증
-│   ├── relations.test.ts           # 관계 CRUD + 충돌 검증
-│   ├── re-extract.test.ts          # 문서 재추출 + 강제 수락
-│   ├── benchmark.test.ts           # API 응답시간 벤치마크
+│   ├── health.test.ts              # Service health check
+│   ├── extraction.test.ts          # pdfminer extraction -> accept workflow
+│   ├── ocr-config.test.ts          # OCR engine config API (multi-instance CRUD + validation)
+│   ├── attribute-classifier.test.ts  # Attribute classifier
+│   ├── reading-order.test.ts       # Reading order CRUD + validation
+│   ├── relations.test.ts           # Relations CRUD + conflict validation
+│   ├── re-extract.test.ts          # Document re-extraction + force accept
+│   ├── benchmark.test.ts           # API response time benchmark
 │   └── gpu/
-│       ├── vllm-extraction.test.ts       # vLLM chandra 추출 (GPU 전용)
-│       └── hybrid-labeling-gpu.test.ts   # 하이브리드 레이블링 (GPU 전용)
+│       ├── vllm-extraction.test.ts       # vLLM chandra extraction (GPU only)
+│       └── hybrid-labeling-gpu.test.ts   # Hybrid labeling (GPU only)
 └── fixtures/
-    └── attention.pdf         # 테스트 PDF (자동 다운로드)
+    └── attention.pdf         # Test PDF (auto-downloaded)
 ```
 
-## Docker Compose 서비스
+## Docker Compose Services
 
-| 서비스 | 프로파일 | 포트 | 설명 |
-| -------- | -------- | ----- | -------------------------------------------- |
-| postgres | 기본 | 25432 | PostgreSQL 18 |
-| backend | 기본 | 25000 | FastAPI 서버 |
-| frontend | 기본 | 23000 | SvelteKit (Nginx) |
+| Service | Profile | Port | Description |
+| -------- | -------- | ----- | ---- |
+| postgres | default | 25432 | PostgreSQL 18 |
+| backend | default | 25000 | FastAPI server |
+| frontend | default | 23000 | SvelteKit (Nginx) |
 | vllm | gpu | 28000 | vLLM OpenAI API (prithivMLmods/chandra-FP8-Latest) |
 
-## 환경변수
+## Environment Variables
 
-| 변수 | 기본값 | 설명 |
-| ----------------- | ----------------------- | ----------------------------- |
-| `E2E_BACKEND_URL` | `http://localhost:25000` | 백엔드 API URL |
-| `E2E_FRONTEND_URL` | `http://localhost:23000` | 프론트엔드 URL |
+| Variable | Default | Description |
+| ---- | ---- | ---- |
+| `E2E_BACKEND_URL` | `http://localhost:25000` | Backend API URL |
+| `E2E_FRONTEND_URL` | `http://localhost:23000` | Frontend URL |
 | `E2E_VLLM_URL` | `http://localhost:28000` | vLLM API URL |
-| `HF_CACHE_DIR` | `~/.cache/huggingface` | HuggingFace 모델 캐시 경로 |
+| `HF_CACHE_DIR` | `~/.cache/huggingface` | HuggingFace model cache path |
 
-## Vitest 설정
+## Vitest Configuration
 
-| 설정 파일 | 매칭 패턴 | Timeout | 설명 |
-| -------------------- | -------------------- | ------- | -------------------- |
-| `vitest.config.ts` | `tests/**/*.test.ts` (gpu/ 제외) | 2분 | 기본 테스트 |
-| `vitest.gpu.config.ts` | `tests/gpu/**/*.test.ts` | 10분 | GPU 전용 (vLLM 추출) |
+| Config File | Match Pattern | Timeout | Description |
+| ---- | ---- | ---- | ---- |
+| `vitest.config.ts` | `tests/**/*.test.ts` (excluding gpu/) | 2 min | Basic tests |
+| `vitest.gpu.config.ts` | `tests/gpu/**/*.test.ts` | 10 min | GPU only (vLLM extraction) |
 
-`bun run test`는 기본 설정으로 실행하고, `bun run test:gpu`는 GPU 설정으로 실행한다.
+`bun run test` runs with the default config, and `bun run test:gpu` runs with the GPU config.

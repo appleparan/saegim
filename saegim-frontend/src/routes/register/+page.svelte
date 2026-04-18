@@ -18,10 +18,10 @@
   let isSubmitting = $state(false)
   let loginIdStatus = $state<'idle' | 'invalid' | 'checking' | 'available' | 'taken'>('idle')
   let loginIdHint = $derived.by(() => {
-    if (loginIdStatus === 'invalid') return 'ID는 3자 이상이어야 합니다.'
-    if (loginIdStatus === 'checking') return 'ID 중복 확인 중입니다...'
-    if (loginIdStatus === 'available') return '사용 가능한 ID입니다.'
-    if (loginIdStatus === 'taken') return '이미 사용 중인 ID입니다.'
+    if (loginIdStatus === 'invalid') return 'ID must be at least 3 characters.'
+    if (loginIdStatus === 'checking') return 'Checking ID availability...'
+    if (loginIdStatus === 'available') return 'ID is available.'
+    if (loginIdStatus === 'taken') return 'ID is already in use.'
     return null
   })
 
@@ -67,17 +67,17 @@
     if (!trimmedLoginId || !password || !trimmedName || !trimmedEmail) return
 
     if (password !== passwordConfirm) {
-      error = '비밀번호가 일치하지 않습니다.'
+      error = 'Passwords do not match.'
       return
     }
 
     if (password.length < 8) {
-      error = '비밀번호는 최소 8자 이상이어야 합니다.'
+      error = 'Password must be at least 8 characters.'
       return
     }
 
     if (trimmedLoginId.length < 3) {
-      error = 'ID는 3자 이상이어야 합니다.'
+      error = 'ID must be at least 3 characters.'
       return
     }
 
@@ -91,7 +91,7 @@
         loginIdStatus = isAvailable ? 'available' : 'taken'
       }
       if (!isAvailable) {
-        error = '이미 사용 중인 ID입니다.'
+        error = 'ID is already in use.'
         return
       }
 
@@ -105,9 +105,9 @@
       await goto('/')
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        error = '이미 사용 중인 ID 또는 이메일입니다.'
+        error = 'ID or email is already in use.'
       } else {
-        error = '회원가입 중 오류가 발생했습니다. 다시 시도해 주세요.'
+        error = 'An error occurred while signing up. Please try again.'
       }
     } finally {
       isSubmitting = false
@@ -122,7 +122,7 @@
     <Card.Root class="w-full max-w-sm">
       <Card.Header class="text-center">
         <Card.Title class="text-2xl font-bold">saegim</Card.Title>
-        <Card.Description>새 계정을 만드세요</Card.Description>
+        <Card.Description>Create a new account</Card.Description>
       </Card.Header>
       <Card.Content>
         <form onsubmit={handleSubmit} class="space-y-4">
@@ -139,7 +139,7 @@
             <Input
               id="login-id"
               type="text"
-              placeholder="사용할 ID"
+              placeholder="Choose an ID"
               bind:value={loginId}
               required
               autocomplete="username"
@@ -158,11 +158,11 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="password">비밀번호</Label>
+            <Label for="password">Password</Label>
             <Input
               id="password"
               type="password"
-              placeholder="최소 8자"
+              placeholder="At least 8 characters"
               bind:value={password}
               required
               minlength={8}
@@ -171,7 +171,7 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="password-confirm">비밀번호 확인</Label>
+            <Label for="password-confirm">Confirm Password</Label>
             <Input
               id="password-confirm"
               type="password"
@@ -183,11 +183,11 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="name">이름</Label>
+            <Label for="name">Name</Label>
             <Input
               id="name"
               type="text"
-              placeholder="홍길동"
+              placeholder="Jane Doe"
               bind:value={name}
               required
               autocomplete="name"
@@ -195,7 +195,7 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="email">이메일</Label>
+            <Label for="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -207,14 +207,14 @@
           </div>
 
           <Button type="submit" class="w-full" disabled={isSubmitting}>
-            {isSubmitting ? '가입 중...' : '회원가입'}
+            {isSubmitting ? 'Signing up...' : 'Sign up'}
           </Button>
         </form>
       </Card.Content>
       <Card.Footer class="justify-center">
         <p class="text-muted-foreground text-sm">
-          이미 계정이 있으신가요?
-          <a href="/login" class="text-primary font-medium hover:underline">로그인</a>
+          Already have an account?
+          <a href="/login" class="text-primary font-medium hover:underline">Sign in</a>
         </p>
       </Card.Footer>
     </Card.Root>

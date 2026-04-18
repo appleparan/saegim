@@ -145,7 +145,7 @@ describe('reviewPage', () => {
     }
     mockFetch.mockResolvedValueOnce(jsonResponse(200, pageResponse))
 
-    const result = await reviewPage('p1', { action: 'rejected', comment: '수정 필요' })
+    const result = await reviewPage('p1', { action: 'rejected', comment: 'Needs revision' })
 
     expect(result.status).toBe('in_progress')
   })

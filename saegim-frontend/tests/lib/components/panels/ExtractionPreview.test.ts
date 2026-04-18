@@ -59,7 +59,7 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.getByText('OCR 추출 진행 중...')).toBeTruthy()
+    expect(screen.getByText('OCR extraction in progress...')).toBeTruthy()
   })
 
   it('shows auto-extracted data summary when data is available', () => {
@@ -75,9 +75,9 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.getByText('자동 추출 결과가 있습니다')).toBeTruthy()
+    expect(screen.getByText('Automatic extraction results available')).toBeTruthy()
     // 4 total elements: 2 text, 2 figure
-    expect(screen.getByText(/총 4개 요소/)).toBeTruthy()
+    expect(screen.getByText(/Text 2, images 2 - total 4 elements/)).toBeTruthy()
   })
 
   it('shows accept and dismiss buttons when data is available', () => {
@@ -93,8 +93,8 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.getByText('수락')).toBeTruthy()
-    expect(screen.getByText('무시')).toBeTruthy()
+    expect(screen.getByText('Accept')).toBeTruthy()
+    expect(screen.getByText('Ignore')).toBeTruthy()
   })
 
   it('hides after dismiss is clicked', async () => {
@@ -110,12 +110,12 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.getByText('수락')).toBeTruthy()
+    expect(screen.getByText('Accept')).toBeTruthy()
 
-    const dismissBtn = screen.getByText('무시')
+    const dismissBtn = screen.getByText('Ignore')
     await fireEvent.click(dismissBtn)
 
-    expect(screen.queryByText('수락')).toBeNull()
+    expect(screen.queryByText('Accept')).toBeNull()
   })
 
   it('shows no-data hint when auto_extracted_data is null and documentStatus is ready', () => {
@@ -130,8 +130,8 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.getByText('자동 추출 결과가 없습니다.')).toBeTruthy()
-    expect(screen.getByText(/OCR 설정/)).toBeTruthy()
+    expect(screen.getByText('No automatic extraction results.')).toBeTruthy()
+    expect(screen.getByText(/OCR Settings/)).toBeTruthy()
   })
 
   it('does not show no-data hint when documentStatus is undefined (still loading)', () => {
@@ -145,7 +145,7 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.queryByText('자동 추출 결과가 없습니다.')).toBeNull()
+    expect(screen.queryByText('No automatic extraction results.')).toBeNull()
   })
 
   it('does not show data summary when annotations already exist', () => {
@@ -164,7 +164,7 @@ describe('ExtractionPreview', () => {
     })
 
     // Since annotationStore has elements, ExtractionPreview should not show
-    expect(screen.queryByText('자동 추출 결과가 있습니다')).toBeNull()
+    expect(screen.queryByText('Automatic extraction results available')).toBeNull()
   })
 
   it('does not show no-data hint when annotations already exist', () => {
@@ -181,6 +181,6 @@ describe('ExtractionPreview', () => {
       },
     })
 
-    expect(screen.queryByText('자동 추출 결과가 없습니다.')).toBeNull()
+    expect(screen.queryByText('No automatic extraction results.')).toBeNull()
   })
 })

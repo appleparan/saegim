@@ -30,21 +30,21 @@
   <div class="space-y-4 p-3">
     <div class="flex items-center justify-between">
       <h3 class="text-foreground text-sm font-semibold">
-        요소 #{element.anno_id}
+        Element #{element.anno_id}
       </h3>
-      <span class="text-muted-foreground text-xs">순서: {element.order}</span>
+      <span class="text-muted-foreground text-xs">Order: {element.order}</span>
     </div>
 
     <CategorySelect value={element.category_type} onchange={handleCategoryChange} />
 
     <div class="flex items-center gap-2">
       <Switch checked={element.ignore} onCheckedChange={handleToggleIgnore} />
-      <Label class="text-sm">무시 처리</Label>
+      <Label class="text-sm">Ignore</Label>
     </div>
 
     {#if fields.length > 0}
       <div class="border-border space-y-3 border-t pt-3">
-        <h4 class="text-muted-foreground text-xs font-medium uppercase">속성</h4>
+        <h4 class="text-muted-foreground text-xs font-medium uppercase">Attributes</h4>
         {#each fields as field (field.key)}
           {#if field.type === 'select' && field.options}
             <Select
@@ -69,6 +69,6 @@
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-muted-foreground py-8 text-sm">요소를 선택하세요.</p>
+    <p class="text-muted-foreground py-8 text-sm">Select an element.</p>
   </div>
 {/if}

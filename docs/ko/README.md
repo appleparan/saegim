@@ -1,7 +1,5 @@
 # saegim (새김)
 
-> [English](../en/README.md) | **한국어**
-
 한국어 문서 VLM 벤치마크를 위한 Human-in-the-Loop 레이블링 플랫폼.
 
 PDF 문서를 업로드하면 페이지별 이미지로 변환하고,
@@ -186,5 +184,5 @@ bun run docker:gpu:up && bun run test:gpu  # GPU 테스트
 | [API 가이드](backend/guide/api.md) | REST API 엔드포인트 (Auth, Admin 포함) |
 | [멀티유저 협업](architecture/multi-user-collaboration.md) | 인증, 역할, 태스크 워크플로우 |
 | [백엔드 시작하기](backend/guide/getting-started.md) | 개발 환경 설정 |
-| [E2E 테스트](../e2e/README.md) | E2E 테스트 가이드 |
-| [플래닝 가이드](../AGENTS.md) | 프로젝트 비전, 로드맵 |
+| [E2E 테스트](https://github.com/appleparan/saegim/blob/main/e2e/README.ko.md) | E2E 테스트 가이드 |
+| [플래닝 가이드](https://github.com/appleparan/saegim/blob/main/AGENTS.md) | 프로젝트 비전, 로드맵 |

@@ -18,7 +18,7 @@ function makePages(count: number): PageSummary[] {
 }
 
 async function expandNavigator(container: HTMLElement) {
-  const toggleBtn = container.querySelector('button[title*="페이지 목록"]') as HTMLButtonElement
+  const toggleBtn = container.querySelector('button[title*="Page List"]') as HTMLButtonElement
   if (toggleBtn) {
     await fireEvent.click(toggleBtn)
   }
@@ -128,7 +128,7 @@ describe('PageNavigator', () => {
       props: { pages, currentPageId: 'page-2' },
     })
 
-    const prevButton = container.querySelector('button[title*="이전"]') as HTMLButtonElement
+    const prevButton = container.querySelector('button[title*="Previous"]') as HTMLButtonElement
     expect(prevButton).toBeTruthy()
     expect(prevButton.disabled).toBe(false)
 
@@ -142,7 +142,7 @@ describe('PageNavigator', () => {
       props: { pages, currentPageId: 'page-2' },
     })
 
-    const nextButton = container.querySelector('button[title*="다음"]') as HTMLButtonElement
+    const nextButton = container.querySelector('button[title*="Next"]') as HTMLButtonElement
     expect(nextButton).toBeTruthy()
     expect(nextButton.disabled).toBe(false)
 

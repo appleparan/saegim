@@ -39,9 +39,9 @@
       queue = items
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다.'
+        error = 'Cannot connect to the backend server.'
       } else {
-        error = '데이터를 불러오는 데 실패했습니다.'
+        error = 'Failed to load data.'
       }
     } finally {
       isLoading = false
@@ -53,13 +53,13 @@
     try {
       await reviewPage(pageId, { action: 'approved' })
       queue = queue.filter((item) => item.page_id !== pageId)
-      uiStore.showNotification('승인 완료', 'success')
+      uiStore.showNotification('Approve Complete', 'success')
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        uiStore.showNotification('이미 처리된 항목입니다', 'info')
+        uiStore.showNotification('This item has already been processed', 'info')
         queue = queue.filter((item) => item.page_id !== pageId)
       } else {
-        uiStore.showNotification('승인에 실패했습니다', 'error')
+        uiStore.showNotification('Failed to approve', 'error')
       }
     } finally {
       processingId = null
@@ -86,13 +86,13 @@
       queue = queue.filter((item) => item.page_id !== pageId)
       activeRejectId = null
       rejectComment = ''
-      uiStore.showNotification('반려 완료', 'success')
+      uiStore.showNotification('Reject Complete', 'success')
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        uiStore.showNotification('이미 처리된 항목입니다', 'info')
+        uiStore.showNotification('This item has already been processed', 'info')
         queue = queue.filter((item) => item.page_id !== pageId)
       } else {
-        uiStore.showNotification('반려에 실패했습니다', 'error')
+        uiStore.showNotification('Failed to reject', 'error')
       }
     } finally {
       processingId = null
@@ -124,18 +124,18 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          {project?.name ?? '프로젝트'}
+          {project?.name ?? 'Project'}
         </a>
       </div>
 
       <div class="mb-6">
-        <h1 class="text-foreground text-2xl font-bold">검수 큐</h1>
-        <p class="text-muted-foreground mt-1 text-sm">제출된 페이지를 검수합니다</p>
+        <h1 class="text-foreground text-2xl font-bold">Review Queue</h1>
+        <p class="text-muted-foreground mt-1 text-sm">Review submitted pages</p>
       </div>
 
       {#if isLoading}
         <div class="py-12">
-          <LoadingSpinner message="검수 대기 목록 불러오는 중..." />
+          <LoadingSpinner message="Loading review queue..." />
         </div>
       {:else if error}
         <div
@@ -159,7 +159,7 @@
             </svg>
           </div>
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>Retry</Button>
         </div>
       {:else if queue.length === 0}
         <div class="bg-muted border-border rounded-2xl border p-16 text-center">
@@ -180,12 +180,12 @@
               />
             </svg>
           </div>
-          <p class="text-muted-foreground mb-2 text-lg font-medium">검수 대기 항목이 없습니다</p>
-          <p class="text-muted-foreground text-sm">제출된 페이지가 있으면 여기에 표시됩니다.</p>
+          <p class="text-muted-foreground mb-2 text-lg font-medium">No pages awaiting review</p>
+          <p class="text-muted-foreground text-sm">Submitted pages will appear here.</p>
         </div>
       {:else}
         <div class="text-muted-foreground mb-4 text-sm">
-          {queue.length}건의 검수 대기 항목
+          {queue.length} review items
         </div>
         <div class="space-y-3">
           {#each queue as item (item.page_id)}
@@ -199,15 +199,15 @@
                         class="text-foreground hover:text-primary font-medium transition-colors"
                       >
                         {item.document_filename}
-                        <span class="font-normal">— 페이지 {item.page_no}</span>
+                        <span class="font-normal">— Page {item.page_no}</span>
                       </a>
                     </div>
                     <div class="text-muted-foreground mt-1.5 flex items-center gap-3 text-sm">
                       {#if item.assigned_to_name}
-                        <span>작업자: {item.assigned_to_name}</span>
+                        <span>Annotator: {item.assigned_to_name}</span>
                         <span>·</span>
                       {/if}
-                      <span>제출: {formatDate(item.submitted_at)}</span>
+                      <span>Submit: {formatDate(item.submitted_at)}</span>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
@@ -217,7 +217,7 @@
                       disabled={processingId === item.page_id}
                       onclick={() => startReject(item.page_id)}
                     >
-                      반려
+                      Reject
                     </Button>
                     <Button
                       variant="default"
@@ -225,7 +225,7 @@
                       disabled={processingId === item.page_id}
                       onclick={() => handleApprove(item.page_id)}
                     >
-                      {processingId === item.page_id ? '처리 중...' : '승인'}
+                      {processingId === item.page_id ? 'Processing...' : 'Approve'}
                     </Button>
                   </div>
                 </div>
@@ -237,25 +237,25 @@
                     class="text-foreground mb-1.5 block text-sm font-medium"
                     for="reject-comment-{item.page_id}"
                   >
-                    반려 사유 (선택)
+                    Rejection Reason (Optional)
                   </label>
                   <textarea
                     id="reject-comment-{item.page_id}"
                     class="border-border focus:border-ring focus:ring-ring/20 bg-background text-foreground mb-3 block w-full resize-none rounded-lg border px-3 py-2.5 text-sm transition-all outline-none focus:ring-2"
                     bind:value={rejectComment}
-                    placeholder="반려 사유를 입력하세요"
+                    placeholder="Enter a rejection reason"
                     rows="2"
                     maxlength={2000}
                   ></textarea>
                   <div class="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onclick={cancelReject}>취소</Button>
+                    <Button variant="outline" size="sm" onclick={cancelReject}>Cancel</Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       disabled={processingId === item.page_id}
                       onclick={() => confirmReject(item.page_id)}
                     >
-                      {processingId === item.page_id ? '처리 중...' : '반려 확인'}
+                      {processingId === item.page_id ? 'Processing...' : 'Confirm Rejection'}
                     </Button>
                   </div>
                 </div>

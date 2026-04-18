@@ -1,6 +1,6 @@
 # E2E Tests
 
-> [한국어](README.md) | **English**
+> [Korean](README.ko.md) | **English**
 
 End-to-end tests based on Vitest. Spins up the full stack (postgres, backend, frontend) via Docker Compose
 and verifies the API.

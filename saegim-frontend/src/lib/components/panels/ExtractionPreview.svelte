@@ -101,9 +101,9 @@
       const response = await acceptExtraction(pageId)
       onAccepted(response.annotation_data as AnnotationData)
       dismissed = true
-      uiStore.showNotification('자동 추출 결과가 반영되었습니다', 'success')
+      uiStore.showNotification('Automatic extraction results applied', 'success')
     } catch {
-      uiStore.showNotification('자동 추출 수락에 실패했습니다', 'error')
+      uiStore.showNotification('Failed to accept automatic extraction', 'error')
     } finally {
       loading = false
     }
@@ -115,9 +115,12 @@
       const response = await forceAcceptExtraction(pageId)
       onAccepted(response.annotation_data as AnnotationData)
       dismissed = true
-      uiStore.showNotification('자동 추출 결과가 반영되었습니다 (기존 주석 대체)', 'success')
+      uiStore.showNotification(
+        'Automatic extraction results applied (existing annotations replaced)',
+        'success',
+      )
     } catch {
-      uiStore.showNotification('자동 추출 수락에 실패했습니다', 'error')
+      uiStore.showNotification('Failed to accept automatic extraction', 'error')
     } finally {
       loading = false
     }
@@ -143,7 +146,7 @@
           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.183"
         />
       </svg>
-      전체 재스캔
+      Rescan All
     </button>
   </div>
 {/if}
@@ -166,9 +169,9 @@
         />
       </svg>
       <div>
-        <p class="text-sm font-medium text-amber-900 dark:text-amber-200">OCR 추출 진행 중...</p>
+        <p class="text-sm font-medium text-amber-900 dark:text-amber-200">OCR extraction in progress...</p>
         <p class="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
-          구조 분석이 완료되면 자동으로 결과가 표시됩니다.
+          Results will appear automatically after structure analysis completes.
         </p>
       </div>
     </div>
@@ -190,19 +193,19 @@
         />
       </svg>
       <div>
-        <p class="text-muted-foreground text-xs">자동 추출 결과가 없습니다.</p>
+        <p class="text-muted-foreground text-xs">No automatic extraction results.</p>
         <p class="text-muted-foreground mt-0.5 text-xs">
-          그리기 도구로 직접 영역을 추가하거나, <a
+          Add regions manually with the draw tool, or <a
             href="/settings"
-            class="text-primary hover:underline">OCR 설정</a
-          >을 확인하세요.
+            class="text-primary hover:underline">OCR Settings</a
+          >.
         </p>
       </div>
       <button
         type="button"
         class="text-muted-foreground hover:text-foreground shrink-0 p-0.5 text-lg leading-none"
         onclick={handleDismiss}
-        aria-label="닫기"
+        aria-label="Close"
       >
         &times;
       </button>
@@ -215,17 +218,17 @@
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0 flex-1">
         <p class="text-sm font-medium text-blue-900 dark:text-blue-200">
-          자동 추출 결과가 있습니다
+          Automatic extraction results available
         </p>
         <p class="mt-1 text-xs text-blue-700 dark:text-blue-300">
-          텍스트 {textCount}개, 이미지 {imageCount}개 — 총 {totalCount}개 요소
+          Text {textCount}, images {imageCount} - total {totalCount} elements
         </p>
       </div>
       <button
         type="button"
         class="p-0.5 text-lg leading-none text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-400"
         onclick={handleDismiss}
-        aria-label="닫기"
+        aria-label="Close"
       >
         &times;
       </button>
@@ -240,7 +243,7 @@
         onclick={handleAccept}
         disabled={loading}
       >
-        {loading ? '반영 중...' : '수락'}
+        {loading ? 'Applying...' : 'Accept'}
       </button>
       <button
         type="button"
@@ -249,7 +252,7 @@
           font-medium transition-colors"
         onclick={handleDismiss}
       >
-        무시
+        Ignore
       </button>
     </div>
   </div>
@@ -260,20 +263,20 @@
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0 flex-1">
         <p class="text-sm font-medium text-violet-900 dark:text-violet-200">
-          새로운 추출 결과가 있습니다
+          New extraction results available
         </p>
         <p class="mt-1 text-xs text-violet-700 dark:text-violet-300">
-          텍스트 {textCount}개, 이미지 {imageCount}개 — 총 {totalCount}개 요소
+          Text {textCount}, images {imageCount} - total {totalCount} elements
         </p>
         <p class="mt-1 text-xs font-medium text-violet-600 dark:text-violet-400">
-          수락하면 기존 주석이 대체됩니다.
+          Accepting will replace existing annotations.
         </p>
       </div>
       <button
         type="button"
         class="p-0.5 text-lg leading-none text-violet-400 hover:text-violet-600 dark:text-violet-500 dark:hover:text-violet-400"
         onclick={handleDismiss}
-        aria-label="닫기"
+        aria-label="Close"
       >
         &times;
       </button>
@@ -288,7 +291,7 @@
         onclick={handleForceAccept}
         disabled={loading}
       >
-        {loading ? '반영 중...' : '수락 (대체)'}
+        {loading ? 'Applying...' : 'Accept (Replace)'}
       </button>
       <button
         type="button"
@@ -297,7 +300,7 @@
           font-medium transition-colors"
         onclick={handleDismiss}
       >
-        무시
+        Ignore
       </button>
     </div>
   </div>

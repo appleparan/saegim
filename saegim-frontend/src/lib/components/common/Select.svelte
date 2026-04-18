@@ -29,7 +29,7 @@
     {disabled}
     onchange={handleChange}
   >
-    <option value="">-- 선택 --</option>
+    <option value="">-- Select --</option>
     {#each options as opt (opt)}
       <option value={opt}>{labels?.[opt] ?? opt}</option>
     {/each}

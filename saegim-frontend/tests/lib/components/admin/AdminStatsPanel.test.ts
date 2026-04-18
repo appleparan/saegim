@@ -23,9 +23,9 @@ describe('AdminStatsPanel', () => {
       props: { stats: sampleStats },
     })
 
-    expect(screen.getByText('총 사용자')).toBeTruthy()
-    expect(screen.getByText('총 프로젝트')).toBeTruthy()
-    expect(screen.getByText('전체 완료율')).toBeTruthy()
+    expect(screen.getByText('Total Users')).toBeTruthy()
+    expect(screen.getByText('Total Projects')).toBeTruthy()
+    expect(screen.getByText('Overall Completion')).toBeTruthy()
   })
 
   it('shows correct values', () => {
@@ -43,7 +43,7 @@ describe('AdminStatsPanel', () => {
       props: { stats: sampleStats },
     })
 
-    expect(screen.getByText('활성 사용자: 8명')).toBeTruthy()
+    expect(screen.getByText('Active users: 8')).toBeTruthy()
   })
 
   it('shows zero values gracefully', () => {
@@ -61,6 +61,6 @@ describe('AdminStatsPanel', () => {
     })
 
     expect(screen.getByText('0%')).toBeTruthy()
-    expect(screen.getByText('활성 사용자: 0명')).toBeTruthy()
+    expect(screen.getByText('Active users: 0')).toBeTruthy()
   })
 })
