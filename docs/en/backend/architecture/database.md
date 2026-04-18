@@ -313,7 +313,7 @@ During export, collecting this column into an array directly produces the final 
 }
 ```
 
-Type definitions: [saegim-frontend/src/lib/types/omnidocbench.ts](../../saegim-frontend/src/lib/types/omnidocbench.ts)
+Type definitions: [saegim-frontend/src/lib/types/omnidocbench.ts](https://github.com/appleparan/saegim/blob/main/saegim-frontend/src/lib/types/omnidocbench.ts)
 
 Schema details: [Data Schema](../../architecture/data-schema.md)
 

@@ -14,4 +14,4 @@
 **Goal**: Improve MkDocs navigation coverage and English nav labels for translated documentation.
 **Success Criteria**: Existing translated documentation pages are reachable from navigation with English labels in the English build.
 **Tests**: MkDocs strict build.
-**Status**: Not Started
+**Status**: Complete
