@@ -49,22 +49,22 @@
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
-      <Dialog.Title>멤버 추가</Dialog.Title>
-      <Dialog.Description>프로젝트에 추가할 사용자를 선택하세요.</Dialog.Description>
+      <Dialog.Title>Add Member</Dialog.Title>
+      <Dialog.Description>Select a user to add to the project.</Dialog.Description>
     </Dialog.Header>
 
     <div class="space-y-4">
       <!-- Search -->
       <div>
         <label class="text-muted-foreground mb-1 block text-xs font-medium" for="member-search">
-          사용자 검색
+          Search Users
         </label>
         <input
           id="member-search"
           type="text"
           class="border-input bg-background text-foreground focus:border-ring focus:ring-ring
             block w-full rounded-md border px-3 py-2 text-sm focus:ring-1"
-          placeholder="이름 또는 이메일로 검색..."
+          placeholder="Search by name or email..."
           bind:value={searchQuery}
         />
       </div>
@@ -105,7 +105,7 @@
           {/each}
         {:else}
           <div class="text-muted-foreground p-4 text-center text-sm">
-            {searchQuery.trim() ? '검색 결과가 없습니다.' : '추가할 수 있는 사용자가 없습니다.'}
+            {searchQuery.trim() ? 'No search results.' : 'No users available to add.'}
           </div>
         {/if}
       </div>
@@ -113,7 +113,7 @@
       <!-- Role Selection -->
       <div>
         <label class="text-muted-foreground mb-1 block text-xs font-medium" for="member-role">
-          역할
+          Role
         </label>
         <select
           id="member-role"
@@ -127,8 +127,8 @@
       </div>
 
       <Dialog.Footer>
-        <Button variant="outline" onclick={() => handleOpenChange(false)}>취소</Button>
-        <Button variant="default" disabled={!isValid} onclick={handleAdd}>추가</Button>
+        <Button variant="outline" onclick={() => handleOpenChange(false)}>Cancel</Button>
+        <Button variant="default" disabled={!isValid} onclick={handleAdd}>Add</Button>
       </Dialog.Footer>
     </div>
   </Dialog.Content>

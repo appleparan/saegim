@@ -79,9 +79,9 @@
       }
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다.'
+        error = 'Cannot connect to the backend server.'
       } else {
-        error = '설정을 불러오는 데 실패했습니다.'
+        error = 'Failed to load settings.'
       }
     } finally {
       isLoading = false
@@ -101,9 +101,9 @@
     error = null
     try {
       ocrConfig = await addEngine(id, data)
-      showSuccess('엔진이 추가되었습니다.')
+      showSuccess('Engine added.')
     } catch {
-      error = '엔진 추가에 실패했습니다.'
+      error = 'Failed to add engine.'
     }
   }
 
@@ -116,9 +116,9 @@
     error = null
     try {
       ocrConfig = await updateEngine(id, engineId, data)
-      showSuccess('엔진 설정이 저장되었습니다.')
+      showSuccess('Engine settings saved.')
     } catch {
-      error = '엔진 설정 저장에 실패했습니다.'
+      error = 'Failed to save engine settings.'
     }
   }
 
@@ -132,9 +132,9 @@
       const next = { ...connectionStatuses }
       delete next[engineId]
       connectionStatuses = next
-      showSuccess('엔진이 삭제되었습니다.')
+      showSuccess('Engine deleted.')
     } catch {
-      error = '엔진 삭제에 실패했습니다.'
+      error = 'Failed to delete engine.'
     }
   }
 
@@ -145,7 +145,7 @@
     try {
       ocrConfig = await setDefaultEngine(id, { engine_id: engineId })
     } catch {
-      error = '기본 엔진 설정에 실패했습니다.'
+      error = 'Failed to set default engine.'
     }
   }
 
@@ -159,7 +159,7 @@
     } catch {
       connectionStatuses = {
         ...connectionStatuses,
-        [engineId]: { success: false, message: '연결 테스트에 실패했습니다.' },
+        [engineId]: { success: false, message: 'Connection test failed.' },
       }
     } finally {
       const next = new Set(testingEngines)
@@ -177,9 +177,9 @@
     try {
       const newMember = await addProjectMember(id, { user_id: userId, role })
       members = [...members, newMember]
-      showSuccess('멤버가 추가되었습니다.')
+      showSuccess('Member added.')
     } catch {
-      error = '멤버 추가에 실패했습니다.'
+      error = 'Failed to add member.'
     }
   }
 
@@ -190,9 +190,9 @@
     try {
       const updated = await updateProjectMemberRole(id, userId, { role })
       members = members.map((m) => (m.user_id === userId ? updated : m))
-      showSuccess('역할이 변경되었습니다.')
+      showSuccess('Role updated.')
     } catch {
-      error = '역할 변경에 실패했습니다.'
+      error = 'Failed to update role.'
     }
   }
 
@@ -203,9 +203,9 @@
     try {
       await removeProjectMember(id, userId)
       members = members.filter((m) => m.user_id !== userId)
-      showSuccess('멤버가 제거되었습니다.')
+      showSuccess('Member removed.')
     } catch {
-      error = '멤버 제거에 실패했습니다.'
+      error = 'Failed to remove member.'
     }
   }
 
@@ -236,14 +236,14 @@
             >
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            문서 목록
+            Document List
           </a>
         {/if}
       </div>
 
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <h1 class="text-foreground text-2xl font-bold">프로젝트 설정</h1>
+          <h1 class="text-foreground text-2xl font-bold">Project Settings</h1>
           {#if project}
             <p class="text-muted-foreground mt-1 text-sm">{project.name}</p>
           {/if}
@@ -252,14 +252,14 @@
 
       {#if isLoading}
         <div class="py-12">
-          <LoadingSpinner message="설정 불러오는 중..." />
+          <LoadingSpinner message="Loading settings..." />
         </div>
       {:else if error}
         <div
           class="bg-destructive/10 dark:bg-destructive/20 border-destructive/30 rounded-xl border p-6 text-center"
         >
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>Retry</Button>
         </div>
       {:else if ocrConfig}
         {#if successMessage}
@@ -273,8 +273,8 @@
 
         <Tabs.Root value="ocr" class="w-full">
           <Tabs.List class="mb-4">
-            <Tabs.Trigger value="ocr">OCR 설정</Tabs.Trigger>
-            <Tabs.Trigger value="members">멤버 관리</Tabs.Trigger>
+            <Tabs.Trigger value="ocr">OCR Settings</Tabs.Trigger>
+            <Tabs.Trigger value="members">Member Admin</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="ocr">

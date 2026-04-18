@@ -29,7 +29,7 @@
 
 {#if element}
   <div class="space-y-3 p-3">
-    <h3 class="text-foreground text-sm font-semibold">텍스트 편집</h3>
+    <h3 class="text-foreground text-sm font-semibold">Text Edit</h3>
 
     <div class="border-border flex border-b">
       {#each tabs as tab (tab.key)}
@@ -51,14 +51,14 @@
       value={currentValue}
       oninput={handleTextChange}
       placeholder={activeTab === 'text'
-        ? '텍스트 내용을 입력하세요...'
+        ? 'Enter text content...'
         : activeTab === 'latex'
-          ? 'LaTeX 수식을 입력하세요...'
-          : 'HTML 내용을 입력하세요...'}
+          ? 'Enter a LaTeX formula...'
+          : 'Enter HTML content...'}
     ></textarea>
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-muted-foreground py-8 text-sm">요소를 선택하면 텍스트를 편집할 수 있습니다.</p>
+    <p class="text-muted-foreground py-8 text-sm">Select an element to edit text.</p>
   </div>
 {/if}

@@ -365,7 +365,7 @@
         />
       </svg>
       <span class="text-xs font-medium text-blue-900 dark:text-blue-200">
-        이 영역에서 텍스트를 추출하시겠습니까?
+        Extract text from this area?
       </span>
       {#if showEngineSelector}
         <select
@@ -382,13 +382,13 @@
         class="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"
         onclick={handleOcrRequest}
       >
-        OCR 실행
+        Run OCR
       </button>
       <button
         type="button"
         class="text-muted-foreground hover:text-foreground px-1 text-lg leading-none"
         onclick={dismissOcrPrompt}
-        aria-label="닫기"
+        aria-label="Close"
       >
         &times;
       </button>

@@ -34,17 +34,17 @@
   }
 
   const statusLabels: Record<PageStatus, string> = {
-    pending: '대기',
-    in_progress: '진행중',
-    submitted: '제출됨',
-    reviewed: '검토완료',
+    pending: 'Pending',
+    in_progress: 'In Progress',
+    submitted: 'Submitted',
+    reviewed: 'Reviewed',
   }
 
   type FilterKey = 'all' | 'in_progress' | 'submitted'
   const filterOptions: { key: FilterKey; label: string }[] = [
-    { key: 'all', label: '전체' },
-    { key: 'in_progress', label: '진행중' },
-    { key: 'submitted', label: '제출됨' },
+    { key: 'all', label: 'All' },
+    { key: 'in_progress', label: 'In Progress' },
+    { key: 'submitted', label: 'Submitted' },
   ]
 
   function formatDate(dateStr: string): string {
@@ -63,9 +63,9 @@
       tasks = await getMyTasks()
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다.'
+        error = 'Cannot connect to the backend server.'
       } else {
-        error = '작업 목록을 불러오는 데 실패했습니다.'
+        error = 'Failed to load tasks.'
       }
     } finally {
       isLoading = false
@@ -83,8 +83,8 @@
   <div class="bg-background flex-1 overflow-y-auto p-8">
     <div class="mx-auto max-w-4xl">
       <div class="mb-6">
-        <h1 class="text-foreground text-2xl font-bold">내 작업</h1>
-        <p class="text-muted-foreground mt-1 text-sm">할당된 레이블링 작업을 관리합니다</p>
+        <h1 class="text-foreground text-2xl font-bold">My Tasks</h1>
+        <p class="text-muted-foreground mt-1 text-sm">Manage assigned labeling tasks</p>
       </div>
 
       {#if !isLoading && !error}
@@ -113,7 +113,7 @@
 
       {#if isLoading}
         <div class="py-12">
-          <LoadingSpinner message="작업 불러오는 중..." />
+          <LoadingSpinner message="Loading tasks..." />
         </div>
       {:else if error}
         <div
@@ -137,7 +137,7 @@
             </svg>
           </div>
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadTasks}>다시 시도</Button>
+          <Button variant="outline" onclick={loadTasks}>Retry</Button>
         </div>
       {:else if tasks.length === 0}
         <div class="bg-muted border-border rounded-2xl border p-16 text-center">
@@ -158,14 +158,14 @@
               />
             </svg>
           </div>
-          <p class="text-muted-foreground mb-2 text-lg font-medium">할당된 작업이 없습니다</p>
+          <p class="text-muted-foreground mb-2 text-lg font-medium">No assigned tasks</p>
           <p class="text-muted-foreground text-sm">
-            프로젝트 관리자가 작업을 할당하면 여기에 표시됩니다.
+            Tasks assigned by a project admin will appear here.
           </p>
         </div>
       {:else if filteredTasks.length === 0}
         <div class="bg-muted border-border rounded-xl border p-8 text-center">
-          <p class="text-muted-foreground text-sm">해당 상태의 작업이 없습니다.</p>
+          <p class="text-muted-foreground text-sm">No tasks with this status.</p>
         </div>
       {:else}
         <div class="space-y-3">
@@ -178,7 +178,7 @@
                       <h3 class="text-foreground font-medium">
                         {task.document_filename}
                         <span class="text-muted-foreground font-normal">
-                          — 페이지 {task.page_no}
+                          — Page {task.page_no}
                         </span>
                       </h3>
                       <span class="badge {statusColors[task.status]}">
@@ -188,7 +188,7 @@
                     <div class="text-muted-foreground mt-1.5 flex items-center gap-3 text-sm">
                       <span>{task.project_name}</span>
                       <span>·</span>
-                      <span>할당: {formatDate(task.assigned_at)}</span>
+                      <span>Assigned: {formatDate(task.assigned_at)}</span>
                     </div>
                   </div>
                   <svg

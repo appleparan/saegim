@@ -49,7 +49,7 @@ class PdfStore {
       this.currentPageNo = 1
       this.currentUrl = url
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'PDF 문서를 불러올 수 없습니다.'
+      const msg = e instanceof Error ? e.message : 'Unable to load PDF document.'
       console.warn('[saegim] PDF store loadDocument failed:', msg, 'url:', url)
       this.error = msg
       this.pdfDoc = null

@@ -40,16 +40,16 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h3 class="text-foreground text-sm font-semibold">OCR 엔진 관리</h3>
+      <h3 class="text-foreground text-sm font-semibold">OCR Engine Management</h3>
       <p class="text-muted-foreground text-xs">
-        엔진 인스턴스를 등록하고 관리하세요. ★ 표시된 엔진이 전체 페이지 OCR에 사용됩니다.
+        Register and manage engine instances. The starred engine is used for full-page OCR.
       </p>
     </div>
     <Button variant="outline" size="sm" onclick={() => (showAddDialog = true)}>
       <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
       </svg>
-      엔진 추가
+      Add Engine
     </Button>
   </div>
 
@@ -72,9 +72,9 @@
     </div>
   {:else}
     <div class="border-border rounded-lg border border-dashed p-8 text-center">
-      <p class="text-muted-foreground text-sm">등록된 엔진이 없습니다.</p>
+      <p class="text-muted-foreground text-sm">No engines registered.</p>
       <p class="text-muted-foreground mt-1 text-xs">
-        "엔진 추가" 버튼을 눌러 OCR 엔진을 등록하세요.
+        Use the "Add Engine" button to register an OCR engine.
       </p>
     </div>
   {/if}
@@ -88,7 +88,7 @@
       <div>
         <span class="text-foreground text-xs font-medium">pdfminer</span>
         <span class="text-muted-foreground text-xs">
-          — 항상 사용 가능한 기본 폴백 엔진입니다. 기본 엔진이 설정되지 않으면 pdfminer가 사용됩니다.
+          - always available fallback engine. pdfminer is used when no default engine is configured.
         </span>
       </div>
     </div>

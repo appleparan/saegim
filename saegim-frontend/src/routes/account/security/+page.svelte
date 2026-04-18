@@ -19,10 +19,10 @@
 
   let loginIdStatus = $state<'idle' | 'invalid' | 'checking' | 'available' | 'taken'>('idle')
   let loginIdHint = $derived.by(() => {
-    if (loginIdStatus === 'invalid') return 'ID는 3자 이상이어야 합니다.'
-    if (loginIdStatus === 'checking') return 'ID 중복 확인 중입니다...'
-    if (loginIdStatus === 'available') return '사용 가능한 ID입니다.'
-    if (loginIdStatus === 'taken') return '이미 사용 중인 ID입니다.'
+    if (loginIdStatus === 'invalid') return 'ID must be at least 3 characters.'
+    if (loginIdStatus === 'checking') return 'Checking ID availability...'
+    if (loginIdStatus === 'available') return 'ID is available.'
+    if (loginIdStatus === 'taken') return 'ID is already in use.'
     return null
   })
 
@@ -56,12 +56,12 @@
     if (err instanceof ApiError && err.body && typeof err.body === 'object' && 'detail' in err.body) {
       const detail = (err.body as { detail: unknown }).detail
       if (typeof detail === 'string') {
-        if (detail.includes('login ID')) return '이미 사용 중인 ID입니다.'
-        if (detail.includes('email')) return '이미 사용 중인 이메일입니다.'
+        if (detail.includes('login ID')) return 'ID is already in use.'
+        if (detail.includes('email')) return 'Email is already in use.'
         return detail
       }
     }
-    return '계정 정보 변경 중 오류가 발생했습니다. 다시 시도해 주세요.'
+    return 'An error occurred while updating account information. Please try again.'
   }
 
   async function handleSubmit(e: SubmitEvent) {
@@ -75,21 +75,21 @@
 
     if (!currentPassword) return
     if (!hasLoginId && !hasEmail && !hasPassword) {
-      error = '변경할 항목(ID, 이메일, 비밀번호) 중 하나 이상을 입력해 주세요.'
+      error = 'Enter at least one field to update: ID, email, or password.'
       return
     }
 
     if (authStore.mustChangePassword && !hasPassword) {
-      error = '초기 계정은 비밀번호를 반드시 변경해야 합니다.'
+      error = 'The initial account must change its password.'
       return
     }
 
     if (hasPassword && newPassword !== newPasswordConfirm) {
-      error = '새 비밀번호와 비밀번호 확인이 일치하지 않습니다.'
+      error = 'New password and confirmation do not match.'
       return
     }
     if (hasPassword && newPassword.length < 8) {
-      error = '새 비밀번호는 최소 8자 이상이어야 합니다.'
+      error = 'New password must be at least 8 characters.'
       return
     }
 
@@ -101,7 +101,7 @@
         loginIdStatus = available ? 'available' : 'taken'
       }
       if (!available) {
-        error = '이미 사용 중인 ID입니다.'
+        error = 'ID is already in use.'
         return
       }
     }
@@ -118,11 +118,11 @@
       })
 
       authStore.setToken(response.access_token)
-      success = '계정 정보가 변경되었습니다.'
+      success = 'Account information updated.'
       await goto('/')
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        error = '현재 비밀번호가 올바르지 않습니다.'
+        error = 'Current password is incorrect.'
       } else {
         error = parseErrorMessage(err)
       }
@@ -135,8 +135,8 @@
 <div class="flex min-h-screen items-center justify-center px-4">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
-      <Card.Title class="text-2xl font-bold">계정 보안 설정</Card.Title>
-      <Card.Description>ID / 이메일 / 비밀번호를 변경할 수 있습니다.</Card.Description>
+      <Card.Title class="text-2xl font-bold">Account Security Settings</Card.Title>
+      <Card.Description>Update your ID, email, or password.</Card.Description>
     </Card.Header>
     <Card.Content>
       <form onsubmit={handleSubmit} class="space-y-4">
@@ -157,7 +157,7 @@
         {/if}
 
         <div class="space-y-2">
-          <Label for="current-password">현재 비밀번호</Label>
+          <Label for="current-password">Current Password</Label>
           <Input
             id="current-password"
             type="password"
@@ -168,12 +168,12 @@
         </div>
 
         <div class="space-y-2">
-          <Label for="new-login-id">새 ID (선택)</Label>
+          <Label for="new-login-id">New ID (Optional)</Label>
           <Input
             id="new-login-id"
             type="text"
             bind:value={newLoginId}
-            placeholder="변경할 ID"
+            placeholder="New ID"
             autocomplete="username"
           />
           {#if loginIdHint}
@@ -190,17 +190,17 @@
         </div>
 
         <div class="space-y-2">
-          <Label for="new-email">새 이메일 (선택)</Label>
+          <Label for="new-email">New Email (Optional)</Label>
           <Input id="new-email" type="email" bind:value={newEmail} placeholder="new@example.com" />
         </div>
 
         <div class="space-y-2">
-          <Label for="new-password">새 비밀번호 (선택)</Label>
+          <Label for="new-password">New Password (Optional)</Label>
           <Input id="new-password" type="password" bind:value={newPassword} minlength={8} />
         </div>
 
         <div class="space-y-2">
-          <Label for="new-password-confirm">새 비밀번호 확인</Label>
+          <Label for="new-password-confirm">Confirm New Password</Label>
           <Input
             id="new-password-confirm"
             type="password"
@@ -210,7 +210,7 @@
         </div>
 
         <Button type="submit" class="w-full" disabled={isSubmitting}>
-          {isSubmitting ? '변경 중...' : '계정 정보 변경'}
+          {isSubmitting ? 'Updating...' : 'Update Account'}
         </Button>
       </form>
     </Card.Content>

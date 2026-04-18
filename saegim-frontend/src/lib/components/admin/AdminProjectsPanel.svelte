@@ -19,8 +19,8 @@
 
 <div class="space-y-4">
   <div>
-    <h3 class="text-foreground text-sm font-semibold">프로젝트 관리</h3>
-    <p class="text-muted-foreground text-xs">전체 프로젝트 현황을 확인하세요.</p>
+    <h3 class="text-foreground text-sm font-semibold">Project Admin</h3>
+    <p class="text-muted-foreground text-xs">View all project status.</p>
   </div>
 
   {#if projects.length > 0}
@@ -28,13 +28,13 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-muted/50 border-border border-b">
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">프로젝트</th>
-            <th class="text-muted-foreground px-4 py-2 text-center font-medium">멤버</th>
-            <th class="text-muted-foreground px-4 py-2 text-center font-medium">총 페이지</th>
-            <th class="text-muted-foreground px-4 py-2 text-center font-medium">완료</th>
-            <th class="text-muted-foreground px-4 py-2 text-center font-medium">검수 대기</th>
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">진행률</th>
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">생성일</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Project</th>
+            <th class="text-muted-foreground px-4 py-2 text-center font-medium">Member</th>
+            <th class="text-muted-foreground px-4 py-2 text-center font-medium">Total Pages</th>
+            <th class="text-muted-foreground px-4 py-2 text-center font-medium">Complete</th>
+            <th class="text-muted-foreground px-4 py-2 text-center font-medium">Review Pending</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Progress</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Created</th>
           </tr>
         </thead>
         <tbody>
@@ -70,7 +70,7 @@
     </div>
   {:else}
     <div class="border-border rounded-lg border border-dashed p-8 text-center">
-      <p class="text-muted-foreground text-sm">등록된 프로젝트가 없습니다.</p>
+      <p class="text-muted-foreground text-sm">No projects registered.</p>
     </div>
   {/if}
 </div>

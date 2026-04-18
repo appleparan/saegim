@@ -11,9 +11,9 @@
   let { users, onrolechange, ontoggleactive }: Props = $props()
 
   const ROLE_LABELS: Record<UserRole, string> = {
-    admin: '관리자',
-    annotator: '주석자',
-    reviewer: '검수자',
+    admin: 'Admin',
+    annotator: 'Annotator',
+    reviewer: 'Reviewer',
   }
 
   const ROLE_COLORS: Record<UserRole, string> = {
@@ -35,8 +35,8 @@
 
 <div class="space-y-4">
   <div>
-    <h3 class="text-foreground text-sm font-semibold">사용자 관리</h3>
-    <p class="text-muted-foreground text-xs">시스템 사용자를 관리하고 역할을 변경하세요.</p>
+    <h3 class="text-foreground text-sm font-semibold">User Admin</h3>
+    <p class="text-muted-foreground text-xs">Manage system users and roles.</p>
   </div>
 
   {#if users.length > 0}
@@ -44,12 +44,12 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-muted/50 border-border border-b">
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">이름</th>
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">로그인 ID</th>
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">이메일</th>
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">역할</th>
-            <th class="text-muted-foreground px-4 py-2 text-center font-medium">활성화</th>
-            <th class="text-muted-foreground px-4 py-2 text-left font-medium">가입일</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Name</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Sign in ID</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Email</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Role</th>
+            <th class="text-muted-foreground px-4 py-2 text-center font-medium">Active</th>
+            <th class="text-muted-foreground px-4 py-2 text-left font-medium">Joined</th>
           </tr>
         </thead>
         <tbody>
@@ -92,7 +92,7 @@
     </div>
   {:else}
     <div class="border-border rounded-lg border border-dashed p-8 text-center">
-      <p class="text-muted-foreground text-sm">등록된 사용자가 없습니다.</p>
+      <p class="text-muted-foreground text-sm">No users registered.</p>
     </div>
   {/if}
 </div>

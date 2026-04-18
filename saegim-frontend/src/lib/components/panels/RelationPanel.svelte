@@ -6,7 +6,7 @@
   import type { Relation } from '$lib/types/omnidocbench'
 
   const RELATION_TYPES = [
-    { value: 'parent_son', label: '부모-자식' },
+    { value: 'parent_son', label: 'Parent-Child' },
     { value: 'figure_caption', label: 'Figure ↔ Caption' },
     { value: 'table_caption', label: 'Table ↔ Caption' },
     { value: 'table_footnote', label: 'Table ↔ Footnote' },
@@ -54,12 +54,12 @@
 
     annotationStore.addRelation(selectedElement.anno_id, targetAnnoId, selectedRelationType)
     isSelectingTarget = false
-    uiStore.showNotification('관계가 추가되었습니다', 'success')
+    uiStore.showNotification('Relation added', 'success')
   }
 
   function handleRemoveRelation(relation: Relation): void {
     annotationStore.removeRelation(relation.source_anno_id, relation.target_anno_id)
-    uiStore.showNotification('관계가 삭제되었습니다', 'success')
+    uiStore.showNotification('Relation deleted', 'success')
   }
 
   function getRelationTypeLabel(type: string): string {
@@ -75,11 +75,11 @@
 
 {#if selectedElement}
   <div class="space-y-3 p-3">
-    <h3 class="text-foreground text-sm font-semibold">관계 편집</h3>
+    <h3 class="text-foreground text-sm font-semibold">Relations Edit</h3>
 
     <!-- Current element info -->
     <div class="bg-muted rounded-md px-2.5 py-1.5 text-xs">
-      <span class="text-muted-foreground">선택된 요소:</span>
+      <span class="text-muted-foreground">Selected Element:</span>
       <span class="text-foreground font-medium">
         #{selectedElement.anno_id} {selectedElement.category_type}
       </span>
@@ -88,7 +88,7 @@
     <!-- Existing relations -->
     {#if elementRelations.length > 0}
       <div class="space-y-1">
-        <p class="text-muted-foreground text-xs font-medium">연결된 관계 ({elementRelations.length})</p>
+        <p class="text-muted-foreground text-xs font-medium">Linked Relations ({elementRelations.length})</p>
         {#each elementRelations as relation}
           {@const sourceId = relation.source_anno_id}
           {@const targetId = relation.target_anno_id}
@@ -128,7 +128,7 @@
             <button
               class="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
               onclick={() => handleRemoveRelation(relation)}
-              aria-label="관계 삭제"
+              aria-label="Relations Delete"
             >
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -163,19 +163,19 @@
         {/each}
       </div>
     {:else}
-      <p class="text-muted-foreground text-xs">이 요소에 연결된 관계가 없습니다.</p>
+      <p class="text-muted-foreground text-xs">No relations linked to this element.</p>
     {/if}
 
     <!-- Add relation -->
     {#if isSelectingTarget}
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-foreground text-xs font-medium">대상 요소 선택</p>
+          <p class="text-foreground text-xs font-medium">Select Target Element</p>
           <button
             class="text-muted-foreground hover:text-foreground text-xs"
             onclick={cancelSelectTarget}
           >
-            취소
+            Cancel
           </button>
         </div>
 
@@ -217,12 +217,12 @@
         class="bg-primary text-primary-foreground hover:bg-primary/90 w-full rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
         onclick={startSelectTarget}
       >
-        + 관계 추가
+        + Relations Add
       </button>
     {/if}
   </div>
 {:else}
   <div class="p-3 text-center">
-    <p class="text-muted-foreground py-8 text-sm">요소를 선택하면 관계를 편집할 수 있습니다.</p>
+    <p class="text-muted-foreground py-8 text-sm">Select an element to edit relations.</p>
   </div>
 {/if}

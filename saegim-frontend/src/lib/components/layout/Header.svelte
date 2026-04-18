@@ -62,7 +62,7 @@
     {#if showAutoSave}
       <div class="flex items-center gap-2">
         <label class="flex cursor-pointer items-center gap-1.5">
-          <span class="text-xs font-medium text-white/70">자동 저장</span>
+          <span class="text-xs font-medium text-white/70">Auto-save</span>
           <Switch
             checked={autosaveStore.enabled}
             onCheckedChange={(checked) => autosaveStore.setEnabled(checked)}
@@ -82,7 +82,7 @@
       <span
         class="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300"
       >
-        저장되지 않은 변경
+        Unsaved changes
       </span>
     {/if}
 
@@ -96,7 +96,7 @@
           disabled={reverting || !annotationStore.isDirty}
           onclick={onrevert}
         >
-          {reverting ? '되돌리는 중...' : '마지막 저장으로 되돌리기'}
+          {reverting ? 'Reverting...' : 'Revert to Last Save'}
         </button>
       {/if}
 
@@ -108,7 +108,7 @@
         disabled={saving || !annotationStore.isDirty}
         onclick={onsave}
       >
-        {saving ? '저장 중...' : '저장'}
+        {saving ? 'Saving...' : 'Save'}
       </button>
     {/if}
 
@@ -122,7 +122,7 @@
         class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
       >
         <User class="size-4" />
-        <span>계정</span>
+        <span>Account</span>
       </a>
     {/if}
 
@@ -132,7 +132,7 @@
         class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
       >
         <ClipboardList class="size-4" />
-        <span>내 작업</span>
+        <span>My Tasks</span>
       </a>
     {/if}
 
@@ -142,7 +142,7 @@
         class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
       >
         <Shield class="size-4" />
-        <span>관리</span>
+        <span>Admin</span>
       </a>
     {/if}
 
@@ -154,7 +154,7 @@
         onclick={handleLogout}
       >
         <LogOut class="size-4" />
-        <span>로그아웃</span>
+        <span>Sign out</span>
       </button>
     {/if}
   </div>

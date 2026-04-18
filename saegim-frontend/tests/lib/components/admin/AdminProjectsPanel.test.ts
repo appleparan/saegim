@@ -36,7 +36,7 @@ describe('AdminProjectsPanel', () => {
       props: { projects: [] },
     })
 
-    expect(screen.getByText('등록된 프로젝트가 없습니다.')).toBeTruthy()
+    expect(screen.getByText('No projects registered.')).toBeTruthy()
   })
 
   it('renders project list with names', () => {
@@ -62,6 +62,6 @@ describe('AdminProjectsPanel', () => {
       props: { projects: sampleProjects },
     })
 
-    expect(screen.getByText('프로젝트 관리')).toBeTruthy()
+    expect(screen.getByText('Project Admin')).toBeTruthy()
   })
 })

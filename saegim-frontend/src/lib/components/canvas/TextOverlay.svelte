@@ -137,14 +137,14 @@
           shadow-lg transition-colors"
         onclick={handleCreateBbox}
       >
-        새 bbox 생성
+        Create New bbox
       </button>
       <button
         class="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 shadow-lg
           transition-colors hover:bg-gray-200"
         onclick={dismissCreateBbox}
       >
-        취소
+        Cancel
       </button>
     </div>
   {/if}

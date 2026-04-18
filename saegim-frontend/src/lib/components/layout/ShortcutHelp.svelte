@@ -16,37 +16,37 @@
 
   const shortcutGroups = [
     {
-      label: '도구',
+      label: 'Tools',
       items: [
-        { key: '1', description: '선택' },
-        { key: '2', description: '그리기' },
-        { key: '3', description: '이동' },
+        { key: '1', description: 'Select' },
+        { key: '2', description: 'Draw' },
+        { key: '3', description: 'Pan' },
       ],
     },
     {
-      label: '편집',
+      label: 'Edit',
       items: [
-        { key: `${modKey}+S`, description: '저장' },
-        { key: `${modKey}+Z`, description: '실행 취소' },
-        { key: `${modKey}+Shift+Z`, description: '다시 실행' },
-        { key: 'X', description: '선택 요소 삭제' },
+        { key: `${modKey}+S`, description: 'Save' },
+        { key: `${modKey}+Z`, description: 'Undo' },
+        { key: `${modKey}+Shift+Z`, description: 'Redo' },
+        { key: 'X', description: 'Select Element Delete' },
       ],
     },
     {
-      label: '보기',
-      items: [{ key: 'R', description: '읽기 순서 토글' }],
+      label: 'View',
+      items: [{ key: 'R', description: 'Toggle Reading Order' }],
     },
     {
-      label: '탐색',
+      label: 'Navigation',
       items: [
-        { key: 'Q', description: '이전 페이지' },
-        { key: 'E', description: '다음 페이지' },
-        { key: 'Esc', description: '선택 해제' },
+        { key: 'Q', description: 'Previous Page' },
+        { key: 'E', description: 'Next Page' },
+        { key: 'Esc', description: 'Clear Selection' },
       ],
     },
     {
-      label: '도움말',
-      items: [{ key: '`', description: '이 도움말' }],
+      label: 'Help',
+      items: [{ key: '`', description: 'This Help' }],
     },
   ] as const
 </script>
@@ -61,12 +61,12 @@
         class="text-white/80 hover:bg-white/10 hover:text-white"
       >
         <Keyboard class="size-4" />
-        <span class="sr-only">키보드 단축키</span>
+        <span class="sr-only">Keyboard Shortcuts</span>
       </Button>
     {/snippet}
   </Popover.Trigger>
   <Popover.Content side="bottom" align="end" class="w-64 p-3">
-    <div class="mb-2 text-sm font-semibold">키보드 단축키</div>
+    <div class="mb-2 text-sm font-semibold">Keyboard Shortcuts</div>
     <div class="space-y-3">
       {#each shortcutGroups as group}
         <div>

@@ -55,9 +55,9 @@
       stats = statsData
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다.'
+        error = 'Cannot connect to the backend server.'
       } else {
-        error = '관리자 데이터를 불러오는 데 실패했습니다.'
+        error = 'Admin Failed to load data.'
       }
     } finally {
       isLoading = false
@@ -69,9 +69,9 @@
     try {
       const updated = await updateAdminUser(userId, { role })
       users = users.map((u) => (u.id === userId ? updated : u))
-      showSuccess('역할이 변경되었습니다.')
+      showSuccess('Role updated.')
     } catch {
-      error = '역할 변경에 실패했습니다.'
+      error = 'Failed to update role.'
     }
   }
 
@@ -80,9 +80,9 @@
     try {
       const updated = await updateAdminUser(userId, { is_active: isActive })
       users = users.map((u) => (u.id === userId ? updated : u))
-      showSuccess(isActive ? '사용자가 활성화되었습니다.' : '사용자가 비활성화되었습니다.')
+      showSuccess(isActive ? 'User activated.' : 'User deactivated.')
     } catch {
-      error = '사용자 상태 변경에 실패했습니다.'
+      error = 'Failed to update user status.'
     }
   }
 
@@ -94,18 +94,18 @@
 </script>
 
 <div class="flex h-full flex-col">
-  <Header title="관리자 대시보드" />
+  <Header title="Admin Dashboard" />
 
   <div class="bg-background flex-1 overflow-y-auto p-8">
     <div class="mx-auto max-w-5xl">
       <div class="mb-6">
-        <h1 class="text-foreground text-2xl font-bold">관리자 대시보드</h1>
-        <p class="text-muted-foreground mt-1 text-sm">시스템 전체를 관리하세요.</p>
+        <h1 class="text-foreground text-2xl font-bold">Admin Dashboard</h1>
+        <p class="text-muted-foreground mt-1 text-sm">Manage the whole system.</p>
       </div>
 
       {#if isLoading}
         <div class="py-12">
-          <LoadingSpinner message="데이터 불러오는 중..." />
+          <LoadingSpinner message="Loading data..." />
         </div>
       {:else if error}
         <div
@@ -113,7 +113,7 @@
             rounded-xl border p-6 text-center"
         >
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>Retry</Button>
         </div>
       {:else}
         {#if successMessage}
@@ -128,9 +128,9 @@
 
         <Tabs.Root value="users" class="w-full">
           <Tabs.List class="mb-4">
-            <Tabs.Trigger value="users">사용자 관리</Tabs.Trigger>
-            <Tabs.Trigger value="projects">프로젝트 관리</Tabs.Trigger>
-            <Tabs.Trigger value="stats">시스템 현황</Tabs.Trigger>
+            <Tabs.Trigger value="users">User Admin</Tabs.Trigger>
+            <Tabs.Trigger value="projects">Project Admin</Tabs.Trigger>
+            <Tabs.Trigger value="stats">System Status</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="users">

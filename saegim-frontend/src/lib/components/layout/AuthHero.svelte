@@ -3,7 +3,7 @@
 >
   <div class="max-w-lg">
     <h1 class="text-foreground text-4xl font-bold tracking-tight">saegim</h1>
-    <p class="text-muted-foreground mt-2 text-lg">문서 레이블링 플랫폼</p>
+    <p class="text-muted-foreground mt-2 text-lg">Document Labeling Platform</p>
 
     <div class="mt-10 space-y-6">
       <div class="flex items-start gap-4">
@@ -25,9 +25,9 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-foreground font-semibold">문서 업로드 & OCR</h3>
+          <h3 class="text-foreground font-semibold">Document Upload & OCR</h3>
           <p class="text-muted-foreground mt-1 text-sm">
-            PDF, 이미지 등 다양한 문서를 업로드하고 AI 기반 OCR로 텍스트를 자동 추출합니다.
+            Upload PDFs, images, and other documents, then extract text with AI-powered OCR.
           </p>
         </div>
       </div>
@@ -52,9 +52,9 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-foreground font-semibold">체계적 레이블링</h3>
+          <h3 class="text-foreground font-semibold">Structured Labeling</h3>
           <p class="text-muted-foreground mt-1 text-sm">
-            팀원과 함께 문서 요소를 분류하고 레이블을 부여하여 데이터를 체계적으로 관리합니다.
+            Classify document elements with your team and keep labeling data organized.
           </p>
         </div>
       </div>
@@ -78,9 +78,9 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-foreground font-semibold">팀 협업</h3>
+          <h3 class="text-foreground font-semibold">Team Collaboration</h3>
           <p class="text-muted-foreground mt-1 text-sm">
-            팀원과 역할을 관리하고, 작업을 할당하여 효율적으로 협업합니다.
+            Manage team members and roles, assign tasks, and collaborate efficiently.
           </p>
         </div>
       </div>

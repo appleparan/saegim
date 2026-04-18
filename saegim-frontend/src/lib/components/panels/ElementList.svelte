@@ -45,7 +45,7 @@
       await updateReadingOrder(pageId, apiOrderMap)
       annotationStore.markSaved()
     } catch {
-      uiStore.showNotification('순서 저장에 실패했습니다', 'error')
+      uiStore.showNotification('Failed to save order', 'error')
     }
   }
 
@@ -131,42 +131,42 @@
 
 <div class="border-border bg-muted flex items-center justify-between border-b p-3">
   <div>
-    <h3 class="text-foreground text-sm font-semibold">요소 목록</h3>
+    <h3 class="text-foreground text-sm font-semibold">Element List</h3>
     <p class="text-muted-foreground mt-0.5 text-xs">
-      {annotationStore.elements.length}개 요소
+      {annotationStore.elements.length} elements
     </p>
   </div>
   <div class="flex items-center gap-3">
-    <label class="flex cursor-pointer items-center gap-1.5" title="요소 표시 (I)">
+    <label class="flex cursor-pointer items-center gap-1.5" title="Show Elements (I)">
       <input
         type="checkbox"
         class="accent-primary h-3.5 w-3.5 rounded"
         checked={canvasStore.showElementIndex}
         onchange={() => canvasStore.toggleElementIndex()}
       />
-      <span class="text-muted-foreground text-xs">요소</span>
+      <span class="text-muted-foreground text-xs">Element</span>
     </label>
-    <label class="flex cursor-pointer items-center gap-1.5" title="순서 표시 (R)">
+    <label class="flex cursor-pointer items-center gap-1.5" title="Show Order (R)">
       <input
         type="checkbox"
         class="accent-primary h-3.5 w-3.5 rounded"
         checked={canvasStore.showReadingOrder}
         onchange={() => canvasStore.toggleReadingOrder()}
       />
-      <span class="text-muted-foreground text-xs">순서</span>
+      <span class="text-muted-foreground text-xs">Order</span>
     </label>
   </div>
 </div>
 
 {#if selectedCount > 0}
   <div class="border-border bg-card flex items-center gap-1.5 border-b px-2 py-2">
-    <span class="text-foreground mr-1 text-xs font-medium">{selectedCount}개 선택</span>
+    <span class="text-foreground mr-1 text-xs font-medium">{selectedCount} selected</span>
     <button
       type="button"
       class="text-muted-foreground hover:bg-accent hover:text-foreground rounded px-1.5 py-1 text-xs"
       onclick={() => handleMoveSelected(-1)}
-      title="선택 요소 위로 이동"
-      aria-label="선택 요소 위로 이동"
+      title="Move selected element up"
+      aria-label="Move selected element up"
     >
       ↑
     </button>
@@ -174,8 +174,8 @@
       type="button"
       class="text-muted-foreground hover:bg-accent hover:text-foreground rounded px-1.5 py-1 text-xs"
       onclick={() => handleMoveSelected(1)}
-      title="선택 요소 아래로 이동"
-      aria-label="선택 요소 아래로 이동"
+      title="Move selected element down"
+      aria-label="Move selected element down"
     >
       ↓
     </button>
@@ -183,19 +183,19 @@
       type="button"
       class="text-destructive/80 hover:bg-destructive/10 rounded px-1.5 py-1 text-xs"
       onclick={handleDeleteSelected}
-      title="선택 요소 삭제"
-      aria-label="선택 요소 삭제"
+      title="Delete selected elements"
+      aria-label="Delete selected elements"
     >
-      삭제
+      Delete
     </button>
     <button
       type="button"
       class="text-muted-foreground hover:bg-accent hover:text-foreground ml-auto rounded px-1.5 py-1 text-xs"
       onclick={() => annotationStore.clearSelection()}
-      title="선택 해제"
-      aria-label="선택 해제"
+      title="Clear Selection"
+      aria-label="Clear Selection"
     >
-      해제
+      Clear
     </button>
   </div>
 {/if}
@@ -243,13 +243,13 @@
         <span class="text-muted-foreground mr-0.5 font-medium">{element.order}.</span>
         {getLabel(element.category_type)}
         {#if element.ignore}
-          <span class="text-muted-foreground text-xs italic">(무시)</span>
+          <span class="text-muted-foreground text-xs italic">(Ignore)</span>
         {/if}
       </span>
       <button
         class="text-muted-foreground hover:text-destructive px-1 opacity-0 transition-all group-hover:opacity-100"
         onclick={(e) => handleDelete(e, element.anno_id)}
-        aria-label="삭제"
+        aria-label="Delete"
       >
         &times;
       </button>
@@ -257,7 +257,7 @@
   {/each}
   {#if annotationStore.elements.length === 0}
     <p class="text-muted-foreground py-8 text-center text-xs">
-      요소가 없습니다.<br />그리기 도구로 추가하세요.
+      No elements yet.<br />Add one with the draw tool.
     </p>
   {/if}
 </div>

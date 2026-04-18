@@ -15,32 +15,32 @@
 
   function roleLabel(role: string): string {
     const labels: Record<string, string> = {
-      owner: '소유자',
-      annotator: '작업자',
-      reviewer: '검수자',
+      owner: 'Owner',
+      annotator: 'Annotator',
+      reviewer: 'Reviewer',
     }
     return labels[role] ?? role
   }
 
   const statusConfig = [
-    { key: 'pending' as const, label: '대기', color: 'text-muted-foreground', bg: 'bg-muted' },
+    { key: 'pending' as const, label: 'Pending', color: 'text-muted-foreground', bg: 'bg-muted' },
     {
       key: 'in_progress' as const,
-      label: '진행 중',
+      label: 'In Progress',
       color: 'text-blue-700 dark:text-blue-300',
       bg: 'bg-blue-50 dark:bg-blue-950/30',
       border: 'border-blue-200 dark:border-blue-800',
     },
     {
       key: 'submitted' as const,
-      label: '제출됨',
+      label: 'Submitted',
       color: 'text-amber-700 dark:text-amber-300',
       bg: 'bg-amber-50 dark:bg-amber-950/30',
       border: 'border-amber-200 dark:border-amber-800',
     },
     {
       key: 'reviewed' as const,
-      label: '검토 완료',
+      label: 'Reviewed',
       color: 'text-emerald-700 dark:text-emerald-300',
       bg: 'bg-emerald-50 dark:bg-emerald-950/30',
       border: 'border-emerald-200 dark:border-emerald-800',
@@ -61,9 +61,9 @@
       progress = prog
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다.'
+        error = 'Cannot connect to the backend server.'
       } else {
-        error = '데이터를 불러오는 데 실패했습니다.'
+        error = 'Failed to load data.'
       }
     } finally {
       isLoading = false
@@ -95,18 +95,18 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          {project?.name ?? '프로젝트'}
+          {project?.name ?? 'Project'}
         </a>
       </div>
 
       <div class="mb-6">
-        <h1 class="text-foreground text-2xl font-bold">작업 현황</h1>
-        <p class="text-muted-foreground mt-1 text-sm">프로젝트 전체 진행률을 확인합니다</p>
+        <h1 class="text-foreground text-2xl font-bold">Task Progress</h1>
+        <p class="text-muted-foreground mt-1 text-sm">View overall project progress</p>
       </div>
 
       {#if isLoading}
         <div class="py-12">
-          <LoadingSpinner message="진행 현황 불러오는 중..." />
+          <LoadingSpinner message="Loading progress..." />
         </div>
       {:else if error}
         <div
@@ -130,17 +130,17 @@
             </svg>
           </div>
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>Retry</Button>
         </div>
       {:else if progress}
         <!-- Summary Cards -->
         <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div class="card-modern p-5">
-            <div class="text-muted-foreground mb-1 text-sm">총 페이지</div>
+            <div class="text-muted-foreground mb-1 text-sm">Total Pages</div>
             <div class="text-foreground text-2xl font-bold">{progress.total_pages}</div>
           </div>
           <div class="card-modern p-5">
-            <div class="text-muted-foreground mb-1 text-sm">완료율</div>
+            <div class="text-muted-foreground mb-1 text-sm">Completion</div>
             <div class="flex items-center gap-3">
               <div class="text-foreground text-2xl font-bold">{progress.completion_rate}%</div>
               <div class="bg-muted h-2.5 flex-1 overflow-hidden rounded-full">
@@ -152,7 +152,7 @@
             </div>
           </div>
           <div class="card-modern p-5">
-            <div class="text-muted-foreground mb-1 text-sm">검수 대기</div>
+            <div class="text-muted-foreground mb-1 text-sm">Review Pending</div>
             <div class="text-foreground text-2xl font-bold">
               {progress.status_breakdown.submitted}
             </div>
@@ -174,19 +174,19 @@
         <!-- Documents Table -->
         {#if progress.documents.length > 0}
           <div class="mb-8">
-            <h2 class="text-foreground mb-3 text-lg font-semibold">문서별 진행 현황</h2>
+            <h2 class="text-foreground mb-3 text-lg font-semibold">Progress by Document</h2>
             <div class="card-modern overflow-hidden">
               <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
                     <tr class="border-border border-b">
-                      <th class="text-muted-foreground px-4 py-3 text-left font-medium">문서</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">페이지</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">대기</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">진행</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">제출</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">완료</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">진행률</th>
+                      <th class="text-muted-foreground px-4 py-3 text-left font-medium">Document</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Page</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Pending</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">In Progress</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Submit</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Complete</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Progress</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -225,18 +225,18 @@
         <!-- Members Table -->
         {#if progress.members.length > 0}
           <div>
-            <h2 class="text-foreground mb-3 text-lg font-semibold">멤버별 활동</h2>
+            <h2 class="text-foreground mb-3 text-lg font-semibold">Activity by Member</h2>
             <div class="card-modern overflow-hidden">
               <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
                     <tr class="border-border border-b">
-                      <th class="text-muted-foreground px-4 py-3 text-left font-medium">이름</th>
-                      <th class="text-muted-foreground px-3 py-3 text-left font-medium">역할</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">할당</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">진행</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">제출</th>
-                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">완료</th>
+                      <th class="text-muted-foreground px-4 py-3 text-left font-medium">Name</th>
+                      <th class="text-muted-foreground px-3 py-3 text-left font-medium">Role</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Assigned</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">In Progress</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Submit</th>
+                      <th class="text-muted-foreground px-3 py-3 text-right font-medium">Complete</th>
                     </tr>
                   </thead>
                   <tbody>

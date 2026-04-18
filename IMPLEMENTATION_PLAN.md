@@ -8,7 +8,7 @@
 **Goal**: Translate user-facing Korean strings in the Svelte frontend to English.
 **Success Criteria**: `saegim-frontend/src` has no Korean UI copy except intentional sample/document text values.
 **Tests**: Korean-text scan across frontend source, plus frontend type check and unit tests.
-**Status**: Not Started
+**Status**: Complete
 
 ## Stage 3: Documentation Navigation I18n
 **Goal**: Improve MkDocs navigation coverage and English nav labels for translated documentation.

@@ -65,10 +65,10 @@
   }
 
   const statusLabels: Record<PageStatus, string> = {
-    pending: '대기',
-    in_progress: '진행중',
-    submitted: '제출됨',
-    reviewed: '검토완료',
+    pending: 'Pending',
+    in_progress: 'In Progress',
+    submitted: 'Submitted',
+    reviewed: 'Reviewed',
   }
 
   let isLockedByOther = $derived(
@@ -156,9 +156,9 @@
       }
     } catch (e) {
       if (e instanceof NetworkError) {
-        annotationStore.setError('백엔드 서버에 연결할 수 없습니다.')
+        annotationStore.setError('Cannot connect to the backend server.')
       } else {
-        annotationStore.setError('페이지를 불러오는 데 실패했습니다.')
+        annotationStore.setError('Failed to load page.')
       }
     } finally {
       annotationStore.setLoading(false)
@@ -175,9 +175,9 @@
         annotation_data: annotationStore.annotationData,
       })
       annotationStore.markSaved()
-      uiStore.showNotification('저장 완료', 'success')
+      uiStore.showNotification('Save Complete', 'success')
     } catch {
-      uiStore.showNotification('저장 실패', 'error')
+      uiStore.showNotification('Failed to save', 'error')
     } finally {
       saving = false
     }
@@ -205,10 +205,10 @@
       autoSaveFailCount++
       if (autoSaveFailCount >= MAX_AUTO_SAVE_FAILURES) {
         autosaveStore.setEnabled(false)
-        uiStore.showNotification('자동 저장 반복 실패로 비활성화됨', 'error')
+        uiStore.showNotification('Auto-save disabled after repeated failures', 'error')
         autoSaveFailCount = 0
       } else {
-        uiStore.showNotification('자동 저장 실패', 'error')
+        uiStore.showNotification('Auto-save failed', 'error')
       }
     }
   }
@@ -216,17 +216,17 @@
   async function handleSubmit() {
     const pageId = page.params.pageId
     if (!pageId) return
-    if (!confirm('이 페이지를 검수 제출하시겠습니까?')) return
+    if (!confirm('Submit this page for review?')) return
     submitting = true
     try {
       const updated = await submitPage(pageId)
       pageData = updated
-      uiStore.showNotification('검수 제출 완료', 'success')
+      uiStore.showNotification('Submit for Review Complete', 'success')
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        uiStore.showNotification('제출할 수 없는 상태입니다', 'error')
+        uiStore.showNotification('Cannot submit in the current state', 'error')
       } else {
-        uiStore.showNotification('제출에 실패했습니다', 'error')
+        uiStore.showNotification('Failed to submit', 'error')
       }
     } finally {
       submitting = false
@@ -235,11 +235,11 @@
 
   function handleRevertToLastSaved(): void {
     if (!annotationStore.isDirty) return
-    if (!confirm('저장되지 않은 변경사항을 버리고 마지막 저장 상태로 되돌리시겠습니까?')) return
+    if (!confirm('Discard unsaved changes and revert to the last saved state?')) return
     reverting = true
     try {
       annotationStore.revertToLastSaved()
-      uiStore.showNotification('마지막 저장 상태로 되돌렸습니다', 'success')
+      uiStore.showNotification('Reverted to the last saved state', 'success')
     } finally {
       reverting = false
     }
@@ -314,20 +314,20 @@
           text: result.text,
           ...(engineId ? { ocr_engine: engineId } : {}),
         })
-        uiStore.showNotification('텍스트가 추출되었습니다', 'success')
+        uiStore.showNotification('Text extracted', 'success')
       } else {
-        uiStore.showNotification('텍스트를 찾지 못했습니다', 'info')
+        uiStore.showNotification('No text found', 'info')
       }
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
-        uiStore.showNotification('OCR 엔드포인트가 아직 준비되지 않았습니다', 'info')
+        uiStore.showNotification('OCR endpoint is not ready yet', 'info')
       } else if (e instanceof ApiError && e.status === 503) {
         uiStore.showNotification(
-          'OCR 엔진이 설정되지 않았습니다. 프로젝트 설정에서 OCR 엔진을 구성해주세요.',
+          'OCR engine is not configured. Configure an OCR engine in project settings.',
           'info',
         )
       } else {
-        uiStore.showNotification('텍스트 추출에 실패했습니다', 'error')
+        uiStore.showNotification('Failed to extract text', 'error')
       }
     }
   }
@@ -376,7 +376,7 @@
         // No OCR engine configured — show hint without error notification
         documentStatus = 'ready'
       } else {
-        uiStore.showNotification('자동 추출에 실패했습니다', 'error')
+        uiStore.showNotification('Automatic extraction failed', 'error')
       }
     } finally {
       pageExtracting = false
@@ -385,7 +385,7 @@
 
   async function handleReExtract() {
     if (!pageData?.document_id) return
-    if (!confirm('현재 OCR 엔진으로 전체 페이지를 재추출하시겠습니까?')) return
+    if (!confirm('Re-extract the full page with the current OCR engine?')) return
     try {
       const result = await reExtractDocument(pageData.document_id)
       documentStatus = result.status
@@ -400,12 +400,12 @@
         }
         reExtractVersion++
       }
-      uiStore.showNotification('재추출이 시작되었습니다', 'success')
+      uiStore.showNotification('Re-extraction started', 'success')
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        uiStore.showNotification('이미 추출이 진행 중입니다', 'info')
+        uiStore.showNotification('Extraction is already in progress', 'info')
       } else {
-        uiStore.showNotification('재추출 요청에 실패했습니다', 'error')
+        uiStore.showNotification('Failed to request re-extraction', 'error')
       }
     }
   }
@@ -447,7 +447,7 @@
 
 <div class="flex h-full flex-col">
   <Header
-    title={pageData?.project_name ?? '레이블링'}
+    title={pageData?.project_name ?? 'Labeling'}
     showSave
     showRevert
     showAutoSave
@@ -468,12 +468,12 @@
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-        {pageData.project_name ?? '프로젝트'}
+        {pageData.project_name ?? 'Project'}
       </a>
       <span class="text-muted-foreground mx-2">/</span>
-      <span class="text-muted-foreground">{pageData.document_filename ?? '문서'}</span>
+      <span class="text-muted-foreground">{pageData.document_filename ?? 'Document'}</span>
       <span class="text-muted-foreground mx-2">/</span>
-      <span class="text-foreground font-medium">페이지 {pageData.page_no}</span>
+      <span class="text-foreground font-medium">Page {pageData.page_no}</span>
       <span class="badge ml-2 rounded-full px-2 py-0.5 text-xs font-medium {statusColors[pageData.status]}">
         {statusLabels[pageData.status]}
       </span>
@@ -482,7 +482,7 @@
           class="ml-2 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
         >
           <Lock class="size-3" />
-          다른 사용자 편집 중
+          Another user is editing
         </span>
       {/if}
       {#if canSubmit}
@@ -491,17 +491,17 @@
           onclick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? '제출 중...' : '검수 제출'}
+          {submitting ? 'Submitting...' : 'Submit for Review'}
         </button>
       {/if}
       {#if ocrConfig}
         <a
           href="/projects/{pageData.project_id}/settings"
           class="bg-muted text-muted-foreground border-border hover:border-primary hover:text-primary ml-auto inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors"
-          title="OCR 엔진 설정"
+          title="OCR Engine Settings"
         >
           {getDefaultEngineName(ocrConfig)}
-          <span class="text-muted-foreground/70 ml-1 text-[10px]">(기본)</span>
+          <span class="text-muted-foreground/70 ml-1 text-[10px]">(Default)</span>
         </a>
       {/if}
     </nav>
@@ -509,7 +509,7 @@
 
   {#if annotationStore.isLoading}
     <div class="flex flex-1 items-center justify-center">
-      <LoadingSpinner message="페이지 불러오는 중..." />
+      <LoadingSpinner message="Loading page..." />
     </div>
   {:else if annotationStore.error}
     <div class="flex flex-1 items-center justify-center">
@@ -534,7 +534,7 @@
           </svg>
         </div>
         <p class="text-destructive mb-4 font-medium">{annotationStore.error}</p>
-        <Button variant="outline" onclick={loadPage}>다시 시도</Button>
+        <Button variant="outline" onclick={loadPage}>Retry</Button>
       </div>
     </div>
   {:else}
@@ -574,7 +574,7 @@
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('select')}
-              title="선택 (1)"
+              title="Select (1)"
             >
               <svg
                 class="h-4 w-4"
@@ -596,7 +596,7 @@
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('draw')}
-              title="그리기 (2)"
+              title="Draw (2)"
             >
               <svg
                 class="h-4 w-4"
@@ -618,7 +618,7 @@
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-accent'}"
               onclick={() => canvasStore.setTool('pan')}
-              title="이동 (3)"
+              title="Pan (3)"
             >
               <svg
                 class="h-4 w-4"
@@ -642,7 +642,7 @@
             <button
               class="text-muted-foreground hover:bg-accent rounded-lg p-1.5 transition-all"
               onclick={() => canvasStore.zoomOut()}
-              title="축소"
+              title="Zoom Out"
             >
               <svg
                 class="h-4 w-4"
@@ -657,14 +657,14 @@
             <button
               class="text-muted-foreground hover:bg-accent min-w-[3rem] rounded-lg px-1.5 py-1 text-center font-mono text-[11px] font-medium transition-all"
               onclick={() => canvasStore.resetView()}
-              title="1:1 보기로 리셋"
+              title="Reset to 1:1"
             >
               {Math.round(canvasStore.scale * 100)}%
             </button>
             <button
               class="text-muted-foreground hover:bg-accent rounded-lg p-1.5 transition-all"
               onclick={() => canvasStore.zoomIn()}
-              title="확대"
+              title="Zoom In"
             >
               <svg
                 class="h-4 w-4"
@@ -690,7 +690,7 @@
           />
         {:else}
           <div class="absolute inset-0 flex items-center justify-center">
-            <p class="text-muted-foreground text-sm">이미지를 불러오는 중...</p>
+            <p class="text-muted-foreground text-sm">Loading image...</p>
           </div>
         {/if}
 

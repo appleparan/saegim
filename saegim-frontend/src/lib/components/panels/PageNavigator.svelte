@@ -47,7 +47,7 @@
     <button
       class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium tracking-wider uppercase transition-colors"
       onclick={() => (expanded = !expanded)}
-      title={expanded ? '페이지 목록 접기' : '페이지 목록 펼치기'}
+      title={expanded ? 'Collapse Page List' : 'Expand Page List'}
     >
       <svg
         class="h-3 w-3 transition-transform {expanded ? 'rotate-90' : ''}"
@@ -58,14 +58,14 @@
       >
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
       </svg>
-      페이지
+      Page
     </button>
     <div class="flex items-center gap-1">
       <button
         class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         disabled={!hasPrev}
         onclick={prevPage}
-        title="이전 페이지 (Q)"
+        title="Previous Page (Q)"
       >
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -78,7 +78,7 @@
         class="text-muted-foreground hover:text-foreground hover:bg-accent rounded p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         disabled={!hasNext}
         onclick={nextPage}
-        title="다음 페이지 (E)"
+        title="Next Page (E)"
       >
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -97,7 +97,7 @@
               ? 'bg-primary text-primary-foreground font-medium shadow-sm'
               : 'bg-card border-border text-foreground hover:border-primary/30 hover:bg-primary/10 border'}"
             onclick={() => goToPage(page.id)}
-            title="페이지 {page.page_no} ({page.status})"
+            title="Page {page.page_no} ({page.status})"
           >
             {page.page_no}
           </button>
@@ -112,12 +112,12 @@
           {#if count > 0}
             <span class="rounded-full px-1.5 py-0.5 text-[10px] {statusColors[status]}">
               {status === 'in_progress'
-                ? '진행중'
+                ? 'In Progress'
                 : status === 'pending'
-                  ? '대기'
+                  ? 'Pending'
                   : status === 'submitted'
-                    ? '제출'
-                    : '검토완료'}
+                    ? 'Submit'
+                    : 'Reviewed'}
               {count}
             </span>
           {/if}

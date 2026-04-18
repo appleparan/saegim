@@ -95,9 +95,9 @@
       ocrConfig = config
     } catch (e) {
       if (e instanceof NetworkError) {
-        error = '백엔드 서버에 연결할 수 없습니다.'
+        error = 'Cannot connect to the backend server.'
       } else {
-        error = '데이터를 불러오는 데 실패했습니다.'
+        error = 'Failed to load data.'
       }
     } finally {
       isLoading = false
@@ -116,7 +116,7 @@
       const doc = await uploadDocument(id, file)
       documents = [...documents, doc]
     } catch {
-      error = 'PDF 업로드에 실패했습니다.'
+      error = 'Failed to upload PDF.'
     } finally {
       isUploading = false
       target.value = ''
@@ -161,7 +161,7 @@
     const file = files[0]
 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      error = 'PDF 파일만 업로드할 수 있습니다.'
+      error = 'Only PDF files can be uploaded.'
       return
     }
 
@@ -171,7 +171,7 @@
       const doc = await uploadDocument(id, file)
       documents = [...documents, doc]
     } catch {
-      error = 'PDF 업로드에 실패했습니다.'
+      error = 'Failed to upload PDF.'
     } finally {
       isUploading = false
     }
@@ -195,7 +195,7 @@
 
   async function handleDeleteDoc(e: Event, docId: string) {
     e.stopPropagation()
-    if (!confirm('이 문서를 삭제하시겠습니까?')) return
+    if (!confirm('Delete this document?')) return
     try {
       await deleteDocument(docId)
       documents = documents.filter((d) => d.id !== docId)
@@ -203,7 +203,7 @@
       documentPages = rest
       if (expandedDoc === docId) expandedDoc = null
     } catch {
-      error = '문서 삭제에 실패했습니다.'
+      error = 'Failed to delete document.'
     }
   }
 
@@ -215,7 +215,7 @@
     try {
       await exportProjectZip(id)
     } catch {
-      error = '프로젝트 내보내기에 실패했습니다.'
+      error = 'Failed to export project.'
     } finally {
       isExporting = false
     }
@@ -230,7 +230,7 @@
     try {
       await exportDocumentZip(id, docId)
     } catch {
-      error = '문서 내보내기에 실패했습니다.'
+      error = 'Failed to export document.'
     } finally {
       exportingDocId = null
     }
@@ -267,7 +267,7 @@
       class="relative mx-auto max-w-4xl"
       data-dropzone
       role="region"
-      aria-label="PDF 업로드 영역"
+      aria-label="PDF upload area"
       ondragenter={handleDragEnter}
       ondragover={handleDragOver}
       ondragleave={handleDragLeave}
@@ -292,8 +292,8 @@
               />
             </svg>
           </div>
-          <p class="text-primary text-lg font-medium">PDF 파일을 여기에 놓으세요</p>
-          <p class="text-muted-foreground mt-1 text-sm">파일을 놓으면 바로 업로드됩니다</p>
+          <p class="text-primary text-lg font-medium">Drop PDF files here</p>
+          <p class="text-muted-foreground mt-1 text-sm">Drop a file to upload it immediately</p>
         </div>
       {/if}
 
@@ -311,19 +311,19 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          프로젝트 목록
+          Project List
         </a>
       </div>
 
       <div class="mb-6 flex items-center justify-between">
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-foreground text-2xl font-bold">{project?.name ?? '문서'}</h1>
+            <h1 class="text-foreground text-2xl font-bold">{project?.name ?? 'Document'}</h1>
             {#if ocrConfig}
               <a
                 href="/projects/{page.params.id}/settings"
                 class="bg-muted text-muted-foreground border-border hover:border-primary hover:text-primary inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors"
-                title="OCR 엔진 설정"
+                title="OCR Engine Settings"
               >
                 {getDefaultEngineName(ocrConfig)}
               </a>
@@ -337,7 +337,7 @@
           <a
             href="/projects/{page.params.id}/progress"
             class="text-muted-foreground hover:text-accent-foreground hover:bg-accent border-border inline-flex h-9 items-center gap-1 rounded-lg border px-3 text-sm transition-all"
-            title="작업 현황"
+            title="Task Progress"
           >
             <svg
               class="h-4 w-4"
@@ -352,12 +352,12 @@
                 d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
               />
             </svg>
-            작업 현황
+            Task Progress
           </a>
           <a
             href="/projects/{page.params.id}/review"
             class="text-muted-foreground hover:text-accent-foreground hover:bg-accent border-border inline-flex h-9 items-center gap-1 rounded-lg border px-3 text-sm transition-all"
-            title="검수 큐"
+            title="Review Queue"
           >
             <svg
               class="h-4 w-4"
@@ -372,14 +372,14 @@
                 d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            검수 큐
+            Review Queue
           </a>
           <a
             href="/projects/{page.params.id}/settings"
             class="text-muted-foreground hover:text-accent-foreground hover:bg-accent border-border inline-flex h-9
               w-9 items-center justify-center
               rounded-lg border transition-all"
-            title="프로젝트 설정"
+            title="Project Settings"
           >
             <svg
               class="h-5 w-5"
@@ -418,7 +418,7 @@
                 d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
               />
             </svg>
-            {isExporting ? '내보내는 중...' : '전체 내보내기'}
+            {isExporting ? 'Exporting...' : 'Export All'}
           </Button>
           <input
             type="file"
@@ -428,13 +428,13 @@
             onchange={handleUpload}
           />
           <Button variant="default" disabled={isUploading} onclick={() => fileInput.click()}>
-            {isUploading ? '업로드 중...' : 'PDF 업로드'}
+            {isUploading ? 'Uploading...' : 'PDF Upload'}
           </Button>
         </div>
       </div>
 
       {#if isLoading}
-        <div class="py-12"><LoadingSpinner message="문서 불러오는 중..." /></div>
+        <div class="py-12"><LoadingSpinner message="Loading documents..." /></div>
       {:else if error}
         <div
           class="bg-destructive/10 dark:bg-destructive/20 border-destructive/30 rounded-xl border p-6 text-center"
@@ -457,7 +457,7 @@
             </svg>
           </div>
           <p class="text-destructive mb-4 font-medium">{error}</p>
-          <Button variant="outline" onclick={loadData}>다시 시도</Button>
+          <Button variant="outline" onclick={loadData}>Retry</Button>
         </div>
       {:else if documents.length === 0}
         <div class="bg-muted border-border rounded-2xl border p-16 text-center">
@@ -478,11 +478,11 @@
               />
             </svg>
           </div>
-          <p class="text-muted-foreground mb-2 text-lg font-medium">아직 문서가 없습니다</p>
+          <p class="text-muted-foreground mb-2 text-lg font-medium">No documents yet</p>
           <p class="text-muted-foreground mb-6 text-sm">
-            PDF 파일을 업로드하여 레이블링을 시작하세요.
+            Upload a PDF to start labeling.
           </p>
-          <Button variant="default" onclick={() => fileInput.click()}>PDF 업로드</Button>
+          <Button variant="default" onclick={() => fileInput.click()}>PDF Upload</Button>
         </div>
       {:else}
         <div class="space-y-3">
@@ -498,7 +498,7 @@
                   <div>
                     <h3 class="text-foreground font-medium">{doc.filename}</h3>
                     <div class="mt-1.5 flex items-center gap-2">
-                      <span class="text-muted-foreground text-sm">{doc.total_pages}페이지</span>
+                      <span class="text-muted-foreground text-sm">{doc.total_pages}Page</span>
                       <span
                         class="badge
                         {doc.status === 'ready'
@@ -512,16 +512,16 @@
                                 : 'bg-muted text-muted-foreground border-border border'}"
                       >
                         {doc.status === 'ready'
-                          ? '준비됨'
+                          ? 'Ready'
                           : doc.status === 'processing'
-                            ? '처리 중'
+                            ? 'Processing'
                             : doc.status === 'extracting'
-                              ? '추출 중'
+                              ? 'Extracting'
                               : doc.status === 'error'
-                                ? '오류'
+                                ? 'Error'
                                 : doc.status === 'extraction_failed'
-                                  ? '추출 실패'
-                                  : '업로드 중'}
+                                  ? 'Extraction Failed'
+                                  : 'Uploading'}
                       </span>
                     </div>
                   </div>
@@ -532,14 +532,14 @@
                         disabled={exportingDocId === doc.id}
                         onclick={(e) => handleExportDoc(e, doc.id)}
                       >
-                        {exportingDocId === doc.id ? '내보내는 중...' : '내보내기'}
+                        {exportingDocId === doc.id ? 'Exporting...' : 'Export'}
                       </button>
                     {/if}
                     <button
                       class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg px-2 py-1 text-xs transition-all"
                       onclick={(e) => handleDeleteDoc(e, doc.id)}
                     >
-                      삭제
+                      Delete
                     </button>
                     <svg
                       class="text-muted-foreground h-4 w-4 transition-transform {expandedDoc ===
@@ -585,12 +585,12 @@
                                   : 'text-muted-foreground'}"
                           >
                             {docPage.status === 'submitted'
-                              ? '완료'
+                              ? 'Complete'
                               : docPage.status === 'in_progress'
-                                ? '진행 중'
+                                ? 'In Progress'
                                 : docPage.status === 'reviewed'
-                                  ? '검토됨'
-                                  : '대기'}
+                                  ? 'Reviewed'
+                                  : 'Pending'}
                           </span>
                         </a>
                       {/each}
